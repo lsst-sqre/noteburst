@@ -2,7 +2,5 @@
 noteburst
 #########
 
-Parameterized notebooks for the Rubin Science Platform
-
-noteburst is developed with the `Safir <https://safir.lsst.io>`__ framework.
-`Get started with development with the tutorial <https://safir.lsst.io/set-up-from-template.html>`__.
+Noteburst is a Rubin Science Platform service that coordinates running Jupyter Notebooks in a JupyterLab context.
+Noteburst can be used by CI and monitoring services, as well as for applications that need to compute and render Jupyter Notebooks programatically.
