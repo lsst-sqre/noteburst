@@ -1,17 +1,32 @@
 """Handlers for the app's external root, ``/noteburst/``."""
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from safir.dependencies.logger import logger_dependency
+from safir.metadata import Metadata as SafirMetadata
 from safir.metadata import get_metadata
 from structlog.stdlib import BoundLogger
 
-from ..config import config
-from ..models import Index
+from noteburst.config import config
 
 __all__ = ["get_index", "external_router"]
 
 external_router = APIRouter()
 """FastAPI router for all external handlers."""
+
+
+class Index(BaseModel):
+    """Metadata returned by the external root URL of the application.
+
+    Notes
+    -----
+    As written, this is not very useful. Add additional metadata that will be
+    helpful for a user exploring the application, or replace this model with
+    some other model that makes more sense to return from the application API
+    root.
+    """
+
+    metadata: SafirMetadata = Field(..., title="Package metadata")
 
 
 @external_router.get(

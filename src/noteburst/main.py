@@ -32,16 +32,16 @@ app = FastAPI()
 
 # Define the external routes in a subapp so that it will serve its own OpenAPI
 # interface definition and documentation URLs under the external URL.
-_subapp = FastAPI(
+external_app = FastAPI(
     title="noteburst",
     description=metadata("noteburst").get("Summary", ""),
     version=metadata("noteburst").get("Version", "0.0.0"),
 )
-_subapp.include_router(external_router)
+external_app.include_router(external_router)
 
 # Attach the internal routes and subapp to the main application.
 app.include_router(internal_router)
-app.mount(f"/{config.name}", _subapp)
+app.mount(f"/{config.name}", external_app)
 
 
 @app.on_event("startup")
