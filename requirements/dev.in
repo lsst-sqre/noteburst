@@ -16,3 +16,9 @@ pytest
 pytest-asyncio
 pytest-cov
 uvicorn
+
+# Documentation
+documenteer
+lsst-sphinx-bootstrap-theme<0.3
+sphinx-automodapi
+sphinx-click

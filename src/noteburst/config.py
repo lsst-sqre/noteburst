@@ -2,40 +2,43 @@
 
 from __future__ import annotations
 
-import os
-from dataclasses import dataclass
+from enum import Enum
 
-__all__ = ["Configuration", "config"]
+from pydantic import BaseSettings, Field
 
-
-@dataclass
-class Configuration:
-    """Configuration for noteburst."""
-
-    name: str = os.getenv("SAFIR_NAME", "noteburst")
-    """The application's name, which doubles as the root HTTP endpoint path.
-
-    Set with the ``SAFIR_NAME`` environment variable.
-    """
-
-    profile: str = os.getenv("SAFIR_PROFILE", "development")
-    """Application run profile: "development" or "production".
-
-    Set with the ``SAFIR_PROFILE`` environment variable.
-    """
-
-    logger_name: str = os.getenv("SAFIR_LOGGER", "noteburst")
-    """The root name of the application's logger.
-
-    Set with the ``SAFIR_LOGGER`` environment variable.
-    """
-
-    log_level: str = os.getenv("SAFIR_LOG_LEVEL", "INFO")
-    """The log level of the application's logger.
-
-    Set with the ``SAFIR_LOG_LEVEL`` environment variable.
-    """
+__all__ = ["Config", "Profile", "LogLevel"]
 
 
-config = Configuration()
+class Profile(str, Enum):
+
+    production = "production"
+
+    development = "development"
+
+
+class LogLevel(str, Enum):
+
+    DEBUG = "DEBUG"
+
+    INFO = "INFO"
+
+    WARNING = "WARNING"
+
+    ERROR = "ERROR"
+
+    CRITICAL = "CRITICAL"
+
+
+class Config(BaseSettings):
+
+    name: str = Field("noteburst", env="SAFIR_NAME")
+
+    profile: Profile = Field(Profile.production, env="SAFIR_PROFILE")
+
+    log_level: LogLevel = Field(LogLevel.INFO, env="SAFIR_LOG_LEVEL")
+
+    logger_name: str = Field("noteburst", env="SAFIR_LOGGER")
+
+
+config = Config()
 """Configuration for noteburst."""

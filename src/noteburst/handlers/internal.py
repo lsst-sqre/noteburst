@@ -11,7 +11,7 @@ or other information that should not be visible outside the Kubernetes cluster.
 from fastapi import APIRouter
 from safir.metadata import Metadata, get_metadata
 
-from ..config import config
+from noteburst.config import config
 
 __all__ = ["get_index", "internal_router"]
 
