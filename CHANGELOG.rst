@@ -2,7 +2,7 @@
 Change log
 ##########
 
-Unreleased
-==========
+0.1.0 (2021-09-29)
+==================
 
-- Initial release of Noteburst.
+- Initial development version of Noteburst.
