@@ -392,6 +392,7 @@ class JupyterClient:
         self._http_client: Optional[httpx.AsyncClient] = None
         self._cachemachine: Optional[CachemachineClient] = None
         self._common_headers: Dict[str, str]  # set and reset in the context
+        self._jupyter_lab_token: Optional[str] = None
 
     @property
     def http_client(self) -> httpx.AsyncClient:
@@ -663,3 +664,52 @@ class JupyterClient:
                 r = await self.http_client.delete(session_id_url)
                 if r.status_code != 204:
                     raise JupyterError.from_response(self.user.username, r)
+
+    async def execute_notebook(
+        self, notebook: Dict[str, Any], kernel_name: str = "LSST"
+    ) -> Dict[str, Any]:
+        """Execute a Jupyter notebook through the JupyterLab Notebook execution
+        extension.
+
+        Parameters
+        ----------
+        notebook : dict
+            A Jupyter Notebook, parsed from its JSON form.
+
+        Returns
+        -------
+        notebook : dict
+            The executed Jupyter Notebook.
+
+        Raises
+        ------
+        JupyterError
+            Raised if there is an error interacting with the JupyterLab
+            Notebook execution extension.
+        """
+        exec_url = self.url_for("user/{self.user.username}/rubin/execution")
+        jupyter_lab_token = await self._get_jupyter_lab_token()
+        headers = self._common_headers.copy()
+        headers["Authorization"] = f"token {jupyter_lab_token}"
+        r = await self.http_client.post(
+            exec_url,
+            headers=headers,
+            content=json.dumps(notebook).encode("utf-8"),
+        )
+        if r.status_code != 200:
+            raise JupyterError.from_response(self.user.username, r)
+
+        return json.loads(r.text)
+
+    async def _get_jupyter_lab_token(self) -> str:
+        """Get the JUPYTER_LAB_TOKEN from the environment endpoint."""
+        if self._jupyter_lab_token is None:
+            environment_url = self.url_for(
+                "user/{self.user.username}/rubin/environment"
+            )
+            r = await self.http_client.get(environment_url)
+            if r.status_code != 200:
+                raise JupyterError.from_response(self.user.username, r)
+            env_data = r.json()
+            self._jupyter_lab_token = env_data["JUPYTER_LAB_TOKEN"]
+        return self._jupyter_lab_token
