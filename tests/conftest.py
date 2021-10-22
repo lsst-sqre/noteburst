@@ -2,24 +2,27 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import contextlib
+from typing import TYPE_CHECKING, Any, AsyncGenerator
 
 import pytest
 import respx
+import websockets
 from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
 from noteburst import main
 from tests.support.cachemachine import mock_cachemachine
-from tests.support.jupyter import mock_jupyter
+from tests.support.jupyter import mock_jupyter, mock_jupyter_websocket
 
 if TYPE_CHECKING:
     from typing import AsyncIterator
 
+    from _pytest.monkeypatch import MonkeyPatch
     from fastapi import FastAPI
 
     from tests.support.cachemachine import MockCachemachine
-    from tests.support.jupyter import MockJupyter
+    from tests.support.jupyter import MockJupyter, MockJupyterWebSocket
 
 
 @pytest.fixture
@@ -47,6 +50,16 @@ async def cachemachine(respx_mock: respx.Router) -> MockCachemachine:
 
 
 @pytest.fixture
-def jupyter(respx_mock: respx.Router) -> MockJupyter:
+def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
     """Mock out JupyterHub/Lab API."""
-    return mock_jupyter(respx_mock)
+    jupyter_mock = mock_jupyter(respx_mock)
+
+    @contextlib.asynccontextmanager
+    async def mock_websocket_connect(
+        url: str, **kwargs: Any
+    ) -> AsyncGenerator[MockJupyterWebSocket, None]:
+        yield mock_jupyter_websocket(url, jupyter_mock)
+
+    monkeypatch.setattr(websockets, "connect", mock_websocket_connect)
+
+    return jupyter_mock

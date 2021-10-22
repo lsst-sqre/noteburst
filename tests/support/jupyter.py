@@ -6,20 +6,31 @@ import asyncio
 import json
 import re
 from base64 import urlsafe_b64decode
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, Optional
-from unittest.mock import AsyncMock
+from io import StringIO
+from traceback import format_exc
+from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Optional
+from unittest.mock import ANY, AsyncMock, Mock
 from uuid import uuid4
 
 import httpx
 import structlog
+from websockets.client import WebSocketClientProtocol
 
 from noteburst.config import config
 from noteburst.jupyterclient.jupyterlab import JupyterLabSession
 
 if TYPE_CHECKING:
     import respx
+
+
+_GET_NODE = """
+from rubin_jupyter_utils.lab.notebook.utils import get_node
+print(get_node(), end="")
+"""
+"""Python code to get the node on which the lab is running."""
 
 
 class JupyterAction(Enum):
@@ -289,3 +300,129 @@ def mock_jupyter(mock_router: respx.Router) -> MockJupyter:
     ).mock(side_effect=mock.delete_session)
 
     return mock
+
+
+class MockJupyterWebSocket(Mock):
+    """Simulate the WebSocket connection in a JupyterLabSession.
+
+    Note
+    ----
+    The methods are named the reverse of what you would expect.  For example,
+    ``send_json`` receives a message, and ``receive_json`` returns a message.
+    This is so that this class can be used as a mock of an
+    `~aiohttp.ClientWebSocketResponse`.
+    """
+
+    def __init__(self, user: str, session_id: str) -> None:
+        super().__init__(spec=WebSocketClientProtocol)
+        self.user = user
+        self.session_id = session_id
+        self._header: Optional[Dict[str, str]] = None
+        self._code: Optional[str] = None
+        self._state: Dict[str, Any] = {}
+
+    def __await__(self) -> MockJupyterWebSocket:
+        return self
+
+    async def __aenter__(self) -> MockJupyterWebSocket:
+        return await self
+
+    async def __aexit__(
+        self, exc_type: Any, exc_value: Any, traceback: Any
+    ) -> None:
+        pass
+
+    async def send(self, text_message: str) -> None:
+        message = json.loads(text_message)
+        assert message == {
+            "header": {
+                "username": self.user,
+                "version": "5.0",
+                "session": self.session_id,
+                "msg_id": ANY,
+                "msg_type": "execute_request",
+            },
+            "parent_header": {},
+            "channel": "shell",
+            "content": {
+                "code": ANY,
+                "silent": False,
+                "store_history": False,
+                "user_expressions": {},
+                "allow_stdin": False,
+            },
+            "metadata": {},
+            "buffers": {},
+        }
+        self._header = message["header"]
+        self._code = message["content"]["code"]
+
+    async def __aiter__(self) -> AsyncIterator[str]:
+        assert self._header
+        while True:
+            if self._code == _GET_NODE:
+                self._code = None
+                yield json.dumps(
+                    {
+                        "msg_type": "stream",
+                        "parent_header": self._header,
+                        "content": {"text": "some-node"},
+                    }
+                )
+            elif self._code == "long_error_for_test()":
+                self._code = None
+                error = ""
+                line = (
+                    "this is a single line of output to test trimming errors"
+                )
+                for i in range(int(3000 / len(line))):
+                    error += f"{line} #{i}\n"
+                yield json.dumps(
+                    {
+                        "msg_type": "error",
+                        "parent_header": self._header,
+                        "content": {"traceback": error},
+                    }
+                )
+            elif self._code:
+                try:
+                    output = StringIO()
+                    with redirect_stdout(output):
+                        exec(self._code, self._state)
+                    self._code = None
+                    yield json.dumps(
+                        {
+                            "msg_type": "stream",
+                            "parent_header": self._header,
+                            "content": {"text": output.getvalue()},
+                        }
+                    )
+                except Exception:
+                    result = {
+                        "msg_type": "error",
+                        "parent_header": self._header,
+                        "content": {"traceback": format_exc()},
+                    }
+                    self._header = None
+                    yield json.dumps(result)
+            else:
+                result = {
+                    "msg_type": "execute_reply",
+                    "parent_header": self._header,
+                    "content": {"status": "ok"},
+                }
+                self._header = None
+                yield json.dumps(result)
+
+
+def mock_jupyter_websocket(
+    url: str, jupyter: MockJupyter
+) -> MockJupyterWebSocket:
+    """Create a new mock ClientWebSocketResponse that simulates a lab."""
+    match = re.search("/user/([^/]+)/api/kernels/([^/]+)/channels", url)
+    assert match
+    user = match.group(1)
+    assert user
+    session = jupyter.sessions[user]
+    assert match.group(2) == session.kernel_id
+    return MockJupyterWebSocket(user, session.session_id)
