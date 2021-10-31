@@ -17,6 +17,7 @@ from safir.middleware.x_forwarded import XForwardedMiddleware
 from .config import config
 from .handlers.external import external_router
 from .handlers.internal import internal_router
+from .handlers.prototyping import prototype_router
 from .handlers.v1 import v1_router
 
 __all__ = ["app", "config"]
@@ -40,6 +41,7 @@ external_app = FastAPI(
 )
 external_app.include_router(external_router)
 external_app.include_router(v1_router, prefix="/v1")
+external_app.include_router(prototype_router)
 
 # Attach the internal routes and subapp to the main application.
 app.include_router(internal_router)
