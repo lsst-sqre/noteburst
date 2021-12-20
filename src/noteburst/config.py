@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from enum import Enum
+from urllib.parse import urlparse
 
-from pydantic import BaseSettings, Field, HttpUrl, SecretStr
+from arq.connections import RedisSettings
+from pydantic import BaseSettings, Field, HttpUrl, RedisDsn, SecretStr
 
 __all__ = ["Config", "Profile", "LogLevel"]
 
@@ -49,6 +51,21 @@ class Config(BaseSettings):
     """This token is used to make an admin API call to Gafaelfawr to get a
     token for the user.
     """
+
+    redis_url: RedisDsn = Field(
+        "redis://localhost:6379", env="NOTEBURST_REDIS_URL"
+    )
+    """URL for the redis instance, used by the worker queue."""
+
+    @property
+    def arq_redis_settings(self) -> RedisSettings:
+        """Create a Redis settings instance for arq."""
+        url_parts = urlparse(self.redis_url)
+        redis_settings = RedisSettings(
+            host=url_parts.hostname if url_parts.hostname else "localhost",
+            port=url_parts.port if url_parts.port else 6379,
+        )
+        return redis_settings
 
 
 config = Config()
