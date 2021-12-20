@@ -12,6 +12,7 @@ starlette
 uvicorn[standard]
 
 # Other dependencies.
+arq
 safir
 pydantic[dotenv]
 httpx
