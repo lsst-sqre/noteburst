@@ -10,6 +10,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 from safir.dependencies.http_client import http_client_dependency
 from safir.dependencies.logger import logger_dependency
 
+from noteburst.dependencies.arqpool import ArqPool, arq_dependency
 from noteburst.jupyterclient.jupyterlab import (
     JupyterClient,
     JupyterConfig,
@@ -174,3 +175,16 @@ async def run_code(
         logger.info("Stopping JupyterLab")
         await jupyter_client.stop_lab()
         logger.info("Stopped JupyterLab")
+
+
+@prototype_router.post(
+    "/ping", description="Enqueue the ping worker task.", status_code=202
+)
+async def post_ping(
+    *,
+    logger: structlog.BoundLogger = Depends(logger_dependency),
+    arq_pool: ArqPool = Depends(arq_dependency),
+) -> None:
+    logger.info("Enqueing a ping task")
+    await arq_pool.enqueue_job("ping")
+    logger.info("Finished enqueing a ping task")
