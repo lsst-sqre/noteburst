@@ -6,11 +6,13 @@ import asyncio
 
 import httpx
 import structlog
+from arq.connections import ArqRedis
+from arq.jobs import Job
 from fastapi import APIRouter, BackgroundTasks, Depends
 from safir.dependencies.http_client import http_client_dependency
 from safir.dependencies.logger import logger_dependency
 
-from noteburst.dependencies.arqpool import ArqPool, arq_dependency
+from noteburst.dependencies.arqpool import arq_dependency
 from noteburst.jupyterclient.jupyterlab import (
     JupyterClient,
     JupyterConfig,
@@ -18,7 +20,7 @@ from noteburst.jupyterclient.jupyterlab import (
 )
 from noteburst.jupyterclient.user import User
 
-from .models import PostCodeRequest, PostLoginRequest
+from .models import PostCodeRequest, PostLoginRequest, QueuedJob
 
 prototype_router = APIRouter(prefix="/prototype")
 
@@ -183,8 +185,22 @@ async def run_code(
 async def post_ping(
     *,
     logger: structlog.BoundLogger = Depends(logger_dependency),
-    arq_pool: ArqPool = Depends(arq_dependency),
-) -> None:
+    arq_pool: ArqRedis = Depends(arq_dependency),
+) -> QueuedJob:
     logger.info("Enqueing a ping task")
-    await arq_pool.enqueue_job("ping")
-    logger.info("Finished enqueing a ping task")
+    job = await arq_pool.enqueue_job("ping")
+    logger.info("Finished enqueing a ping task", job_id=job.job_id)
+    return await QueuedJob.from_job(job)
+
+
+@prototype_router.get(
+    "/jobs/{job_id}", description="Get information about a queued job."
+)
+async def get_job(
+    *,
+    job_id: str,
+    logger: structlog.BoundLogger = Depends(logger_dependency),
+    arq_pool: ArqRedis = Depends(arq_dependency),
+) -> QueuedJob:
+    job = Job(job_id, arq_pool)
+    return await QueuedJob.from_job(job)
