@@ -52,7 +52,9 @@ app.mount(f"/{config.name}", external_app)
 @app.on_event("startup")
 async def startup_event() -> None:
     app.add_middleware(XForwardedMiddleware)
-    await arq_dependency.initialize(config.arq_redis_settings)
+    await arq_dependency.initialize(
+        mode=config.arq_mode, redis_settings=config.arq_redis_settings
+    )
 
 
 @app.on_event("shutdown")

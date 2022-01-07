@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 from arq.connections import RedisSettings
 from pydantic import BaseSettings, Field, HttpUrl, RedisDsn, SecretStr
 
+from noteburst.dependencies.arqpool import ArqMode
+
 __all__ = ["Config", "Profile", "LogLevel"]
 
 
@@ -56,6 +58,8 @@ class Config(BaseSettings):
         "redis://localhost:6379", env="NOTEBURST_REDIS_URL"
     )
     """URL for the redis instance, used by the worker queue."""
+
+    arq_mode: ArqMode = Field(ArqMode.production, env="NOTEBURST_ARQ_MODE")
 
     @property
     def arq_redis_settings(self) -> RedisSettings:

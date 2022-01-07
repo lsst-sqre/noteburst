@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from arq.jobs import JobStatus
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    import arq.jobs
+    from noteburst.dependencies.arqpool import JobMetadata
 
 
 class PostLoginRequest(BaseModel):
@@ -53,25 +53,13 @@ class QueuedJob(BaseModel):
 
     enqueue_time: datetime
 
-    start_time: Optional[datetime]
-
-    finish_time: Optional[datetime]
-
-    success: Optional[bool]
-
     status: JobStatus
 
     @classmethod
-    async def from_job(cls, job: arq.jobs.Job) -> QueuedJob:
-        job_info = await job.info()
-        result_info = await job.result_info()
-        job_status = await job.status()
+    async def from_job_metadata(cls, meta: JobMetadata) -> QueuedJob:
         return cls(
-            job_id=job.job_id,
-            task_name=job_info.function,
-            enqueue_time=job_info.enqueue_time,
-            start_time=result_info.start_time if result_info else None,
-            finish_time=result_info.finish_time if result_info else None,
-            success=result_info.success if result_info else None,
-            status=job_status,
+            job_id=meta.id,
+            task_name=meta.name,
+            enqueue_time=meta.enqueue_time,
+            status=meta.status,
         )

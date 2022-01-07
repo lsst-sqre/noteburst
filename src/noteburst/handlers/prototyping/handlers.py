@@ -6,13 +6,11 @@ import asyncio
 
 import httpx
 import structlog
-from arq.connections import ArqRedis
-from arq.jobs import Job
 from fastapi import APIRouter, BackgroundTasks, Depends
 from safir.dependencies.http_client import http_client_dependency
 from safir.dependencies.logger import logger_dependency
 
-from noteburst.dependencies.arqpool import arq_dependency
+from noteburst.dependencies.arqpool import ArqQueue, arq_dependency
 from noteburst.jupyterclient.jupyterlab import (
     JupyterClient,
     JupyterConfig,
@@ -185,12 +183,12 @@ async def run_code(
 async def post_ping(
     *,
     logger: structlog.BoundLogger = Depends(logger_dependency),
-    arq_pool: ArqRedis = Depends(arq_dependency),
+    arq_queue: ArqQueue = Depends(arq_dependency),
 ) -> QueuedJob:
     logger.info("Enqueing a ping task")
-    job = await arq_pool.enqueue_job("ping")
-    logger.info("Finished enqueing a ping task", job_id=job.job_id)
-    return await QueuedJob.from_job(job)
+    job_metadata = await arq_queue.enqueue("ping")
+    logger.info("Finished enqueing a ping task", job_id=job_metadata.id)
+    return await QueuedJob.from_job_metadata(job_metadata)
 
 
 @prototype_router.get(
@@ -200,7 +198,7 @@ async def get_job(
     *,
     job_id: str,
     logger: structlog.BoundLogger = Depends(logger_dependency),
-    arq_pool: ArqRedis = Depends(arq_dependency),
+    arq_queue: ArqQueue = Depends(arq_dependency),
 ) -> QueuedJob:
-    job = Job(job_id, arq_pool)
-    return await QueuedJob.from_job(job)
+    job_metadata = await arq_queue.get_job_metadata(job_id)
+    return await QueuedJob.from_job_metadata(job_metadata)
