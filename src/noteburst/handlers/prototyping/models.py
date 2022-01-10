@@ -6,9 +6,11 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from arq.jobs import JobStatus
-from pydantic import BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field
 
 if TYPE_CHECKING:
+    from fastapi import Request
+
     from noteburst.dependencies.arqpool import JobMetadata
 
 
@@ -55,11 +57,16 @@ class QueuedJob(BaseModel):
 
     status: JobStatus
 
+    self_url: AnyHttpUrl
+
     @classmethod
-    async def from_job_metadata(cls, meta: JobMetadata) -> QueuedJob:
+    async def from_job_metadata(
+        cls, *, job: JobMetadata, request: Request
+    ) -> QueuedJob:
         return cls(
-            job_id=meta.id,
-            task_name=meta.name,
-            enqueue_time=meta.enqueue_time,
-            status=meta.status,
+            job_id=job.id,
+            task_name=job.name,
+            enqueue_time=job.enqueue_time,
+            status=job.status,
+            self_url=request.url_for("get_job", job_id=job.id),
         )
