@@ -20,17 +20,17 @@ certifi==2021.10.8 \
     # via
     #   httpcore
     #   httpx
-charset-normalizer==2.0.9 \
-    --hash=sha256:1eecaa09422db5be9e29d7fc65664e6c33bd06f9ced7838578ba40d58bdf3721 \
-    --hash=sha256:b0b883e8e874edfdece9c28f314e3dd5badf067342e42fb162203335ae61aa2c
+charset-normalizer==2.0.10 \
+    --hash=sha256:876d180e9d7432c5d1dfd4c5d26b72f099d503e8fcc0feb7532c9289be60fcbd \
+    --hash=sha256:cb957888737fc0bbcd78e3df769addb41fd1ff8cf950dc9e7ad7793f1bf44455
     # via httpx
 click==8.0.3 \
     --hash=sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3 \
     --hash=sha256:410e932b050f5eed773c4cda94de75971c89cdb3155a72a0831139a79e5ecb5b
     # via uvicorn
-fastapi==0.70.1 \
-    --hash=sha256:21d03979b5336375c66fa5d1f3126c6beca650d5d2166fbb78345a30d33c8d06 \
-    --hash=sha256:5367226c7bcd7bfb2e17edaf225fd9a983095b1372281e9a3eb661336fb93748
+fastapi==0.71.0 \
+    --hash=sha256:2b5ac0ae89c80b40d1dd4b2ea0bb1f78d7c4affd3644d080bf050f084759fff2 \
+    --hash=sha256:a78eca6b084de9667f2d5f37e2ae297270e5a119cd01c2f04815795da92fc87f
     # via
     #   -r requirements/main.in
     #   safir
@@ -44,9 +44,9 @@ h11==0.12.0 \
     # via
     #   httpcore
     #   uvicorn
-httpcore==0.14.3 \
-    --hash=sha256:9a98d2416b78976fc5396ff1f6b26ae9885efbb3105d24eed490f20ab4c95ec1 \
-    --hash=sha256:d10162a63265a0228d5807964bd964478cbdb5178f9a2eedfebb2faba27eef5d
+httpcore==0.14.4 \
+    --hash=sha256:9410fe352bea732311f2b2bee0555c8cc5e62b9a73b9d3272fe125a2aa6eb28e \
+    --hash=sha256:d4305811f604d3c2e22869147392f134796976ff946c96a8cfba87f4e0171d83
     # via httpx
 httptools==0.3.0 \
     --hash=sha256:04114db99605c9b56ea22a8ec4d7b1485b908128ed4f4a8f6438489c428da794 \
@@ -74,9 +74,9 @@ httptools==0.3.0 \
     --hash=sha256:cdc3975db86c29817e6d13df14e037c931fc893a710fb71097777a4147090068 \
     --hash=sha256:eda95634027200f4b2a6d499e7c2e7fa9b8ee57e045dfda26958ea0af27c070b
     # via uvicorn
-httpx==0.21.1 \
-    --hash=sha256:02af20df486b78892a614a7ccd4e4e86a5409ec4981ab0e422c579a887acad83 \
-    --hash=sha256:208e5ef2ad4d105213463cfd541898ed9d11851b346473539a8425e644bb7c66
+httpx==0.21.3 \
+    --hash=sha256:7a3eb67ef0b8abbd6d9402248ef2f84a76080fa1c839f8662e6eb385640e445a \
+    --hash=sha256:df9a0fd43fa79dbab411d83eb1ea6f7a525c96ad92e60c2d7f40388971b25777
     # via
     #   -r requirements/main.in
     #   safir
@@ -182,9 +182,9 @@ sniffio==1.2.0 \
     #   anyio
     #   httpcore
     #   httpx
-starlette==0.16.0 \
-    --hash=sha256:38eb24bf705a2c317e15868e384c1b8a12ca396e5a3c3a003db7e667c43f939f \
-    --hash=sha256:e1904b5d0007aee24bdd3c43994be9b3b729f4f58e740200de1d623f8c3a8870
+starlette==0.17.1 \
+    --hash=sha256:26a18cbda5e6b651c964c12c88b36d9898481cd428ed6e063f5f29c418f73050 \
+    --hash=sha256:57eab3cc975a28af62f6faec94d355a410634940f10b30d68d31cb5ec1b44ae8
     # via
     #   -r requirements/main.in
     #   fastapi
