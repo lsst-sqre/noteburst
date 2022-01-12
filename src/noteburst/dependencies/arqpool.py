@@ -10,6 +10,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
 
 from arq import create_pool
+from arq.constants import default_queue_name as arq_default_queue_name
 from arq.jobs import Job, JobStatus
 
 if TYPE_CHECKING:
@@ -73,6 +74,9 @@ class JobMetadata:
     - ``not_found`` (the job cannot be found)
     """
 
+    queue_name: str
+    """Name of the queue this job belongs to."""
+
     @classmethod
     async def from_job(cls, job: arq.jobs.Job) -> JobMetadata:
         """Initialize JobMetadata from an arq Job.
@@ -97,6 +101,9 @@ class JobMetadata:
             kwargs=job_info.kwargs,
             enqueue_time=job_info.enqueue_time,
             status=job_status,
+            # private attribute of Job; not available in JobDef
+            # queue_name is available in JobResult
+            queue_name=job._queue_name,
         )
 
 
@@ -150,6 +157,7 @@ class JobResult(JobMetadata):
             finish_time=result_info.finish_time,
             success=result_info.success,
             status=job_status,
+            queue_name=result_info.queue_name,
             result=result_info.result,
         )
 
@@ -160,9 +168,22 @@ class ArqQueue(metaclass=abc.ABCMeta):
     for testing.
     """
 
+    def __init__(
+        self, *, default_queue_name: str = arq_default_queue_name
+    ) -> None:
+        self._default_queue_name = default_queue_name
+
+    @property
+    def default_queue_name(self) -> str:
+        return self._default_queue_name
+
     @abc.abstractmethod
     async def enqueue(
-        self, task_name: str, *task_args: Any, **task_kwargs: Any
+        self,
+        task_name: str,
+        *task_args: Any,
+        _queue_name: Optional[str] = None,
+        **task_kwargs: Any,
     ) -> JobMetadata:
         """Add a job to the queue.
 
@@ -172,6 +193,8 @@ class ArqQueue(metaclass=abc.ABCMeta):
             The function name to run.
         *args
             Positional arguments for the task function.
+        _queue_name : `str`
+            Name of the queue.
         **kwargs
             Keyword arguments passed to the task function.
 
@@ -188,7 +211,9 @@ class ArqQueue(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def get_job_metadata(self, job_id: str) -> JobMetadata:
+    async def get_job_metadata(
+        self, job_id: str, queue_name: Optional[str] = None
+    ) -> JobMetadata:
         """Get metadata about a job.
 
         Parameters
@@ -196,6 +221,8 @@ class ArqQueue(metaclass=abc.ABCMeta):
         job_id : `str`
             The job's identifier. This is the same as the `JobMetadata.id`
             attribute, provided when initially adding a job to the queue.
+        queue_name : `str`, optional
+            Name of the queue.
 
         Returns
         -------
@@ -210,7 +237,9 @@ class ArqQueue(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def get_job_result(self, job_id: str) -> JobResult:
+    async def get_job_result(
+        self, job_id: str, queue_name: Optional[str] = None
+    ) -> JobResult:
         """The job result, if available.
 
         Parameters
@@ -218,6 +247,8 @@ class ArqQueue(metaclass=abc.ABCMeta):
         job_id : `str`
             The job's identifier. This is the same as the `JobMetadata.id`
             attribute, provided when initially adding a job to the queue.
+        queue_name : `str`, optional
+            Name of the queue.
 
         Returns
         -------
@@ -237,48 +268,95 @@ class ArqQueue(metaclass=abc.ABCMeta):
 class RedisArqQueue(ArqQueue):
     """A distributed queue, based on arq and Redis."""
 
-    def __init__(self, pool: ArqRedis) -> None:
+    def __init__(
+        self,
+        pool: ArqRedis,
+        *,
+        default_queue_name: str = arq_default_queue_name,
+    ) -> None:
+        super().__init__(default_queue_name=default_queue_name)
         self._pool = pool
 
     @classmethod
-    async def initialize(cls, redis_settings: RedisSettings) -> RedisArqQueue:
+    async def initialize(
+        cls,
+        redis_settings: RedisSettings,
+        *,
+        default_queue_name: str = arq_default_queue_name,
+    ) -> RedisArqQueue:
         """Initialize a RedisArqQueue from Redis settings."""
-        pool = await create_pool(redis_settings)
+        pool = await create_pool(
+            redis_settings, default_queue_name=default_queue_name
+        )
         return cls(pool)
 
+    @property
+    def default_queue_name(self) -> str:
+        return self._default_queue_name
+
     async def enqueue(
-        self, task_name: str, *task_args: Any, **task_kwargs: Any
+        self,
+        task_name: str,
+        *task_args: Any,
+        _queue_name: Optional[str] = None,
+        **task_kwargs: Any,
     ) -> JobMetadata:
         job = await self._pool.enqueue_job(
-            task_name, *task_args, **task_kwargs
+            task_name,
+            *task_args,
+            _queue_name=_queue_name or self.default_queue_name,
+            **task_kwargs,
         )
         if job:
             return await JobMetadata.from_job(job)
         else:
             raise JobNotQueued
 
-    def _get_job(self, job_id: str) -> Job:
-        return Job(job_id, self._pool)
+    def _get_job(self, job_id: str, queue_name: Optional[str] = None) -> Job:
+        return Job(
+            job_id,
+            self._pool,
+            _queue_name=queue_name or self.default_queue_name,
+        )
 
-    async def get_job_metadata(self, job_id: str) -> JobMetadata:
-        job = self._get_job(job_id)
+    async def get_job_metadata(
+        self, job_id: str, queue_name: Optional[str] = None
+    ) -> JobMetadata:
+        job = self._get_job(job_id, queue_name=queue_name)
         return await JobMetadata.from_job(job)
 
-    async def get_job_result(self, job_id: str) -> JobResult:
-        job = self._get_job(job_id)
+    async def get_job_result(
+        self, job_id: str, queue_name: Optional[str] = None
+    ) -> JobResult:
+        job = self._get_job(job_id, queue_name=queue_name)
         return await JobResult.from_job(job)
 
 
 class MockArqQueue(ArqQueue):
     """A mocked queue for testing API services."""
 
-    def __init__(self) -> None:
-        self._job_metadata: Dict[str, JobMetadata] = {}
-        self._job_results: Dict[str, JobResult] = {}
+    def __init__(
+        self, *, default_queue_name: str = arq_default_queue_name
+    ) -> None:
+        super().__init__(default_queue_name=default_queue_name)
+        self._job_metadata: Dict[str, Dict[str, JobMetadata]] = {
+            self.default_queue_name: {}
+        }
+        self._job_results: Dict[str, Dict[str, JobResult]] = {
+            self.default_queue_name: {}
+        }
+
+    def _resolve_queue_name(self, queue_name: Optional[str]) -> str:
+        return queue_name or self.default_queue_name
 
     async def enqueue(
-        self, task_name: str, *task_args: Any, **task_kwargs: Any
+        self,
+        task_name: str,
+        _queue_name: Optional[str] = None,
+        *task_args: Any,
+        **task_kwargs: Any,
     ) -> JobMetadata:
+        queue_name = self._resolve_queue_name(_queue_name)
         new_job = JobMetadata(
             id=str(uuid.uuid4().hex),
             name=task_name,
@@ -286,25 +364,34 @@ class MockArqQueue(ArqQueue):
             kwargs=task_kwargs,
             enqueue_time=datetime.now(),
             status=JobStatus.queued,
+            queue_name=queue_name,
         )
-        self._job_metadata[new_job.id] = new_job
+        self._job_metadata[queue_name][new_job.id] = new_job
         return new_job
 
-    async def get_job_metadata(self, job_id: str) -> JobMetadata:
+    async def get_job_metadata(
+        self, job_id: str, queue_name: Optional[str] = None
+    ) -> JobMetadata:
+        queue_name = self._resolve_queue_name(queue_name)
         try:
-            return self._job_metadata[job_id]
+            return self._job_metadata[queue_name][job_id]
         except KeyError:
             raise JobNotFound
 
-    async def get_job_result(self, job_id: str) -> JobResult:
+    async def get_job_result(
+        self, job_id: str, queue_name: Optional[str] = None
+    ) -> JobResult:
+        queue_name = self._resolve_queue_name(queue_name)
         try:
-            return self._job_results[job_id]
+            return self._job_results[queue_name][job_id]
         except KeyError:
             raise JobResultUnavailable
 
-    async def set_in_progress(self, job_id: str) -> None:
+    async def set_in_progress(
+        self, job_id: str, queue_name: Optional[str] = None
+    ) -> None:
         """Set a job's status to in progress, for mocking a queue in tests."""
-        job = await self.get_job_metadata(job_id)
+        job = await self.get_job_metadata(job_id, queue_name=queue_name)
         job.status = JobStatus.in_progress
 
         # An in-progress job cannot have a result
@@ -312,10 +399,19 @@ class MockArqQueue(ArqQueue):
             del self._job_results[job_id]
 
     async def set_complete(
-        self, job_id: str, *, result: Any, success: bool = True
+        self,
+        job_id: str,
+        *,
+        result: Any,
+        success: bool = True,
+        queue_name: Optional[str] = None,
     ) -> None:
         """Set a job's result, for mocking a queue in tests."""
-        job_metadata = await self.get_job_metadata(job_id)
+        queue_name = self._resolve_queue_name(queue_name)
+
+        job_metadata = await self.get_job_metadata(
+            job_id, queue_name=queue_name
+        )
         job_metadata.status = JobStatus.complete
 
         result_info = JobResult(
@@ -329,8 +425,9 @@ class MockArqQueue(ArqQueue):
             finish_time=datetime.now(),
             result=result,
             success=success,
+            queue_name=queue_name,
         )
-        self._job_results[job_id] = result_info
+        self._job_results[queue_name][job_id] = result_info
 
 
 class ArqDependency:
