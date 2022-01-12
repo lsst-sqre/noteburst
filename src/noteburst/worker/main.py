@@ -4,17 +4,27 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+import structlog
+from safir.logging import configure_logging
+
 from noteburst.config import config
 
 from .functions import ping
 
 
 async def startup(ctx: Dict[Any, Any]) -> None:
-    print("Running worker startup")
+    configure_logging(
+        profile=config.profile,
+        log_level=config.log_level,
+        name="noteburst",
+    )
+    logger = structlog.get_logger(__name__)
+    logger.info("Starting up worker")
 
 
 async def shutdown(ctx: Dict[Any, Any]) -> None:
-    print("Running worker shutdown.")
+    logger = structlog.get_logger(__name__)
+    logger.info("Running worker shutdown.")
 
 
 class WorkerSettings:
