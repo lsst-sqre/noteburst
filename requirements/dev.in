@@ -17,6 +17,7 @@ pytest-asyncio
 pytest-cov
 uvicorn
 respx
+types-PyYAML
 
 # Documentation
 documenteer
