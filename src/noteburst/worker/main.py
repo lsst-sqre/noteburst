@@ -7,9 +7,11 @@ from typing import Any, Dict
 import structlog
 from safir.logging import configure_logging
 
-from noteburst.config import config
+from noteburst.config import WorkerConfig
 
 from .functions import ping
+
+config = WorkerConfig()
 
 
 async def startup(ctx: Dict[Any, Any]) -> None:
@@ -36,6 +38,8 @@ class WorkerSettings:
     functions = [ping]
 
     redis_settings = config.arq_redis_settings
+
+    queue_name = config.queue_name
 
     on_startup = startup
 

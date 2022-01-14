@@ -72,5 +72,11 @@ class Config(BaseSettings):
         return redis_settings
 
 
+class WorkerConfig(Config):
+
+    queue_name: str = Field("arq:queue", env="NOTEBURST_WORKER_QUEUE_NAME")
+    """Name of the arq queue that the worker processes from."""
+
+
 config = Config()
 """Configuration for noteburst."""
