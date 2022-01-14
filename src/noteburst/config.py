@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from enum import Enum
+from pathlib import Path
+from typing import List
 from urllib.parse import urlparse
 
 from arq.connections import RedisSettings
@@ -74,8 +76,18 @@ class Config(BaseSettings):
 
 class WorkerConfig(Config):
 
+    identities_path: Path = Field(..., env="NOTEBURST_WORKER_IDENTITIES_PATH")
+    """Path to the configuration file with the pool of Science Platform
+    identities available to workers.
+    """
+
     queue_name: str = Field("arq:queue", env="NOTEBURST_WORKER_QUEUE_NAME")
     """Name of the arq queue that the worker processes from."""
+
+    @property
+    def aioredlock_redis_config(self) -> List[str]:
+        """Redis configurations for aioredlock."""
+        return [str(self.redis_url)]
 
 
 config = Config()
