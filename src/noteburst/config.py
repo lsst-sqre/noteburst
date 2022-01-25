@@ -57,7 +57,7 @@ class Config(BaseSettings):
     """
 
     redis_url: RedisDsn = Field(
-        "redis://localhost:6379", env="NOTEBURST_REDIS_URL"
+        "redis://localhost:6379/0", env="NOTEBURST_REDIS_URL"
     )
     """URL for the redis instance, used by the worker queue."""
 
@@ -68,8 +68,9 @@ class Config(BaseSettings):
         """Create a Redis settings instance for arq."""
         url_parts = urlparse(self.redis_url)
         redis_settings = RedisSettings(
-            host=url_parts.hostname if url_parts.hostname else "localhost",
-            port=url_parts.port if url_parts.port else 6379,
+            host=url_parts.hostname or "localhost",
+            port=url_parts.port or 6379,
+            database=int(url_parts.path.lstrip("/")) if url_parts.path else 0,
         )
         return redis_settings
 
@@ -84,10 +85,14 @@ class WorkerConfig(Config):
     queue_name: str = Field("arq:queue", env="NOTEBURST_WORKER_QUEUE_NAME")
     """Name of the arq queue that the worker processes from."""
 
+    identity_lock_redis_url: RedisDsn = Field(
+        "redis://localhost:6379/1", env="NOTEBURST_WORKER_LOCK_REDIS_URL"
+    )
+
     @property
     def aioredlock_redis_config(self) -> List[str]:
         """Redis configurations for aioredlock."""
-        return [str(self.redis_url)]
+        return [str(self.identity_lock_redis_url)]
 
 
 config = Config()
