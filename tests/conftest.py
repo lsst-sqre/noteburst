@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING, Any, AsyncGenerator
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict
 
 import pytest
 import respx
+import structlog
 import websockets
 from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
 from noteburst import main
+from tests.support.arq import MockIdentityClaim, MockIdentityManager
 from tests.support.cachemachine import mock_cachemachine
 from tests.support.jupyter import mock_jupyter, mock_jupyter_websocket
 
@@ -63,3 +65,21 @@ def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
     monkeypatch.setattr(websockets, "connect", mock_websocket_connect)
 
     return jupyter_mock
+
+
+@pytest.fixture
+async def worker_context() -> Dict[Any, Any]:
+    """A mock ctx (context) fixture for Pytest workers."""
+    ctx: Dict[Any, Any] = {}
+
+    # Prep identity_manager
+    ctx["identity_manager"] = MockIdentityManager()
+    mock_identity = MockIdentityClaim(username="test", uuid="007", valid=True)
+    ctx["identity_manager"].set_identity_test(mock_identity)
+
+    # Prep logger
+    logger = structlog.get_logger("noteburst")
+    logger = logger.bind(username=mock_identity.username)
+    ctx["logger"] = logger
+
+    return ctx
