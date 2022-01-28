@@ -18,6 +18,13 @@ config = WorkerConfig()
 async def startup(ctx: Dict[Any, Any]) -> None:
     """Runs during working start-up to set up the JupyterLab client and
     populate the worker context.
+
+    Notes
+    -----
+    The following context dictionary keys are populated:
+
+    - ``identity_manager`` (an `IdentityManager` instance)
+    - ``logger`` (a logger instance)
     """
     configure_logging(
         profile=config.profile,
@@ -31,7 +38,11 @@ async def startup(ctx: Dict[Any, Any]) -> None:
     ctx["identity_manager"] = identity_manager
 
     identity = await identity_manager.get_identity()
-    logger.info("Starting up with identity", username=identity.username)
+
+    logger = logger.bind(worker_username=identity.username)
+    ctx["logger"] = logger
+
+    logger.info("Start up complete")
 
 
 async def shutdown(ctx: Dict[Any, Any]) -> None:

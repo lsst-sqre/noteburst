@@ -6,6 +6,9 @@ from typing import Any, Dict
 
 
 async def ping(ctx: Dict[Any, Any]) -> str:
+    logger = ctx["logger"].bind(task="ping")
+    logger.info("Running ping")
+
     try:
         identity = await ctx["identity_manager"].get_identity()
     except Exception:
