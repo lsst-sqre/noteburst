@@ -360,9 +360,9 @@ class CodeExecutionError(Exception):
 class JupyterClient:
     """A client for JupyterLab, via JupyterHub.
 
-    This client should be used as a Python context. Each JupyterClient
-    includes its own HTTP client session to track cookies on behalf of the
-    user.
+    This client can optionally be used as a async Python context manager.
+    If not, remember to call the close() method to clean up the HTTP
+    connections
 
     Parameters
     ----------
@@ -398,10 +398,8 @@ class JupyterClient:
     def http_client(self) -> httpx.AsyncClient:
         """The HTTPX client instance associated with the Jupyter session.."""
         if self._http_client is None:
-            raise RuntimeError(
-                "The http_client can only be accessed within an active "
-                "JupyterClient context."
-            )
+            self._open_clients()
+        assert self._http_client is not None
         return self._http_client
 
     @property
@@ -410,13 +408,21 @@ class JupyterClient:
         context.
         """
         if self._cachemachine is None:
-            raise RuntimeError(
-                "The cachemachine client can only be accessed within an "
-                "active JupyterClient context."
-            )
+            self._open_clients()
+        assert self._cachemachine is not None
         return self._cachemachine
 
     async def __aenter__(self) -> JupyterClient:
+        self._open_clients()
+        return self
+
+    def _open_clients(self) -> None:
+        if (self._http_client is not None) or (self._cachemachine is not None):
+            raise RuntimeError(
+                "JupyterClient is already open. Call close() before "
+                "re-opening?"
+            )
+
         xsrf_token = "".join(
             random.choices(string.ascii_uppercase + string.digits, k=16)
         )
@@ -443,9 +449,16 @@ class JupyterClient:
             noteburst_config.gafaelfawr_token.get_secret_value(),
         )
 
-        return self
-
     async def __aexit__(self, *exc_info: Any) -> None:
+        await self.close()
+
+    async def close(self) -> None:
+        """Manually close the client.
+
+        Do not use this method for manually closing the Jupyter client when
+        using JupyterClient as an async context manager. The client is
+        closed automatically.
+        """
         self._cachemachine_client = None
 
         await self.http_client.aclose()
