@@ -15,6 +15,7 @@ from safir.logging import configure_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 from .config import config
+from .dependencies.arqpool import arq_dependency
 from .handlers.external import external_router
 from .handlers.internal import internal_router
 from .handlers.prototyping import prototype_router
@@ -51,6 +52,9 @@ app.mount(f"/{config.name}", external_app)
 @app.on_event("startup")
 async def startup_event() -> None:
     app.add_middleware(XForwardedMiddleware)
+    await arq_dependency.initialize(
+        mode=config.arq_mode, redis_settings=config.arq_redis_settings
+    )
 
 
 @app.on_event("shutdown")

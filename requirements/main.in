@@ -12,7 +12,10 @@ starlette
 uvicorn[standard]
 
 # Other dependencies.
+aioredlock
+arq
 safir
 pydantic[dotenv]
+PyYAML
 httpx
 websockets
