@@ -51,7 +51,7 @@ async def startup(ctx: Dict[Any, Any]) -> None:
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
 
-    user = User(username=identity.username, uid=identity.uuid)
+    user = User(username=identity.username, uid=identity.uid)
     authed_user = await user.login(
         scopes=["exec:notebook"], http_client=http_client
     )
