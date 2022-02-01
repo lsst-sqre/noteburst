@@ -16,7 +16,7 @@ from noteburst.jupyterclient.jupyterlab import (
 )
 from noteburst.jupyterclient.user import User
 
-from .functions import ping
+from .functions import nbexec, ping
 from .identity import IdentityManager
 
 config = WorkerConfig()
@@ -110,7 +110,7 @@ class WorkerSettings:
     See `arq.worker.Worker` for details on these attributes.
     """
 
-    functions = [ping]
+    functions = [ping, nbexec]
 
     redis_settings = config.arq_redis_settings
 

@@ -1,3 +1,4 @@
-__all__ = ["ping"]
+__all__ = ["ping", "nbexec"]
 
+from .nbexec import nbexec
 from .ping import ping
