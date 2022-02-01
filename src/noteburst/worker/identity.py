@@ -26,8 +26,8 @@ class IdentityModel(BaseModel):
     username: str
     """The username of the user account."""
 
-    uuid: str
-    """The UUID of the user account."""
+    uid: str
+    """The UID of the user account."""
 
 
 class IdentityConfigModel(BaseModel):
@@ -47,8 +47,8 @@ class IdentityClaim:
     username: str
     """The username of the user account."""
 
-    uuid: str
-    """The UUID of the user account."""
+    uid: str
+    """The UID of the user account."""
 
     lock: Lock
     """The aioredlock lock that this claim holds."""
@@ -148,7 +148,7 @@ class IdentityManager:
             try:
                 # We don't set the timeout argument on lock; in doing so we
                 # use aioredlock's built-in watchdog that renews locks.
-                lock = await self.lock_manager.lock(identity.uuid)
+                lock = await self.lock_manager.lock(identity.uid)
             except LockError:
                 self._logger.debug(
                     "Identity already claimed", username=identity.username
@@ -157,7 +157,7 @@ class IdentityManager:
 
             self._logger.info("Claimed identity", username=identity.username)
             self._current_identity = IdentityClaim(
-                username=identity.username, uuid=identity.uuid, lock=lock
+                username=identity.username, uid=identity.uid, lock=lock
             )
             return self._current_identity
 

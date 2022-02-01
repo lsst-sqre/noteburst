@@ -1,8 +1,8 @@
 - username: user1
-  uuid: uuid-user1
+  uid: uid-user1
 
 - username: user2
-  uuid: uuid-user2
+  uid: uid-user2
 
 - username: user3
-  uuid: uuid-user3
+  uid: uid-user3
