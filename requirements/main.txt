@@ -42,9 +42,9 @@ certifi==2021.10.8 \
     # via
     #   httpcore
     #   httpx
-charset-normalizer==2.0.10 \
-    --hash=sha256:876d180e9d7432c5d1dfd4c5d26b72f099d503e8fcc0feb7532c9289be60fcbd \
-    --hash=sha256:cb957888737fc0bbcd78e3df769addb41fd1ff8cf950dc9e7ad7793f1bf44455
+charset-normalizer==2.0.11 \
+    --hash=sha256:2842d8f5e82a1f6aa437380934d5e1cd4fcf2003b06fed6940769c164a480a45 \
+    --hash=sha256:98398a9d69ee80548c762ba991a4728bfc3836768ed226b3945908d1a688371c
     # via httpx
 click==8.0.3 \
     --hash=sha256:353f466495adaeb40b6b5f592f9f91cb22372351c84caeb068132442a4518ef3 \
@@ -111,9 +111,9 @@ hiredis==2.0.0 \
     --hash=sha256:f52010e0a44e3d8530437e7da38d11fb822acfb0d5b12e9cd5ba655509937ca0 \
     --hash=sha256:f8196f739092a78e4f6b1b2172679ed3343c39c61a3e9d722ce6fcf1dac2824a
     # via aioredis
-httpcore==0.14.5 \
-    --hash=sha256:2621ee769d0236574df51b305c5f4c69ca8f0c7b215221ad247b1ee42a9a9de1 \
-    --hash=sha256:435ab519628a6e2393f67812dea3ca5c6ad23b457412cd119295d9f906d96a2b
+httpcore==0.14.6 \
+    --hash=sha256:508401ab24060cfa1e959feda1c38eaa09ccf9074c928f9c3d2864f8921373ce \
+    --hash=sha256:d1ba9926a7b761bfb92d171df81ac9f87f549533cc8fcbcffca6943d3fccabf7
     # via httpx
 httptools==0.3.0 \
     --hash=sha256:04114db99605c9b56ea22a8ec4d7b1485b908128ed4f4a8f6438489c428da794 \
@@ -267,9 +267,9 @@ typing-extensions==4.0.1 \
     --hash=sha256:4ca091dea149f945ec56afb48dae714f21e8692ef22a395223bcd328961b6a0e \
     --hash=sha256:7f001e5ac290a0c0401508864c7ec868be4e701886d5b573a9528ed3973d9d3b
     # via pydantic
-uvicorn[standard]==0.17.0.post1 \
-    --hash=sha256:60a149248181920a73b2e97aec1dacec5501618867f041a228b2519d91a62a91 \
-    --hash=sha256:fa166e6c3d58e23ff5a1a3543b079c7b28aa057ab1388201e4b34a49ec05da72
+uvicorn[standard]==0.17.1 \
+    --hash=sha256:8b16d9ecb76500f7804184f182835fe8a2b54716d3b0b6bb2da0b2b192f62c73 \
+    --hash=sha256:dffbacb8cc25d924d68d231d2c478c4fe6727c36537d8de21e5de591b37afc41
     # via -r requirements/main.in
 uvloop==0.16.0 \
     --hash=sha256:04ff57aa137230d8cc968f03481176041ae789308b4d5079118331ab01112450 \
