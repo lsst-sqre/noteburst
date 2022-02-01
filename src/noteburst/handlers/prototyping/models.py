@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Union
 
 from arq.jobs import JobStatus
 from pydantic import AnyHttpUrl, BaseModel, Field
@@ -70,3 +71,19 @@ class QueuedJob(BaseModel):
             status=job.status,
             self_url=request.url_for("get_job", job_id=job.id),
         )
+
+
+class PostNbexecRequest(BaseModel):
+    """The ``POST /nbexec`` request body."""
+
+    ipynb: Union[str, Dict[str, Any]]
+    """The contents of a Jupyter notebook."""
+
+    kernel_name: str = "LSST"
+    """The name of the Jupyter kernel to execute this by."""
+
+    def get_ipynb_as_str(self) -> str:
+        if isinstance(self.ipynb, str):
+            return self.ipynb
+        else:
+            return json.dumps(self.ipynb)
