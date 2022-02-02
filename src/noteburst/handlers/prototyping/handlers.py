@@ -22,6 +22,7 @@ from .models import (
     PostCodeRequest,
     PostLoginRequest,
     PostNbexecRequest,
+    PostRunPythonRequest,
     QueuedJob,
 )
 
@@ -211,6 +212,28 @@ async def post_nbexec(
     job_metadata = await arq_queue.enqueue(
         "nbexec",
         ipynb=request_data.get_ipynb_as_str(),
+        kernel_name=request_data.kernel_name,
+    )
+    logger.info("Finished enqueing a nbexec task", job_id=job_metadata.id)
+    return await QueuedJob.from_job_metadata(job=job_metadata, request=request)
+
+
+@prototype_router.post(
+    "/runpython",
+    description="Enqueue the run_python worker task.",
+    status_code=202,
+)
+async def post_run_python(
+    request_data: PostRunPythonRequest,
+    *,
+    request: Request,
+    logger: structlog.BoundLogger = Depends(logger_dependency),
+    arq_queue: ArqQueue = Depends(arq_dependency),
+) -> QueuedJob:
+    logger.info("Enqueing a run_python task")
+    job_metadata = await arq_queue.enqueue(
+        "run_python",
+        py=request_data.py,
         kernel_name=request_data.kernel_name,
     )
     logger.info("Finished enqueing a nbexec task", job_id=job_metadata.id)

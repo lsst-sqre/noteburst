@@ -87,3 +87,13 @@ class PostNbexecRequest(BaseModel):
             return self.ipynb
         else:
             return json.dumps(self.ipynb)
+
+
+class PostRunPythonRequest(BaseModel):
+    """The ``POST /runpython`` request body."""
+
+    py: str
+    """Python code to execute."""
+
+    kernel_name: str = "LSST"
+    """The name of the Jupyter kernel to execute this by."""
