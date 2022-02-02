@@ -700,13 +700,10 @@ class JupyterClient:
             Raised if there is an error interacting with the JupyterLab
             Notebook execution extension.
         """
-        exec_url = self.url_for("user/{self.user.username}/rubin/execution")
-        jupyter_lab_token = await self._get_jupyter_lab_token()
-        headers = self._common_headers.copy()
-        headers["Authorization"] = f"token {jupyter_lab_token}"
+        exec_url = self.url_for(f"user/{self.user.username}/rubin/execution")
         r = await self.http_client.post(
             exec_url,
-            headers=headers,
+            # headers=headers,
             content=json.dumps(notebook).encode("utf-8"),
         )
         if r.status_code != 200:
@@ -714,15 +711,16 @@ class JupyterClient:
 
         return json.loads(r.text)
 
-    async def _get_jupyter_lab_token(self) -> str:
-        """Get the JUPYTER_LAB_TOKEN from the environment endpoint."""
+    async def _get_jupyterhub_api_token(self) -> str:
+        """Get the JUPYTERHUB_API_TOKEN from the environment endpoint."""
         if self._jupyter_lab_token is None:
             environment_url = self.url_for(
-                "user/{self.user.username}/rubin/environment"
+                f"user/{self.user.username}/rubin/environment"
             )
             r = await self.http_client.get(environment_url)
             if r.status_code != 200:
                 raise JupyterError.from_response(self.user.username, r)
             env_data = r.json()
-            self._jupyter_lab_token = env_data["JUPYTER_LAB_TOKEN"]
+            self.logger.debug("JupyterLab Environment", env_data=env_data)
+            self._jupyter_lab_token = env_data["JUPYTERHUB_API_TOKEN"]
         return self._jupyter_lab_token
