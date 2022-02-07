@@ -18,7 +18,14 @@ from noteburst.jupyterclient.jupyterlab import (
 )
 from noteburst.jupyterclient.user import User
 
-from .models import PostCodeRequest, PostLoginRequest, QueuedJob
+from .models import (
+    PostCodeRequest,
+    PostLoginRequest,
+    PostNbexecRequest,
+    PostRunPythonRequest,
+    QueuedJob,
+    QueuedJobResult,
+)
 
 prototype_router = APIRouter(prefix="/prototype")
 
@@ -192,6 +199,48 @@ async def post_ping(
     return await QueuedJob.from_job_metadata(job=job_metadata, request=request)
 
 
+@prototype_router.post(
+    "/nbexec", description="Enqueue the nbexec worker task.", status_code=202
+)
+async def post_nbexec(
+    request_data: PostNbexecRequest,
+    *,
+    request: Request,
+    logger: structlog.BoundLogger = Depends(logger_dependency),
+    arq_queue: ArqQueue = Depends(arq_dependency),
+) -> QueuedJob:
+    logger.info("Enqueing a nbexec task")
+    job_metadata = await arq_queue.enqueue(
+        "nbexec",
+        ipynb=request_data.get_ipynb_as_str(),
+        kernel_name=request_data.kernel_name,
+    )
+    logger.info("Finished enqueing a nbexec task", job_id=job_metadata.id)
+    return await QueuedJob.from_job_metadata(job=job_metadata, request=request)
+
+
+@prototype_router.post(
+    "/runpython",
+    description="Enqueue the run_python worker task.",
+    status_code=202,
+)
+async def post_run_python(
+    request_data: PostRunPythonRequest,
+    *,
+    request: Request,
+    logger: structlog.BoundLogger = Depends(logger_dependency),
+    arq_queue: ArqQueue = Depends(arq_dependency),
+) -> QueuedJob:
+    logger.info("Enqueing a run_python task")
+    job_metadata = await arq_queue.enqueue(
+        "run_python",
+        py=request_data.py,
+        kernel_name=request_data.kernel_name,
+    )
+    logger.info("Finished enqueing a nbexec task", job_id=job_metadata.id)
+    return await QueuedJob.from_job_metadata(job=job_metadata, request=request)
+
+
 @prototype_router.get(
     "/jobs/{job_id}", description="Get information about a queued job."
 )
@@ -204,3 +253,19 @@ async def get_job(
 ) -> QueuedJob:
     job_metadata = await arq_queue.get_job_metadata(job_id)
     return await QueuedJob.from_job_metadata(job=job_metadata, request=request)
+
+
+@prototype_router.get(
+    "/jobs/{job_id}/result", description="Get the result from a completed job."
+)
+async def get_job_result(
+    *,
+    job_id: str,
+    request: Request,
+    logger: structlog.BoundLogger = Depends(logger_dependency),
+    arq_queue: ArqQueue = Depends(arq_dependency),
+) -> QueuedJobResult:
+    job_result = await arq_queue.get_job_result(job_id)
+    return await QueuedJobResult.from_job_result(
+        job=job_result, request=request
+    )

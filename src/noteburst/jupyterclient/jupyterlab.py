@@ -360,9 +360,9 @@ class CodeExecutionError(Exception):
 class JupyterClient:
     """A client for JupyterLab, via JupyterHub.
 
-    This client should be used as a Python context. Each JupyterClient
-    includes its own HTTP client session to track cookies on behalf of the
-    user.
+    This client can optionally be used as a async Python context manager.
+    If not, remember to call the close() method to clean up the HTTP
+    connections
 
     Parameters
     ----------
@@ -392,16 +392,13 @@ class JupyterClient:
         self._http_client: Optional[httpx.AsyncClient] = None
         self._cachemachine: Optional[CachemachineClient] = None
         self._common_headers: Dict[str, str]  # set and reset in the context
-        self._jupyter_lab_token: Optional[str] = None
 
     @property
     def http_client(self) -> httpx.AsyncClient:
         """The HTTPX client instance associated with the Jupyter session.."""
         if self._http_client is None:
-            raise RuntimeError(
-                "The http_client can only be accessed within an active "
-                "JupyterClient context."
-            )
+            self._open_clients()
+        assert self._http_client is not None
         return self._http_client
 
     @property
@@ -410,13 +407,21 @@ class JupyterClient:
         context.
         """
         if self._cachemachine is None:
-            raise RuntimeError(
-                "The cachemachine client can only be accessed within an "
-                "active JupyterClient context."
-            )
+            self._open_clients()
+        assert self._cachemachine is not None
         return self._cachemachine
 
     async def __aenter__(self) -> JupyterClient:
+        self._open_clients()
+        return self
+
+    def _open_clients(self) -> None:
+        if (self._http_client is not None) or (self._cachemachine is not None):
+            raise RuntimeError(
+                "JupyterClient is already open. Call close() before "
+                "re-opening?"
+            )
+
         xsrf_token = "".join(
             random.choices(string.ascii_uppercase + string.digits, k=16)
         )
@@ -443,9 +448,16 @@ class JupyterClient:
             noteburst_config.gafaelfawr_token.get_secret_value(),
         )
 
-        return self
-
     async def __aexit__(self, *exc_info: Any) -> None:
+        await self.close()
+
+    async def close(self) -> None:
+        """Manually close the client.
+
+        Do not use this method for manually closing the Jupyter client when
+        using JupyterClient as an async context manager. The client is
+        closed automatically.
+        """
         self._cachemachine_client = None
 
         await self.http_client.aclose()
@@ -687,13 +699,10 @@ class JupyterClient:
             Raised if there is an error interacting with the JupyterLab
             Notebook execution extension.
         """
-        exec_url = self.url_for("user/{self.user.username}/rubin/execution")
-        jupyter_lab_token = await self._get_jupyter_lab_token()
-        headers = self._common_headers.copy()
-        headers["Authorization"] = f"token {jupyter_lab_token}"
+        exec_url = self.url_for(f"user/{self.user.username}/rubin/execution")
         r = await self.http_client.post(
             exec_url,
-            headers=headers,
+            # headers=headers,
             content=json.dumps(notebook).encode("utf-8"),
         )
         if r.status_code != 200:
@@ -701,15 +710,16 @@ class JupyterClient:
 
         return json.loads(r.text)
 
-    async def _get_jupyter_lab_token(self) -> str:
-        """Get the JUPYTER_LAB_TOKEN from the environment endpoint."""
-        if self._jupyter_lab_token is None:
-            environment_url = self.url_for(
-                "user/{self.user.username}/rubin/environment"
-            )
-            r = await self.http_client.get(environment_url)
-            if r.status_code != 200:
-                raise JupyterError.from_response(self.user.username, r)
-            env_data = r.json()
-            self._jupyter_lab_token = env_data["JUPYTER_LAB_TOKEN"]
-        return self._jupyter_lab_token
+    async def get_jupyterlab_env(self) -> Dict[str, Any]:
+        """Get metadata from the JupyterLab environment endpoint.
+
+        Uses the ``/user/:username/rubin/environment`` extension endpint.
+        """
+        environment_url = self.url_for(
+            f"user/{self.user.username}/rubin/environment"
+        )
+        r = await self.http_client.get(environment_url)
+        if r.status_code != 200:
+            raise JupyterError.from_response(self.user.username, r)
+        env_data = r.json()
+        return env_data
