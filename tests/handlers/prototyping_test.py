@@ -37,3 +37,16 @@ async def test_post_ping(client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "in_progress"
+
+    # Toggle the job to complete
+    await arq_queue.set_complete(job_id, result="pong")
+    response = await client.get(job_url)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "complete"
+    result_url = data["result_url"]
+
+    response = await client.get(result_url)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["result"] == "pong"

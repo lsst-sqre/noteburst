@@ -24,6 +24,7 @@ from .models import (
     PostNbexecRequest,
     PostRunPythonRequest,
     QueuedJob,
+    QueuedJobResult,
 )
 
 prototype_router = APIRouter(prefix="/prototype")
@@ -252,3 +253,19 @@ async def get_job(
 ) -> QueuedJob:
     job_metadata = await arq_queue.get_job_metadata(job_id)
     return await QueuedJob.from_job_metadata(job=job_metadata, request=request)
+
+
+@prototype_router.get(
+    "/jobs/{job_id}/result", description="Get the result from a completed job."
+)
+async def get_job_result(
+    *,
+    job_id: str,
+    request: Request,
+    logger: structlog.BoundLogger = Depends(logger_dependency),
+    arq_queue: ArqQueue = Depends(arq_dependency),
+) -> QueuedJobResult:
+    job_result = await arq_queue.get_job_result(job_id)
+    return await QueuedJobResult.from_job_result(
+        job=job_result, request=request
+    )
