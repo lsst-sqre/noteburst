@@ -392,7 +392,6 @@ class JupyterClient:
         self._http_client: Optional[httpx.AsyncClient] = None
         self._cachemachine: Optional[CachemachineClient] = None
         self._common_headers: Dict[str, str]  # set and reset in the context
-        self._jupyter_lab_token: Optional[str] = None
 
     @property
     def http_client(self) -> httpx.AsyncClient:
@@ -711,16 +710,16 @@ class JupyterClient:
 
         return json.loads(r.text)
 
-    async def _get_jupyterhub_api_token(self) -> str:
-        """Get the JUPYTERHUB_API_TOKEN from the environment endpoint."""
-        if self._jupyter_lab_token is None:
-            environment_url = self.url_for(
-                f"user/{self.user.username}/rubin/environment"
-            )
-            r = await self.http_client.get(environment_url)
-            if r.status_code != 200:
-                raise JupyterError.from_response(self.user.username, r)
-            env_data = r.json()
-            self.logger.debug("JupyterLab Environment", env_data=env_data)
-            self._jupyter_lab_token = env_data["JUPYTERHUB_API_TOKEN"]
-        return self._jupyter_lab_token
+    async def get_jupyterlab_env(self) -> Dict[str, Any]:
+        """Get metadata from the JupyterLab environment endpoint.
+
+        Uses the ``/user/:username/rubin/environment`` extension endpint.
+        """
+        environment_url = self.url_for(
+            f"user/{self.user.username}/rubin/environment"
+        )
+        r = await self.http_client.get(environment_url)
+        if r.status_code != 200:
+            raise JupyterError.from_response(self.user.username, r)
+        env_data = r.json()
+        return env_data
