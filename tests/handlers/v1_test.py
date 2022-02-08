@@ -1,7 +1,8 @@
-"""Tests for the prototyping endpoints."""
+"""Tests for handlers of the v1 API."""
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -12,16 +13,36 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
 
 
+@pytest.fixture
+def sample_ipynb() -> str:
+    path = Path(__file__).parent.joinpath("../data/test.ipynb")
+    return path.read_text()
+
+
+@pytest.fixture
+def sample_ipynb_executed() -> str:
+    path = Path(__file__).parent.joinpath("../data/test.nbexec.ipynb")
+    return path.read_text()
+
+
 @pytest.mark.asyncio
-async def test_post_ping(client: AsyncClient) -> None:
-    """Test ``POST /prototype/ping``."""
+async def test_post_nbexec(
+    client: AsyncClient, sample_ipynb: str, sample_ipynb_executed: str
+) -> None:
+    """Test ``POST /v1/``, sending a notebook to execute."""
     arq_queue = await arq_dependency()
     assert isinstance(arq_queue, MockArqQueue)
 
-    response = await client.post("/noteburst/prototype/ping")
+    response = await client.post(
+        "/noteburst/v1/",
+        json={
+            "ipynb": sample_ipynb,
+            "kernel_name": "LSST",
+        },
+    )
     assert response.status_code == 202
     data = response.json()
-    assert data["task_name"] == "ping"
+    assert data["task_name"] == "nbexec"
     assert data["status"] == "queued"
     job_url = data["self_url"]
     job_id = data["job_id"]
@@ -39,7 +60,7 @@ async def test_post_ping(client: AsyncClient) -> None:
     assert data["status"] == "in_progress"
 
     # Toggle the job to complete
-    await arq_queue.set_complete(job_id, result="pong")
+    await arq_queue.set_complete(job_id, result=sample_ipynb_executed)
     response = await client.get(job_url)
     assert response.status_code == 200
     data = response.json()
@@ -49,4 +70,4 @@ async def test_post_ping(client: AsyncClient) -> None:
     response = await client.get(result_url)
     assert response.status_code == 200
     data = response.json()
-    assert data["result"] == "pong"
+    assert data["result"] == sample_ipynb_executed

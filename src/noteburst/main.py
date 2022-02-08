@@ -18,7 +18,6 @@ from .config import config
 from .dependencies.arqpool import arq_dependency
 from .handlers.external import external_router
 from .handlers.internal import internal_router
-from .handlers.prototyping import prototype_router
 from .handlers.v1 import v1_router
 
 __all__ = ["app", "config"]
@@ -42,7 +41,6 @@ app = FastAPI(
 app.include_router(internal_router)
 app.include_router(external_router, prefix=f"/{config.name}")
 app.include_router(v1_router, prefix=f"/{config.name}/v1")
-app.include_router(prototype_router, prefix=f"/{config.name}/prototype")
 
 
 @app.on_event("startup")
