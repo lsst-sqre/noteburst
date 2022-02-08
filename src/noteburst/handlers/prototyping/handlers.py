@@ -27,7 +27,7 @@ from .models import (
     QueuedJobResult,
 )
 
-prototype_router = APIRouter(prefix="/prototype")
+prototype_router = APIRouter()
 
 
 @prototype_router.post(
