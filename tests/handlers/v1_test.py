@@ -42,7 +42,6 @@ async def test_post_nbexec(
     )
     assert response.status_code == 202
     data = response.json()
-    assert data["task_name"] == "nbexec"
     assert data["status"] == "queued"
     job_url = data["self_url"]
     job_id = data["job_id"]
@@ -51,6 +50,14 @@ async def test_post_nbexec(
     assert response.status_code == 200
     data2 = response.json()
     assert data == data2
+
+    assert "ipynb" not in data2.keys()
+
+    # Request the job with the source ipynb included
+    response = await client.get(job_url, params={"ipynb": "true"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ipynb"] == sample_ipynb
 
     # Toggle the job to in-progress; the status should update
     await arq_queue.set_in_progress(job_id)
@@ -70,4 +77,4 @@ async def test_post_nbexec(
     response = await client.get(result_url)
     assert response.status_code == 200
     data = response.json()
-    assert data["result"] == sample_ipynb_executed
+    assert data["ipynb"] == sample_ipynb_executed
