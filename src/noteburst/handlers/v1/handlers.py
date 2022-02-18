@@ -1,34 +1,35 @@
 """V1 REST API handlers."""
 
 import structlog
+from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Request
 from safir.dependencies.logger import logger_dependency
 
 from noteburst.dependencies.arqpool import ArqQueue, arq_dependency
 
-from .models import PostNbexecRequest, QueuedNbexecJob, QueuedNbexecJobResult
+from .models import NotebookResponse, PostNotebookRequest
 
 v1_router = APIRouter(tags=["v1"])
 """FastAPI router for the /v1/ REST API"""
 
 
 @v1_router.post(
-    "/",
+    "/notebooks/",
     description=(
         "Execute a Jupyter notebook, asynchronously via a pool of JupyterLab "
         "instances."
     ),
     status_code=202,
-    response_model=QueuedNbexecJob,
+    response_model=NotebookResponse,
     response_model_exclude_none=True,
 )
 async def post_nbexec(
-    request_data: PostNbexecRequest,
+    request_data: PostNotebookRequest,
     *,
     request: Request,
     logger: structlog.BoundLogger = Depends(logger_dependency),
     arq_queue: ArqQueue = Depends(arq_dependency),
-) -> QueuedNbexecJob:
+) -> NotebookResponse:
     logger.debug("Enqueing a nbexec task")
     job_metadata = await arq_queue.enqueue(
         "nbexec",
@@ -36,44 +37,35 @@ async def post_nbexec(
         kernel_name=request_data.kernel_name,
     )
     logger.info("Finished enqueing an nbexec task", job_id=job_metadata.id)
-    return await QueuedNbexecJob.from_job_metadata(
+    return await NotebookResponse.from_job_metadata(
         job=job_metadata, request=request
     )
 
 
 @v1_router.get(
-    "/jobs/{job_id}",
+    "/notebooks/{job_id}",
     description="Get information about a notebook execution job.",
-    response_model=QueuedNbexecJob,
+    response_model=NotebookResponse,
     response_model_exclude_none=True,
 )
 async def get_nbexec_job(
     *,
     job_id: str,
     request: Request,
-    ipynb: bool = False,
+    source: bool = False,
+    result: bool = True,
     logger: structlog.BoundLogger = Depends(logger_dependency),
     arq_queue: ArqQueue = Depends(arq_dependency),
-) -> QueuedNbexecJob:
+) -> NotebookResponse:
     job_metadata = await arq_queue.get_job_metadata(job_id)
-    return await QueuedNbexecJob.from_job_metadata(
-        job=job_metadata, request=request, include_ipynb=ipynb
-    )
+    if result and job_metadata.status == JobStatus.complete:
+        job_result = await arq_queue.get_job_result(job_id)
+    else:
+        job_result = None
 
-
-@v1_router.get(
-    "/jobs/{job_id}/result",
-    response_model=QueuedNbexecJobResult,
-    description="Get the result from a completed notebook execution job.",
-)
-async def get_nbexec_job_result(
-    *,
-    job_id: str,
-    request: Request,
-    logger: structlog.BoundLogger = Depends(logger_dependency),
-    arq_queue: ArqQueue = Depends(arq_dependency),
-) -> QueuedNbexecJobResult:
-    job_result = await arq_queue.get_job_result(job_id)
-    return await QueuedNbexecJobResult.from_job_result(
-        job=job_result, request=request
+    return await NotebookResponse.from_job_metadata(
+        job=job_metadata,
+        request=request,
+        include_source=source,
+        job_result=job_result,
     )

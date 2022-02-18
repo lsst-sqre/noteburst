@@ -13,11 +13,13 @@ from pydantic import AnyHttpUrl, BaseModel
 from noteburst.dependencies.arqpool import JobMetadata, JobResult
 
 
-class NbexecJobBase(BaseModel):
-    """Base model for info about a notebook execution job."""
+class NotebookResponse(BaseModel):
+    """Information about a notebook execution job, possibly including the
+    result and source notebooks.
+    """
 
     job_id: str
-    """The arq job ID."""
+    """The job ID."""
 
     kernel_name: str
     """Name of the kernel the notebook is executed with."""
@@ -31,65 +33,58 @@ class NbexecJobBase(BaseModel):
     self_url: AnyHttpUrl
     """The URL of this resource."""
 
-
-class QueuedNbexecJob(NbexecJobBase):
-    """A resource with info about an nbexec job."""
-
-    ipynb: Optional[str] = None
+    source: Optional[str] = None
     """The content of the source ipynb file (JSON-encoded string)."""
 
-    result_url: Optional[AnyHttpUrl] = None
-    """The URL for the result."""
+    start_time: Optional[datetime] = None
+    """Time when the job started (UTC).
+
+    This field is present if the result is available.
+    """
+
+    finish_time: Optional[datetime] = None
+    """Time when the job completed (UTC).
+
+    This field is present if the result is available.
+    """
+
+    success: Optional[bool] = None
+    """Whether the execution was successful or not.
+
+    This field is present if the result is available.
+    """
+
+    ipynb: Optional[str] = None
+    """The contents of the executed Jupyter notebook.
+
+    This field is present if the result is available.
+    """
 
     @classmethod
     async def from_job_metadata(
-        cls, *, job: JobMetadata, request: Request, include_ipynb: bool = False
-    ) -> QueuedNbexecJob:
+        cls,
+        *,
+        job: JobMetadata,
+        request: Request,
+        include_source: bool = False,
+        job_result: Optional[JobResult] = None,
+    ) -> NotebookResponse:
         return cls(
             job_id=job.id,
             enqueue_time=job.enqueue_time,
             status=job.status,
             kernel_name=job.kwargs["kernel_name"],
-            ipynb=job.kwargs["ipynb"] if include_ipynb else None,
+            source=job.kwargs["ipynb"] if include_source else None,
             self_url=request.url_for("get_nbexec_job", job_id=job.id),
-            result_url=request.url_for("get_nbexec_job_result", job_id=job.id),
+            start_time=job_result.start_time if job_result else None,
+            finish_time=job_result.finish_time if job_result else None,
+            success=job_result.success if job_result else None,
+            ipynb=job_result.result if job_result else None,
         )
 
 
-class QueuedNbexecJobResult(NbexecJobBase):
-    """A resource with info about an nbexec job."""
-
-    start_time: datetime
-    """Time when the job started (UTC)."""
-
-    finish_time: datetime
-    """Time when the job completed (UTC)."""
-
-    success: bool
-    """Whether the execution was successful or not."""
-
-    ipynb: str
-    """The contents of the executed Jupyter notebook."""
-
-    @classmethod
-    async def from_job_result(
-        cls, *, job: JobResult, request: Request
-    ) -> QueuedNbexecJobResult:
-        return cls(
-            job_id=job.id,
-            enqueue_time=job.enqueue_time,
-            status=job.status,
-            kernel_name=job.kwargs["kernel_name"],
-            self_url=request.url_for("get_nbexec_job_result", job_id=job.id),
-            start_time=job.start_time,
-            finish_time=job.finish_time,
-            success=job.success,
-            ipynb=job.result,  # output of nbexec is the ipynb string
-        )
-
-
-class PostNbexecRequest(BaseModel):
-    """The ``POST /nbexec`` request body."""
+class PostNotebookRequest(BaseModel):
+    """The ``POST /notebooks/`` request body."""
 
     ipynb: Union[str, Dict[str, Any]]
     """The contents of a Jupyter notebook. If a string, the conttent is parsed

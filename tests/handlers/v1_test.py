@@ -34,7 +34,7 @@ async def test_post_nbexec(
     assert isinstance(arq_queue, MockArqQueue)
 
     response = await client.post(
-        "/noteburst/v1/",
+        "/noteburst/v1/notebooks/",
         json={
             "ipynb": sample_ipynb,
             "kernel_name": "LSST",
@@ -51,13 +51,14 @@ async def test_post_nbexec(
     data2 = response.json()
     assert data == data2
 
+    assert "source" not in data2.keys()
     assert "ipynb" not in data2.keys()
 
     # Request the job with the source ipynb included
-    response = await client.get(job_url, params={"ipynb": "true"})
+    response = await client.get(job_url, params={"source": "true"})
     assert response.status_code == 200
     data = response.json()
-    assert data["ipynb"] == sample_ipynb
+    assert data["source"] == sample_ipynb
 
     # Toggle the job to in-progress; the status should update
     await arq_queue.set_in_progress(job_id)
@@ -72,9 +73,5 @@ async def test_post_nbexec(
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "complete"
-    result_url = data["result_url"]
-
-    response = await client.get(result_url)
-    assert response.status_code == 200
-    data = response.json()
+    assert data["success"] is True
     assert data["ipynb"] == sample_ipynb_executed
