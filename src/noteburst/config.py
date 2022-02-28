@@ -43,7 +43,10 @@ class Config(BaseSettings):
 
     log_level: LogLevel = Field(LogLevel.INFO, env="SAFIR_LOG_LEVEL")
 
-    logger_name: str = Field("noteburst", env="SAFIR_LOGGER")
+    logger_name: str = "noteburst"
+    """The root name of the Python logger, which is also the name of the
+    root Python module.
+    """
 
     environment_url: HttpUrl = Field(env="NOTEBURST_ENVIRONMENT_URL")
     """The base URL of the Rubin Science Platform environment.
