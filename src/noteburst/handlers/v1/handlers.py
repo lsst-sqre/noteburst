@@ -2,7 +2,7 @@
 
 import structlog
 from arq.jobs import JobStatus
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from safir.dependencies.logger import logger_dependency
 
 from noteburst.dependencies.arqpool import ArqQueue, arq_dependency
@@ -27,6 +27,7 @@ async def post_nbexec(
     request_data: PostNotebookRequest,
     *,
     request: Request,
+    response: Response,
     logger: structlog.BoundLogger = Depends(logger_dependency),
     arq_queue: ArqQueue = Depends(arq_dependency),
 ) -> NotebookResponse:
@@ -37,9 +38,11 @@ async def post_nbexec(
         kernel_name=request_data.kernel_name,
     )
     logger.info("Finished enqueing an nbexec task", job_id=job_metadata.id)
-    return await NotebookResponse.from_job_metadata(
+    response_data = await NotebookResponse.from_job_metadata(
         job=job_metadata, request=request
     )
+    response.headers["Location"] = response_data.self_url
+    return response_data
 
 
 @v1_router.get(

@@ -44,6 +44,7 @@ async def test_post_nbexec(
     data = response.json()
     assert data["status"] == "queued"
     job_url = data["self_url"]
+    assert job_url == response.headers["Location"]
     job_id = data["job_id"]
 
     response = await client.get(job_url)
