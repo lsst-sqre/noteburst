@@ -8,6 +8,7 @@ called.
 """
 
 from importlib.metadata import metadata
+from pathlib import Path
 
 from fastapi import FastAPI
 from safir.dependencies.http_client import http_client_dependency
@@ -30,8 +31,8 @@ configure_logging(
 )
 
 app = FastAPI(
-    title="noteburst",
-    description=metadata("noteburst").get("Summary", ""),
+    title="Noteburst",
+    description=Path(__file__).parent.joinpath("description.md").read_text(),
     version=metadata("noteburst").get("Version", "0.0.0"),
     openapi_url=f"/{config.name}/openapi.json",
     docs_url=f"/{config.name}/docs",
