@@ -33,6 +33,8 @@ app = FastAPI(
     title="noteburst",
     description=metadata("noteburst").get("Summary", ""),
     version=metadata("noteburst").get("Version", "0.0.0"),
+    openapi_url=f"/{config.name}/openapi.json",
+    docs_url=f"/{config.name}/docs",
 )
 """The FastAPI application for noteburst."""
 
