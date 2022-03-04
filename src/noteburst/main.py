@@ -31,19 +31,19 @@ configure_logging(
 )
 
 app = FastAPI(
-    title="Noteburst",
+    title=config.name,
     description=Path(__file__).parent.joinpath("description.md").read_text(),
     version=metadata("noteburst").get("Version", "0.0.0"),
-    openapi_url=f"/{config.name}/openapi.json",
-    docs_url=f"/{config.name}/docs",
+    openapi_url=f"{config.path_prefix}/openapi.json",
+    docs_url=f"{config.path_prefix}/docs",
 )
 """The FastAPI application for noteburst."""
 
 # Attach routers. Externally-accessible endpoints always use the app's
 # configured name as a path prefix, matching the ingress configuration.
 app.include_router(internal_router)
-app.include_router(external_router, prefix=f"/{config.name}")
-app.include_router(v1_router, prefix=f"/{config.name}/v1")
+app.include_router(external_router, prefix=f"{config.path_prefix}")
+app.include_router(v1_router, prefix=f"{config.path_prefix}/v1")
 
 
 @app.on_event("startup")

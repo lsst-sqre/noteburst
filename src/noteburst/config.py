@@ -37,7 +37,7 @@ class LogLevel(str, Enum):
 
 class Config(BaseSettings):
 
-    name: str = Field("noteburst", env="SAFIR_NAME")
+    name: str = Field("Noteburst", env="SAFIR_NAME")
 
     profile: Profile = Field(Profile.production, env="SAFIR_PROFILE")
 
@@ -47,6 +47,9 @@ class Config(BaseSettings):
     """The root name of the Python logger, which is also the name of the
     root Python module.
     """
+
+    path_prefix: str = Field("/noteburst", env="NOTEBURST_PATH_PREFIX")
+    """The URL path prefix where noteburst is hosted."""
 
     environment_url: HttpUrl = Field(env="NOTEBURST_ENVIRONMENT_URL")
     """The base URL of the Rubin Science Platform environment.
