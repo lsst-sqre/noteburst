@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict
 
+import pytest
 import pytest_asyncio
 import respx
 import structlog
@@ -45,13 +46,13 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         yield client
 
 
-@pytest_asyncio.fixture
-async def cachemachine(respx_mock: respx.Router) -> MockCachemachine:
+@pytest.fixture
+def cachemachine(respx_mock: respx.Router) -> MockCachemachine:
     """Mock the cachemachine API."""
     return mock_cachemachine(respx_mock)
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
     """Mock out JupyterHub/Lab API."""
     jupyter_mock = mock_jupyter(respx_mock)
@@ -67,8 +68,8 @@ def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
     return jupyter_mock
 
 
-@pytest_asyncio.fixture
-async def worker_context() -> Dict[Any, Any]:
+@pytest.fixture
+def worker_context() -> Dict[Any, Any]:
     """A mock ctx (context) fixture for Pytest workers."""
     ctx: Dict[Any, Any] = {}
 
