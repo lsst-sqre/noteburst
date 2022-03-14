@@ -2,7 +2,7 @@
 Change log
 ##########
 
-0.2.0 (Unreleased)
+0.2.0 (2022-03-14)
 ==================
 
 - Initial version of the ``/v1/`` HTTP API.
