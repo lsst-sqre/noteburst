@@ -3,7 +3,7 @@
 import structlog
 from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Query, Request, Response
-from safir.dependencies.logger import logger_dependency
+from safir.dependencies.gafaelfawr import auth_logger_dependency
 
 from noteburst.dependencies.arqpool import ArqQueue, arq_dependency
 
@@ -25,7 +25,7 @@ async def post_nbexec(
     *,
     request: Request,
     response: Response,
-    logger: structlog.BoundLogger = Depends(logger_dependency),
+    logger: structlog.BoundLogger = Depends(auth_logger_dependency),
     arq_queue: ArqQueue = Depends(arq_dependency),
 ) -> NotebookResponse:
     """Submits a notebook for execution. The notebook is executed
@@ -95,7 +95,7 @@ async def get_nbexec_job(
             "includes the executed notebook and metadata about the run."
         ),
     ),
-    logger: structlog.BoundLogger = Depends(logger_dependency),
+    logger: structlog.BoundLogger = Depends(auth_logger_dependency),
     arq_queue: ArqQueue = Depends(arq_dependency),
 ) -> NotebookResponse:
     """Provides information about a notebook execution job, and the result

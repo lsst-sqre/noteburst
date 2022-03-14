@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from safir.dependencies.logger import logger_dependency
+from safir.dependencies.gafaelfawr import auth_logger_dependency
 from safir.metadata import Metadata as SafirMetadata
 from safir.metadata import get_metadata
 from structlog.stdlib import BoundLogger
@@ -29,7 +29,7 @@ class Index(BaseModel):
     summary="Application metadata",
 )
 async def get_index(
-    logger: BoundLogger = Depends(logger_dependency),
+    logger: BoundLogger = Depends(auth_logger_dependency),
 ) -> Index:
     """GET ``/noteburst/`` (the app's external root).
 
