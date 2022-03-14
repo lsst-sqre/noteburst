@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-from safir.dependencies.logger import logger_dependency
+from safir.dependencies.gafaelfawr import auth_logger_dependency
 from safir.metadata import Metadata as SafirMetadata
 from safir.metadata import get_metadata
 from structlog.stdlib import BoundLogger
@@ -16,31 +16,20 @@ external_router = APIRouter()
 
 
 class Index(BaseModel):
-    """Metadata returned by the external root URL of the application.
-
-    Notes
-    -----
-    As written, this is not very useful. Add additional metadata that will be
-    helpful for a user exploring the application, or replace this model with
-    some other model that makes more sense to return from the application API
-    root.
-    """
+    """Metadata about the application."""
 
     metadata: SafirMetadata = Field(..., title="Package metadata")
 
 
 @external_router.get(
     "/",
-    description=(
-        "Document the top-level API here. By default it only returns metadata"
-        " about the application."
-    ),
+    description=("Discover metadata about the application."),
     response_model=Index,
     response_model_exclude_none=True,
     summary="Application metadata",
 )
 async def get_index(
-    logger: BoundLogger = Depends(logger_dependency),
+    logger: BoundLogger = Depends(auth_logger_dependency),
 ) -> Index:
     """GET ``/noteburst/`` (the app's external root).
 

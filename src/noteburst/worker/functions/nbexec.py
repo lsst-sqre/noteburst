@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 
 async def nbexec(
-    ctx: Dict[Any, Any], ipynb: str, *, kernel_name: str = "LSST"
+    ctx: Dict[Any, Any], *, ipynb: str, kernel_name: str = "LSST"
 ) -> str:
     logger = ctx["logger"].bind(task="nbexec")
     logger.info("Running nbexec")

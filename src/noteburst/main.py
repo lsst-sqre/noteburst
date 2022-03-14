@@ -8,6 +8,7 @@ called.
 """
 
 from importlib.metadata import metadata
+from pathlib import Path
 
 from fastapi import FastAPI
 from safir.dependencies.http_client import http_client_dependency
@@ -18,7 +19,6 @@ from .config import config
 from .dependencies.arqpool import arq_dependency
 from .handlers.external import external_router
 from .handlers.internal import internal_router
-from .handlers.prototyping import prototype_router
 from .handlers.v1 import v1_router
 
 __all__ = ["app", "config"]
@@ -30,23 +30,22 @@ configure_logging(
     name=config.logger_name,
 )
 
-app = FastAPI()
-"""The main FastAPI application for noteburst."""
-
-# Define the external routes in a subapp so that it will serve its own OpenAPI
-# interface definition and documentation URLs under the external URL.
-external_app = FastAPI(
-    title="noteburst",
-    description=metadata("noteburst").get("Summary", ""),
+app = FastAPI(
+    title=config.name,
+    description=Path(__file__).parent.joinpath("description.md").read_text(),
     version=metadata("noteburst").get("Version", "0.0.0"),
+    openapi_url=f"{config.path_prefix}/openapi.json",
+    docs_url=f"{config.path_prefix}/docs",
+    redoc_url=f"{config.path_prefix}/redoc",
+    openapi_tags=[{"name": "v1", "description": "Noteburst v1 REST API"}],
 )
-external_app.include_router(external_router)
-external_app.include_router(v1_router, prefix="/v1")
-external_app.include_router(prototype_router)
+"""The FastAPI application for noteburst."""
 
-# Attach the internal routes and subapp to the main application.
+# Attach routers. Externally-accessible endpoints always use the app's
+# configured name as a path prefix, matching the ingress configuration.
 app.include_router(internal_router)
-app.mount(f"/{config.name}", external_app)
+app.include_router(external_router, prefix=f"{config.path_prefix}")
+app.include_router(v1_router, prefix=f"{config.path_prefix}/v1")
 
 
 @app.on_event("startup")

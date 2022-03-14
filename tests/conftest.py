@@ -6,6 +6,7 @@ import contextlib
 from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict
 
 import pytest
+import pytest_asyncio
 import respx
 import structlog
 import websockets
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
     from tests.support.jupyter import MockJupyter, MockJupyterWebSocket
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def app() -> AsyncIterator[FastAPI]:
     """Return a configured test application.
 
@@ -38,15 +39,18 @@ async def app() -> AsyncIterator[FastAPI]:
         yield main.app
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
-    async with AsyncClient(app=app, base_url="https://example.com/") as client:
+    headers = {"X-Auth-Request-User": "user"}
+    async with AsyncClient(
+        app=app, base_url="https://example.com/", headers=headers
+    ) as client:
         yield client
 
 
 @pytest.fixture
-async def cachemachine(respx_mock: respx.Router) -> MockCachemachine:
+def cachemachine(respx_mock: respx.Router) -> MockCachemachine:
     """Mock the cachemachine API."""
     return mock_cachemachine(respx_mock)
 
@@ -68,8 +72,8 @@ def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
 
 
 @pytest.fixture
-async def worker_context() -> Dict[Any, Any]:
-    """A mock ctx (context) fixture for Pytest workers."""
+def worker_context() -> Dict[Any, Any]:
+    """A mock ctx (context) fixture for arq workers."""
     ctx: Dict[Any, Any] = {}
 
     # Prep identity_manager
