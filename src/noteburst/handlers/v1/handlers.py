@@ -31,7 +31,7 @@ async def post_nbexec(
     """Submits a notebook for execution. The notebook is executed
     asynchronously via a pool of JupyterLab (Nublado) instances.
 
-    ## Configuring how the notebook is run
+    ### Configuring how the notebook is run
 
     The JupyterLab kernel can be set via the optional `kernel_name` field.
     The default kernel is `LSST`, which is a Python 3 kernel that includes
@@ -45,15 +45,13 @@ async def post_nbexec(
     - The Nublado version
     - The machine size
 
-    ## Getting the notebook status and result
+    ### Getting the notebook status and result
 
     The JSON response body includes a `self_url` field (the same value is also
     available in the `Location` response header). You can send a
     `GET` request to this URL to get metadata about the execution job
     and (if available) the notebook (`ipynb`) result. See
-    [`GET /v1/notebooks/{job_id}`](
-    #/v1/get_nbexec_job_noteburst_v1_notebooks__job_id__get) for more
-    information.
+    `GET /v1/notebooks/{job_id}` for more information.
     """
     logger.debug("Enqueing a nbexec task")
     job_metadata = await arq_queue.enqueue(
@@ -101,7 +99,7 @@ async def get_nbexec_job(
     """Provides information about a notebook execution job, and the result
     (if available).
 
-    ## Information from a completed notebook
+    ### Information from a completed notebook
 
     Many response fields are only included when the result is available
     (the `status` field is `complete`):
@@ -115,7 +113,7 @@ async def get_nbexec_job(
     set the `result=false` URL query parameter. This speeds up the response
     slightly.
 
-    ## Toggling inclusion of the source notebook
+    ### Toggling inclusion of the source notebook
 
     If you require the notebook that was originally submitted, set the
     URL query parameter `source=true`.
