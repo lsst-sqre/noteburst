@@ -37,6 +37,7 @@ app = FastAPI(
     openapi_url=f"{config.path_prefix}/openapi.json",
     docs_url=f"{config.path_prefix}/docs",
     redoc_url=f"{config.path_prefix}/redoc",
+    openapi_tags=[{"name": "v1", "description": "Noteburst v1 REST API"}],
 )
 """The FastAPI application for noteburst."""
 
