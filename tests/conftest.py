@@ -73,7 +73,7 @@ def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
 
 @pytest.fixture
 def worker_context() -> Dict[Any, Any]:
-    """A mock ctx (context) fixture for Pytest workers."""
+    """A mock ctx (context) fixture for arq workers."""
     ctx: Dict[Any, Any] = {}
 
     # Prep identity_manager
