@@ -36,6 +36,7 @@ app = FastAPI(
     version=metadata("noteburst").get("Version", "0.0.0"),
     openapi_url=f"{config.path_prefix}/openapi.json",
     docs_url=f"{config.path_prefix}/docs",
+    redoc_url=f"{config.path_prefix}/redoc",
 )
 """The FastAPI application for noteburst."""
 
