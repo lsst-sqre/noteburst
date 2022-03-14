@@ -71,7 +71,7 @@ async def post_nbexec(
 
 @v1_router.get(
     "/notebooks/{job_id}",
-    summary="Get information about a notebook execution job.",
+    summary="Get information about a notebook execution job",
     response_model=NotebookResponse,
     response_model_exclude_none=True,
 )
