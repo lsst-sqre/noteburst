@@ -7,7 +7,7 @@ constructed when this module is loaded and is not deferred until a function is
 called.
 """
 
-from importlib.metadata import metadata
+from importlib.metadata import version
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -33,7 +33,7 @@ configure_logging(
 app = FastAPI(
     title=config.name,
     description=Path(__file__).parent.joinpath("description.md").read_text(),
-    version=metadata("noteburst").get("Version", "0.0.0"),
+    version=version("noteburst"),
     openapi_url=f"{config.path_prefix}/openapi.json",
     docs_url=f"{config.path_prefix}/docs",
     redoc_url=f"{config.path_prefix}/redoc",
