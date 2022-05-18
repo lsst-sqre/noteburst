@@ -303,8 +303,6 @@ class JupyterError(Exception):
             f"{self.username}: status {self.status} ({self.reason}) from"
             f" {self.method} {self.url}"
         )
-        if self.body:
-            result += f"\nBody:\n{self.body}\n"
         return result
 
 
