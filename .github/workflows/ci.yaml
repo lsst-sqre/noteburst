@@ -36,7 +36,9 @@ jobs:
         uses: pre-commit/action@v2.0.3
 
       - name: Install tox
-        run: pip install tox
+        run: |
+          pip install -U pip
+          pip install tox
 
       - name: Cache tox environments
         id: cache-tox
