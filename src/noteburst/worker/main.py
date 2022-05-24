@@ -6,6 +6,7 @@ from typing import Any, Dict
 
 import httpx
 import structlog
+from arq import cron
 from safir.logging import configure_logging
 
 from noteburst.config import WorkerConfig
@@ -17,7 +18,7 @@ from noteburst.jupyterclient.jupyterlab import (
 )
 from noteburst.jupyterclient.user import User
 
-from .functions import nbexec, ping, run_python
+from .functions import keep_alive, nbexec, ping, run_python
 from .identity import IdentityManager
 
 config = WorkerConfig()
@@ -112,6 +113,11 @@ async def shutdown(ctx: Dict[Any, Any]) -> None:
     logger.info("Worker shutdown complete.")
 
 
+# For info on ignoring the type checking here, see
+# https://github.com/samuelcolvin/arq/issues/249
+cron_jobs = [cron(keep_alive, second={0, 30}, unique=False)]  # type: ignore
+
+
 class WorkerSettings:
     """Configuration for a Noteburst worker.
 
@@ -119,6 +125,8 @@ class WorkerSettings:
     """
 
     functions = [ping, nbexec, run_python]
+
+    cron_jobs = cron_jobs
 
     redis_settings = config.arq_redis_settings
 
