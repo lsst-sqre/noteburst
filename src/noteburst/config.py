@@ -95,6 +95,14 @@ class WorkerConfig(Config):
         "redis://localhost:6379/1", env="NOTEBURST_WORKER_LOCK_REDIS_URL"
     )
 
+    job_timeout: int = Field(
+        300,
+        env="NOTEBURST_WORKER_JOB_TIMEOUT",
+        description=(
+            "The timeout, in seconds, for a job until it is timed out."
+        ),
+    )
+
     @property
     def aioredlock_redis_config(self) -> List[str]:
         """Redis configurations for aioredlock."""

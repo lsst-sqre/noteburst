@@ -135,3 +135,5 @@ class WorkerSettings:
     on_startup = startup
 
     on_shutdown = shutdown
+
+    job_timeout = config.job_timeout
