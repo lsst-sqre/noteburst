@@ -12,6 +12,7 @@ from noteburst.config import WorkerConfig
 from noteburst.jupyterclient.jupyterlab import (
     JupyterClient,
     JupyterConfig,
+    JupyterError,
     JupyterImageSelector,
 )
 from noteburst.jupyterclient.user import User
@@ -44,33 +45,40 @@ async def startup(ctx: Dict[Any, Any]) -> None:
     identity_manager = IdentityManager.from_config(config)
     ctx["identity_manager"] = identity_manager
 
-    identity = await identity_manager.get_identity()
-
-    logger = logger.bind(worker_username=identity.username)
-
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
-
-    user = User(username=identity.username, uid=identity.uid)
-    authed_user = await user.login(
-        scopes=["exec:notebook"], http_client=http_client
-    )
-    logger.info("Authenticated the worker's user.")
 
     jupyter_config = JupyterConfig(
         image_selector=JupyterImageSelector.RECOMMENDED
     )
-    jupyter_client = JupyterClient(
-        user=authed_user, logger=logger, config=jupyter_config
-    )
-    await jupyter_client.log_into_hub()
-    image_info = await jupyter_client.spawn_lab()
-    logger = logger.bind(image_ref=image_info.reference)
-    async for progress in jupyter_client.spawn_progress():
-        continue
-    await jupyter_client.log_into_lab()
-    ctx["jupyter_client"] = jupyter_client
 
+    identity = await identity_manager.get_identity()
+
+    while True:
+        logger = logger.bind(worker_username=identity.username)
+
+        user = User(username=identity.username, uid=identity.uid)
+        authed_user = await user.login(
+            scopes=["exec:notebook"], http_client=http_client
+        )
+        logger.info("Authenticated the worker's user.")
+
+        jupyter_client = JupyterClient(
+            user=authed_user, logger=logger, config=jupyter_config
+        )
+        await jupyter_client.log_into_hub()
+        try:
+            image_info = await jupyter_client.spawn_lab()
+            logger = logger.bind(image_ref=image_info.reference)
+            async for progress in jupyter_client.spawn_progress():
+                continue
+            await jupyter_client.log_into_lab()
+            break
+        except JupyterError:
+            logger.warning("Error spawning pod, will re-try with new identity")
+            identity = await identity_manager.get_next_identity(identity)
+
+    ctx["jupyter_client"] = jupyter_client
     ctx["logger"] = logger
 
     logger.info("Start up complete")

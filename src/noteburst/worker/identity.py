@@ -120,14 +120,19 @@ class IdentityManager:
 
     async def close(self) -> None:
         """Release any claimed identity and connection to Redis."""
+        await self._release_identity()
+        await self.lock_manager.destroy()
+        self._logger.info("Shut down identity manager")
+
+    async def _release_identity(self) -> None:
         if self._current_identity is not None:
             await self._current_identity.release()
             self._current_identity = None
             self._logger.info("Released worker user identity")
-        await self.lock_manager.destroy()
-        self._logger.info("Shut down identity manager")
 
-    async def get_identity(self) -> IdentityClaim:
+    async def get_identity(
+        self, _identities: Optional[List[IdentityModel]] = None
+    ) -> IdentityClaim:
         """Get a unique identity (either claiming a new identity or providing
         the already-claimed identity).
 
@@ -138,13 +143,18 @@ class IdentityManager:
         `IdentityClaim`
             Information about the Science Platform identity.
         """
+        if _identities:
+            identities = _identities
+        else:
+            identities = self.identities
+
         if self._current_identity:
             if self._current_identity.valid:
                 return self._current_identity
             else:
                 self._current_identity = None
 
-        for identity in self.identities:
+        for identity in identities:
             try:
                 # We don't set the timeout argument on lock; in doing so we
                 # use aioredlock's built-in watchdog that renews locks.
@@ -164,3 +174,29 @@ class IdentityManager:
         raise IdentityClaimError(
             "Could not claim an Science Platform identity (none available)."
         )
+
+    async def get_next_identity(
+        self, prev_identity: IdentityClaim
+    ) -> IdentityClaim:
+        """Get the next available identity if the existing identity claim
+        did not result in a successful JupyterLab launch.
+
+        If a worker exits and the JupyterLab pod does not successfully close,
+        it becomes orphaned. If a new worker picks up the identity of the
+        orphaned JupyterLab pod, its start-up sequence will fail. This method
+        provides a way for the worker to try the next available identity in
+        that circumstance.
+        """
+        await self._release_identity()
+
+        for i, identity in enumerate(self.identities):
+            if identity.username == prev_identity.username:
+                break
+
+        if i + 1 >= len(self.identities):
+            raise IdentityClaimError(
+                "Could not claim an Science Platform identity (none "
+                "available)."
+            )
+
+        return await self.get_identity(_identities=self.identities[i + 1 :])
