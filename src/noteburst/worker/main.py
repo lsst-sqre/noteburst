@@ -6,17 +6,19 @@ from typing import Any, Dict
 
 import httpx
 import structlog
+from arq import cron
 from safir.logging import configure_logging
 
 from noteburst.config import WorkerConfig
 from noteburst.jupyterclient.jupyterlab import (
     JupyterClient,
     JupyterConfig,
+    JupyterError,
     JupyterImageSelector,
 )
 from noteburst.jupyterclient.user import User
 
-from .functions import nbexec, ping, run_python
+from .functions import keep_alive, nbexec, ping, run_python
 from .identity import IdentityManager
 
 config = WorkerConfig()
@@ -44,33 +46,40 @@ async def startup(ctx: Dict[Any, Any]) -> None:
     identity_manager = IdentityManager.from_config(config)
     ctx["identity_manager"] = identity_manager
 
-    identity = await identity_manager.get_identity()
-
-    logger = logger.bind(worker_username=identity.username)
-
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
-
-    user = User(username=identity.username, uid=identity.uid)
-    authed_user = await user.login(
-        scopes=["exec:notebook"], http_client=http_client
-    )
-    logger.info("Authenticated the worker's user.")
 
     jupyter_config = JupyterConfig(
         image_selector=JupyterImageSelector.RECOMMENDED
     )
-    jupyter_client = JupyterClient(
-        user=authed_user, logger=logger, config=jupyter_config
-    )
-    await jupyter_client.log_into_hub()
-    image_info = await jupyter_client.spawn_lab()
-    logger = logger.bind(image_ref=image_info.reference)
-    async for progress in jupyter_client.spawn_progress():
-        continue
-    await jupyter_client.log_into_lab()
-    ctx["jupyter_client"] = jupyter_client
 
+    identity = await identity_manager.get_identity()
+
+    while True:
+        logger = logger.bind(worker_username=identity.username)
+
+        user = User(username=identity.username, uid=identity.uid)
+        authed_user = await user.login(
+            scopes=["exec:notebook"], http_client=http_client
+        )
+        logger.info("Authenticated the worker's user.")
+
+        jupyter_client = JupyterClient(
+            user=authed_user, logger=logger, config=jupyter_config
+        )
+        await jupyter_client.log_into_hub()
+        try:
+            image_info = await jupyter_client.spawn_lab()
+            logger = logger.bind(image_ref=image_info.reference)
+            async for progress in jupyter_client.spawn_progress():
+                continue
+            await jupyter_client.log_into_lab()
+            break
+        except JupyterError:
+            logger.warning("Error spawning pod, will re-try with new identity")
+            identity = await identity_manager.get_next_identity(identity)
+
+    ctx["jupyter_client"] = jupyter_client
     ctx["logger"] = logger
 
     logger.info("Start up complete")
@@ -104,6 +113,11 @@ async def shutdown(ctx: Dict[Any, Any]) -> None:
     logger.info("Worker shutdown complete.")
 
 
+# For info on ignoring the type checking here, see
+# https://github.com/samuelcolvin/arq/issues/249
+cron_jobs = [cron(keep_alive, second={0, 30}, unique=False)]  # type: ignore
+
+
 class WorkerSettings:
     """Configuration for a Noteburst worker.
 
@@ -112,6 +126,8 @@ class WorkerSettings:
 
     functions = [ping, nbexec, run_python]
 
+    cron_jobs = cron_jobs
+
     redis_settings = config.arq_redis_settings
 
     queue_name = config.queue_name
@@ -119,3 +135,5 @@ class WorkerSettings:
     on_startup = startup
 
     on_shutdown = shutdown
+
+    job_timeout = config.job_timeout
