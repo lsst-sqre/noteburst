@@ -9,8 +9,7 @@ from urllib.parse import urlparse
 
 from arq.connections import RedisSettings
 from pydantic import BaseSettings, Field, HttpUrl, RedisDsn, SecretStr
-
-from noteburst.dependencies.arqpool import ArqMode
+from safir.arq import ArqMode
 
 __all__ = ["Config", "Profile", "LogLevel"]
 

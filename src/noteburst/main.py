@@ -11,12 +11,12 @@ from importlib.metadata import version
 from pathlib import Path
 
 from fastapi import FastAPI
+from safir.dependencies.arq import arq_dependency
 from safir.dependencies.http_client import http_client_dependency
 from safir.logging import configure_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
 from .config import config
-from .dependencies.arqpool import arq_dependency
 from .handlers.external import external_router
 from .handlers.internal import internal_router
 from .handlers.v1 import v1_router

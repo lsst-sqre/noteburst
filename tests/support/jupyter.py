@@ -317,7 +317,7 @@ class MockJupyterWebSocket(Mock):
         super().__init__(spec=WebSocketClientProtocol)
         self.user = user
         self.session_id = session_id
-        self._header: Optional[Dict[str, str]] = None
+        self._header: Optional[Dict[str, Any]] = None
         self._code: Optional[str] = None
         self._state: Dict[str, Any] = {}
 
@@ -408,7 +408,7 @@ class MockJupyterWebSocket(Mock):
             else:
                 result = {
                     "msg_type": "execute_reply",
-                    "parent_header": self._header,
+                    "parent_header": self._header,  # type: ignore
                     "content": {"status": "ok"},
                 }
                 self._header = None

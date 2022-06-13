@@ -3,9 +3,9 @@
 import structlog
 from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Query, Request, Response
+from safir.arq import ArqQueue
+from safir.dependencies.arq import arq_dependency
 from safir.dependencies.gafaelfawr import auth_logger_dependency
-
-from noteburst.dependencies.arqpool import ArqQueue, arq_dependency
 
 from .models import NotebookResponse, PostNotebookRequest
 
