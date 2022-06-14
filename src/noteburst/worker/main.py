@@ -60,7 +60,9 @@ async def startup(ctx: Dict[Any, Any]) -> None:
 
         user = User(username=identity.username, uid=identity.uid)
         authed_user = await user.login(
-            scopes=["exec:notebook"], http_client=http_client
+            scopes=["exec:notebook"],
+            http_client=http_client,
+            token_lifetime=config.worker_token_lifetime,
         )
         logger.info("Authenticated the worker's user.")
 

@@ -32,13 +32,18 @@ class User:
     """
 
     async def login(
-        self, *, scopes: List[str], http_client: httpx.AsyncClient
+        self,
+        *,
+        scopes: List[str],
+        http_client: httpx.AsyncClient,
+        token_lifetime: int,
     ) -> AuthenticatedUser:
         return await AuthenticatedUser.create(
             username=self.username,
             uid=self.uid,
             scopes=scopes,
             http_client=http_client,
+            lifetime=token_lifetime,
         )
 
 
@@ -60,6 +65,7 @@ class AuthenticatedUser(User):
         uid: Optional[str],
         scopes: List[str],
         http_client: httpx.AsyncClient,
+        lifetime: int,
     ) -> AuthenticatedUser:
         """Create an authenticated user by logging into the Science Platform.
 
@@ -74,6 +80,8 @@ class AuthenticatedUser(User):
             The scopes the user's token should possess.
         http_client : httpx.Client
             The httpx client session.
+        lifetime : int
+            The lifetime of the authentication token, in seconds.
         """
         token_url = f"{config.environment_url}/auth/api/v1/tokens"
         token_request_data = {
@@ -82,7 +90,7 @@ class AuthenticatedUser(User):
             "token_type": "user",
             "token_name": f"noteburst {str(float(time.time()))}",
             "scopes": scopes,
-            "expires": int(time.time() + 2419200),
+            "expires": int(time.time() + lifetime),
         }
         if uid:
             token_request_data["uid"] = uid

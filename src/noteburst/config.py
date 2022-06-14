@@ -102,6 +102,12 @@ class WorkerConfig(Config):
         ),
     )
 
+    worker_token_lifetime: int = Field(
+        2419200,
+        env="NOTEBURST_WORKER_TOKEN_LIFETIME",
+        description="Worker auth token lifetime in seconds.",
+    )
+
     @property
     def aioredlock_redis_config(self) -> List[str]:
         """Redis configurations for aioredlock."""
