@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import httpx
 import structlog
 from arq import cron
 from safir.logging import configure_logging
 
-from noteburst.config import WorkerConfig
+from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
 from noteburst.jupyterclient.jupyterlab import (
     JupyterClient,
     JupyterConfig,
@@ -117,7 +117,17 @@ async def shutdown(ctx: Dict[Any, Any]) -> None:
 
 # For info on ignoring the type checking here, see
 # https://github.com/samuelcolvin/arq/issues/249
-cron_jobs = [cron(keep_alive, second={0, 30}, unique=False)]  # type: ignore
+cron_jobs: List[cron] = []  # type: ignore
+if config.worker_keepalive == WorkerKeepAliveSetting.fast:
+    f = cron(keep_alive, second={0, 30}, unique=False)  # type: ignore
+    cron_jobs.append(f)
+elif config.worker_keepalive == WorkerKeepAliveSetting.normal:
+    f = cron(
+        keep_alive,  # type: ignore
+        minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
+        unique=False,
+    )
+    cron_jobs.append(f)
 
 
 class WorkerSettings:

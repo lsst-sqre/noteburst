@@ -54,6 +54,19 @@ class JupyterImageSelector(str, Enum):
     """Select a specific image by reference."""
 
 
+class WorkerKeepAliveSetting(str, Enum):
+    """Modes for the worker keep-alive function."""
+
+    disabled = "disabled"
+    """Do not run a keep-alive function."""
+
+    fast = "fast"
+    """Run the keep-alive function at a high frequency (every 30 seconds)."""
+
+    normal = "normal"
+    """Run the keep-alive function at a slower frequencey (i.e. 5 minutes)."""
+
+
 class Config(BaseSettings):
 
     name: str = Field("Noteburst", env="SAFIR_NAME")
@@ -149,6 +162,10 @@ class WorkerConfig(Config):
             "Docker image reference, if NOTEBURST_WORKER_IMAGE_SELECTOR is "
             "``reference``."
         ),
+    )
+
+    worker_keepalive: WorkerKeepAliveSetting = Field(
+        WorkerKeepAliveSetting.normal, env="NOTEBURST_WORKER_KEEPALIVE"
     )
 
     @property
