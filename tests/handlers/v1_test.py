@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-
-from noteburst.dependencies.arqpool import MockArqQueue, arq_dependency
+from safir.arq import MockArqQueue
+from safir.dependencies.arq import arq_dependency
 
 if TYPE_CHECKING:
     from httpx import AsyncClient

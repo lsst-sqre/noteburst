@@ -2,6 +2,11 @@
 Change log
 ##########
 
+Unreleased
+==========
+
+- Noteburst now uses the arq client and dependency from Safir 3.2, which was originally developed from Noteburst.
+
 0.3.0 (2022-05-24)
 ==================
 

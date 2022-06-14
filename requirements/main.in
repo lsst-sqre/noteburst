@@ -13,8 +13,7 @@ uvicorn[standard]
 
 # Other dependencies.
 aioredlock
-arq
-safir
+safir[arq]
 pydantic[dotenv]
 PyYAML
 httpx

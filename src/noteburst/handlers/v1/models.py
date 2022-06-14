@@ -9,8 +9,7 @@ from typing import Any, Dict, Optional, Union
 from arq.jobs import JobStatus
 from fastapi import Request
 from pydantic import AnyHttpUrl, BaseModel, Field
-
-from noteburst.dependencies.arqpool import JobMetadata, JobResult
+from safir.arq import JobMetadata, JobResult
 
 kernel_name_field = Field(
     "LSST",
