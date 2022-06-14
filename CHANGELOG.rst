@@ -5,6 +5,8 @@ Change log
 Unreleased
 ==========
 
+- The worker identity configuration can now omit the ``uid`` field for environments where Gafaelfawr is able to assign a UID (e.g. through an LDAP backend).
+- A new ``NOTEBURST_WORKER_TOKEN_LIFETIME`` environment variable enables you to configure the lifetime of the workers' authentication tokens. The default matches the existing behavior, 28 days.
 - Noteburst now uses the arq client and dependency from Safir 3.2, which was originally developed from Noteburst.
 
 0.3.0 (2022-05-24)

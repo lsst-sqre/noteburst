@@ -21,7 +21,9 @@ async def test_generate_token(respx_mock: respx.Router) -> None:
     scopes = ["exec:notebook"]
 
     async with httpx.AsyncClient() as http_client:
-        user = await u.login(scopes=scopes, http_client=http_client)
+        user = await u.login(
+            scopes=scopes, http_client=http_client, token_lifetime=3600
+        )
     assert user.username == "someuser"
     assert user.uid == "1234"
     assert user.scopes == ["exec:notebook"]

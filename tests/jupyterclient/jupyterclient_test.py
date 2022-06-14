@@ -41,7 +41,9 @@ async def test_jupyterclient(
 
     async with httpx.AsyncClient() as http_client:
         authed_user = await user.login(
-            scopes=["exec:notebook"], http_client=http_client
+            scopes=["exec:notebook"],
+            http_client=http_client,
+            token_lifetime=3600,
         )
         async with JupyterClient(
             user=authed_user, logger=logger, config=jupyter_config
