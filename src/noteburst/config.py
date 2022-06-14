@@ -128,6 +128,14 @@ class WorkerConfig(Config):
         description="Worker auth token lifetime in seconds.",
     )
 
+    worker_token_scopes: str = Field(
+        "exec:notebook",
+        env="NOTEBURST_WORKER_TOKEN_SCOPES",
+        description=(
+            "Worker (nublado2 pod) token scopes as a comma-separated string."
+        ),
+    )
+
     image_selector: JupyterImageSelector = Field(
         JupyterImageSelector.recommended,
         env="NOTEBURST_WORKER_IMAGE_SELECTOR",
@@ -165,6 +173,13 @@ class WorkerConfig(Config):
             )
 
         return v
+
+    @property
+    def parsed_worker_token_scopes(self) -> List[str]:
+        """Sequence of worker token scopes, parsed from the comma-separated
+        list in `worker_token_scopes`.
+        """
+        return [t.strip() for t in self.worker_token_scopes.split(",") if t]
 
 
 config = Config()
