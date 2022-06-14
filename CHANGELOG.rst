@@ -6,7 +6,9 @@ Unreleased
 ==========
 
 - The worker identity configuration can now omit the ``uid`` field for environments where Gafaelfawr is able to assign a UID (e.g. through an LDAP backend).
-- A new ``NOTEBURST_WORKER_TOKEN_LIFETIME`` environment variable enables you to configure the lifetime of the workers' authentication tokens. The default matches the existing behavior, 28 days.
+- New configurations for workers:
+    - The new ``NOTEBURST_WORKER_TOKEN_LIFETIME`` environment variable enables you to configure the lifetime of the workers' authentication tokens. The default matches the existing behavior, 28 days.
+    - ``NOTEBURST_WORKER_IMAGE_SELECTOR`` allows you to specify what stream of Nublado image to select. Can be ``recommended``, ``weekly`` or ``reference``. If the latter, you can specify the specific Docker Image with ``NOTEBURST_WORKER_IMAGE_REFERENCE``.
 - Noteburst now uses the arq client and dependency from Safir 3.2, which was originally developed from Noteburst.
 
 0.3.0 (2022-05-24)

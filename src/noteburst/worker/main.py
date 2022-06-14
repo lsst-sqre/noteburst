@@ -14,7 +14,6 @@ from noteburst.jupyterclient.jupyterlab import (
     JupyterClient,
     JupyterConfig,
     JupyterError,
-    JupyterImageSelector,
 )
 from noteburst.jupyterclient.user import User
 
@@ -50,7 +49,8 @@ async def startup(ctx: Dict[Any, Any]) -> None:
     ctx["http_client"] = http_client
 
     jupyter_config = JupyterConfig(
-        image_selector=JupyterImageSelector.RECOMMENDED
+        image_selector=config.image_selector,
+        image_reference=config.image_reference,
     )
 
     identity = await identity_manager.get_identity()

@@ -4,11 +4,18 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import List
+from typing import Any, List, Mapping, Optional
 from urllib.parse import urlparse
 
 from arq.connections import RedisSettings
-from pydantic import BaseSettings, Field, HttpUrl, RedisDsn, SecretStr
+from pydantic import (
+    BaseSettings,
+    Field,
+    HttpUrl,
+    RedisDsn,
+    SecretStr,
+    validator,
+)
 from safir.arq import ArqMode
 
 __all__ = ["Config", "Profile", "LogLevel"]
@@ -32,6 +39,19 @@ class LogLevel(str, Enum):
     ERROR = "ERROR"
 
     CRITICAL = "CRITICAL"
+
+
+class JupyterImageSelector(str, Enum):
+    """Possible ways of selecting a JupyterLab image."""
+
+    recommended = "recommended"
+    """Currently recommended image."""
+
+    weekly = "weekly"
+    """Current weekly image."""
+
+    reference = "reference"
+    """Select a specific image by reference."""
 
 
 class Config(BaseSettings):
@@ -108,10 +128,43 @@ class WorkerConfig(Config):
         description="Worker auth token lifetime in seconds.",
     )
 
+    image_selector: JupyterImageSelector = Field(
+        JupyterImageSelector.recommended,
+        env="NOTEBURST_WORKER_IMAGE_SELECTOR",
+        description="Method for selecting a Jupyter image to run.",
+    )
+
+    image_reference: Optional[str] = Field(
+        None,
+        env="NOTEBURST_WORKER_IMAGE_REFERENCE",
+        description=(
+            "Docker image reference, if NOTEBURST_WORKER_IMAGE_SELECTOR is "
+            "``reference``."
+        ),
+    )
+
     @property
     def aioredlock_redis_config(self) -> List[str]:
         """Redis configurations for aioredlock."""
         return [str(self.identity_lock_redis_url)]
+
+    @validator("image_reference")
+    def is_image_ref_set(
+        cls, v: Optional[str], values: Mapping[str, Any]
+    ) -> Optional[str]:
+        """Validate that image_reference is set if image_selector is
+        set to reference.
+        """
+        if (
+            v is None
+            and values["image_selector"] == JupyterImageSelector.reference
+        ):
+            raise ValueError(
+                "Set NOTEBURST_WORKER_IMAGE_REFERENCE since "
+                "NOTEBURST_WORKER_IMAGE_SELECTOR is ``reference``."
+            )
+
+        return v
 
 
 config = Config()
