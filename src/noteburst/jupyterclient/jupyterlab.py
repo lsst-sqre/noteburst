@@ -9,7 +9,6 @@ import json
 import random
 import string
 from dataclasses import dataclass
-from enum import Enum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,6 +25,7 @@ import websockets
 import websockets.typing
 from websockets.exceptions import WebSocketException
 
+from noteburst.config import JupyterImageSelector
 from noteburst.config import config as noteburst_config
 
 from .cachemachine import CachemachineClient, JupyterImage
@@ -37,7 +37,6 @@ if TYPE_CHECKING:
     from .user import AuthenticatedUser
 
 __all__ = [
-    "JupyterImageSelector",
     "SpawnProgressMessage",
     "JupyterSpawnProgress",
     "JupyterLabSession",
@@ -46,14 +45,6 @@ __all__ = [
     "JupyterLabSessionError",
     "JupyterClient",
 ]
-
-
-class JupyterImageSelector(Enum):
-    """Possible ways of selecting a JupyterLab image."""
-
-    RECOMMENDED = "recommended"
-    LATEST_WEEKLY = "latest-weekly"
-    BY_REFERENCE = "by-reference"
 
 
 @dataclass(frozen=True)
@@ -254,7 +245,8 @@ class JupyterConfig:
     image_reference: Optional[str] = None
     """Docker reference to the JupyterLab image to spawn.
 
-    May be null if ``image_selector`` is `JupyterImageSelector.BY_REFERENCE`.
+    May be null if ``image_selector`` is is not
+    `JupyterImageSelector.reference`.
     """
 
     image_size: str = "Large"
@@ -545,11 +537,11 @@ class JupyterClient:
 
     async def _get_spawn_image(self) -> JupyterImage:
         """Determine what image to spawn."""
-        if self.config.image_selector == JupyterImageSelector.RECOMMENDED:
+        if self.config.image_selector == JupyterImageSelector.recommended:
             image = await self.cachemachine.get_recommended()
-        elif self.config.image_selector == JupyterImageSelector.LATEST_WEEKLY:
+        elif self.config.image_selector == JupyterImageSelector.weekly:
             image = await self.cachemachine.get_latest_weekly()
-        elif self.config.image_selector == JupyterImageSelector.BY_REFERENCE:
+        elif self.config.image_selector == JupyterImageSelector.reference:
             assert self.config.image_reference
             image = JupyterImage.from_reference(self.config.image_reference)
         else:

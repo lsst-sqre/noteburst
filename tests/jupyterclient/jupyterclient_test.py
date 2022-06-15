@@ -9,11 +9,8 @@ import pytest
 import respx
 import structlog
 
-from noteburst.jupyterclient.jupyterlab import (
-    JupyterClient,
-    JupyterConfig,
-    JupyterImageSelector,
-)
+from noteburst.config import JupyterImageSelector
+from noteburst.jupyterclient.jupyterlab import JupyterClient, JupyterConfig
 from noteburst.jupyterclient.user import User
 from tests.support.gafaelfawr import mock_gafaelfawr
 
@@ -36,7 +33,7 @@ async def test_jupyterclient(
     logger = structlog.get_logger(__name__)
 
     jupyter_config = JupyterConfig(
-        image_selector=JupyterImageSelector.RECOMMENDED
+        image_selector=JupyterImageSelector.recommended
     )
 
     async with httpx.AsyncClient() as http_client:
