@@ -2,14 +2,15 @@
 Change log
 ##########
 
-Unreleased
-==========
+0.4.0 (2022-06-15)
+==================
 
 - The worker identity configuration can now omit the ``uid`` field for environments where Gafaelfawr is able to assign a UID (e.g. through an LDAP backend).
 - New configurations for workers:
     - The new ``NOTEBURST_WORKER_TOKEN_LIFETIME`` environment variable enables you to configure the lifetime of the workers' authentication tokens. The default matches the existing behavior, 28 days.
     - ``NOTEBURST_WORKER_TOKEN_SCOPES`` environment variable enables you to set what token scopes the nublado2 bot users should have, as a comma-separated list.
     - ``NOTEBURST_WORKER_IMAGE_SELECTOR`` allows you to specify what stream of Nublado image to select. Can be ``recommended``, ``weekly`` or ``reference``. If the latter, you can specify the specific Docker Image with ``NOTEBURST_WORKER_IMAGE_REFERENCE``.
+    - The ``NOTEBURST_WORKER_KEEPALIVE`` configuration controls whether the worker keep alive function is run (to default the Nublado pod culler), and at what frequencey. Set to ``disabled`` to disable; ``fast`` to run every 30 seconds; or ``normal`` to run every 5 minutes.
 - Noteburst now uses the arq client and dependency from Safir 3.2, which was originally developed from Noteburst.
 
 0.3.0 (2022-05-24)
