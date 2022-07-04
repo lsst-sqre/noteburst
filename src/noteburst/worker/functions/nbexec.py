@@ -14,8 +14,30 @@ from noteburst.jupyterclient.jupyterlab import JupyterError
 
 
 async def nbexec(
-    ctx: Dict[Any, Any], *, ipynb: str, kernel_name: str = "LSST"
+    ctx: Dict[Any, Any],
+    *,
+    ipynb: str,
+    kernel_name: str = "LSST",
+    enable_retry: bool = True,
 ) -> str:
+    """Execute a notebook, as an asynchronous arq worker task.
+
+    Parameters
+    ----------
+    ctx : `dict`
+        The arq worker context.
+    ipynb : `str`
+        The input Jupyter notebook as a serialized string.
+    kernel_name : `str`
+        The Jupyter kernel to execute the notebook in.
+    enable_retry : `bool`
+        Whether to retry the notebook execution if it failed.
+
+    Returns
+    -------
+    str
+        The executed Jupyter notebook (ipynb) as a serialized JSON string.
+    """
     logger = ctx["logger"].bind(
         task="nbexec", job_attempt=ctx.get("job_try", -1)
     )
@@ -40,7 +62,10 @@ async def nbexec(
             sys.exit("400 class error from Jupyter")
         else:
             # trigger re-try with increasing back-off
-            logger.warning("Triggering retry")
-            raise Retry(defer=ctx["job_try"] * 5)
+            if enable_retry:
+                logger.warning("Triggering retry")
+                raise Retry(defer=ctx["job_try"] * 5)
+            else:
+                raise
 
     return json.dumps(executed_notebook)

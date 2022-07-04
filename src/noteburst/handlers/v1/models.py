@@ -109,6 +109,19 @@ class PostNotebookRequest(BaseModel):
 
     kernel_name: str = kernel_name_field
 
+    enable_retry: bool = Field(
+        True,
+        title="Enable retries on failures",
+        description=(
+            "If true (default), noteburst will retry notebook "
+            "execution if the notebook fails, with an increasing back-off "
+            "time between tries. This is useful for dealing with transient "
+            "issues. However, if you are using Noteburst for continuous "
+            "integration of notebooks, disabling retries provides faster "
+            "feedback."
+        ),
+    )
+
     def get_ipynb_as_str(self) -> str:
         if isinstance(self.ipynb, str):
             return self.ipynb
