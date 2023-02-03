@@ -20,7 +20,4 @@ respx
 types-PyYAML
 
 # Documentation
-documenteer
-lsst-sphinx-bootstrap-theme<0.3
-sphinx-automodapi
-sphinx-click
+documenteer[guide]
