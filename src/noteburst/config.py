@@ -22,14 +22,12 @@ __all__ = ["Config", "Profile", "LogLevel"]
 
 
 class Profile(str, Enum):
-
     production = "production"
 
     development = "development"
 
 
 class LogLevel(str, Enum):
-
     DEBUG = "DEBUG"
 
     INFO = "INFO"
@@ -68,7 +66,6 @@ class WorkerKeepAliveSetting(str, Enum):
 
 
 class Config(BaseSettings):
-
     name: str = Field("Noteburst", env="SAFIR_NAME")
 
     profile: Profile = Field(Profile.production, env="SAFIR_PROFILE")
@@ -114,7 +111,6 @@ class Config(BaseSettings):
 
 
 class WorkerConfig(Config):
-
     identities_path: Path = Field(..., env="NOTEBURST_WORKER_IDENTITIES_PATH")
     """Path to the configuration file with the pool of Science Platform
     identities available to workers.
