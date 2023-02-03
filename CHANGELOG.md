@@ -1,5 +1,10 @@
 # Change log
 
+## 0.6.0 (Unreleased)
+
+- Migrated to Python 3.11
+- Adopted pyproject.toml for project metadata and dropped setup.cfg.
+
 ## 0.5.0 (2022-07-04)
 
 - Its now possible to skip retries on notebook execution failures in the `nbexec` task by passing an `enable_retry=False` keyword argument.
