@@ -34,7 +34,6 @@ class IdentityModel(BaseModel):
 
 
 class IdentityConfigModel(BaseModel):
-
     __root__: List[IdentityModel]
 
     @classmethod
