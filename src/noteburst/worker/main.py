@@ -72,7 +72,7 @@ async def startup(ctx: Dict[Any, Any]) -> None:
         await jupyter_client.log_into_hub()
         try:
             image_info = await jupyter_client.spawn_lab()
-            logger = logger.bind(image_ref=image_info.reference)
+            logger = logger.bind(image_ref=image_info.references)
             async for progress in jupyter_client.spawn_progress():
                 continue
             await jupyter_client.log_into_lab()

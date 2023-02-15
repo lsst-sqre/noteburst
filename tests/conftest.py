@@ -3,29 +3,27 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict
+from typing import Any, AsyncGenerator, AsyncIterator
 
 import pytest
 import pytest_asyncio
 import respx
 import structlog
 import websockets
+from _pytest.monkeypatch import MonkeyPatch
 from asgi_lifespan import LifespanManager
+from fastapi import FastAPI
 from httpx import AsyncClient
 
 from noteburst import main
 from tests.support.arq import MockIdentityClaim, MockIdentityManager
-from tests.support.cachemachine import mock_cachemachine
-from tests.support.jupyter import mock_jupyter, mock_jupyter_websocket
-
-if TYPE_CHECKING:
-    from typing import AsyncIterator
-
-    from _pytest.monkeypatch import MonkeyPatch
-    from fastapi import FastAPI
-
-    from tests.support.cachemachine import MockCachemachine
-    from tests.support.jupyter import MockJupyter, MockJupyterWebSocket
+from tests.support.jupyter import (
+    MockJupyter,
+    MockJupyterWebSocket,
+    mock_jupyter,
+    mock_jupyter_websocket,
+)
+from tests.support.labcontroller import MockLabController, mock_labcontroller
 
 
 @pytest_asyncio.fixture
@@ -50,9 +48,9 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
 
 
 @pytest.fixture
-def cachemachine(respx_mock: respx.Router) -> MockCachemachine:
-    """Mock the cachemachine API."""
-    return mock_cachemachine(respx_mock)
+def labcontroller(respx_mock: respx.Router) -> MockLabController:
+    """Mock the JupyterLab Controller API."""
+    return mock_labcontroller(respx_mock)
 
 
 @pytest.fixture
@@ -72,9 +70,9 @@ def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
 
 
 @pytest.fixture
-def worker_context() -> Dict[Any, Any]:
+def worker_context() -> dict[Any, Any]:
     """A mock ctx (context) fixture for arq workers."""
-    ctx: Dict[Any, Any] = {}
+    ctx: dict[Any, Any] = {}
 
     # Prep identity_manager
     ctx["identity_manager"] = MockIdentityManager()

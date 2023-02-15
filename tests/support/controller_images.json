@@ -1,0 +1,74 @@
+{
+  "recommended": {
+    "path": "docker.io/lsstsqre/sciplat-lab:recommended",
+    "tags": { "recommended": "Recommended (Weekly 2021_33)" },
+    "digest": "sha256:c2c67ee6275b861fdf69dfbb42322925118e2b997bfe29451901900ba00bba69",
+    "name": "Recommended (Weekly 2021_33)",
+    "prepulled": true
+  },
+  "latest-weekly": {
+    "path": "docker.io/lsstsqre/sciplat-lab:w_2021_35",
+    "tags": { "w_2021_35": "Weekly 2021_35" },
+    "digest": "sha256:ef93e4560a2e06d39300802686392000237f186a9197e8dea24a1dd9abbd6e2c",
+    "name": "Weekly 2021_35",
+    "prepulled": true
+  },
+  "latest-daily": {
+    "path": "docker.io/lsstsqre/sciplat-lab:d_2021_08_31",
+    "tags": { "d_2021_08_31": "Daily 2021_08_31" },
+    "digest": "sha256:d99b6067e489657cda0835a34466756ef04e36b597587c3442d405457423ee9b",
+    "name": "Daily 2021_08_31",
+    "prepulled": true
+  },
+  "latest-release": {
+    "path": "docker.io/lsstsqre/sciplat-lab:r22_0_1",
+    "tags": { "r22_0_1": "Release r22_0_1" },
+    "digest": "sha256:72cff1efc7ef6c31cd4afed489d58fec91bdfa4711918b240b548c9370914464",
+    "name": "Release r22.0.1",
+    "prepulled": true
+  },
+  "all": [
+    {
+      "path": "docker.io/lsstsqre/sciplat-lab:recommended",
+      "tags": { "recommended": "Recommended (Weekly 2021_33)" },
+      "digest": "sha256:c2c67ee6275b861fdf69dfbb42322925118e2b997bfe29451901900ba00bba69",
+      "name": "Recommended (Weekly 2021_33)",
+      "prepulled": true
+    },
+    {
+      "path": "docker.io/lsstsqre/sciplat-lab:r22_0_1",
+      "tags": { "r22_0_1": "Release r22_0_1" },
+      "digest": "sha256:72cff1efc7ef6c31cd4afed489d58fec91bdfa4711918b240b548c9370914464",
+      "name": "Release r22.0.1",
+      "prepulled": true
+    },
+    {
+      "path": "docker.io/lsstsqre/sciplat-lab:w_2021_35",
+      "tags": { "w_2021_35": "Weekly 2021_35" },
+      "digest": "sha256:ef93e4560a2e06d39300802686392000237f186a9197e8dea24a1dd9abbd6e2c",
+      "name": "Weekly 2021_35",
+      "prepulled": true
+    },
+    {
+      "path": "docker.io/lsstsqre/sciplat-lab:w_2021_34",
+      "tags": { "w_2021_34": "Weekly 2021_34" },
+      "digest": "sha256:513c08d9fd0fae9fdd6880bba2781d14c480eec86e7c937856cfac1cd1a3baac",
+      "name": "Weekly 2021_34",
+      "prepulled": true
+    },
+    {
+      "path": "docker.io/lsstsqre/sciplat-lab:d_2021_08_31",
+      "tags": { "d_2021_08_31": "Daily 2021_08_31" },
+      "digest": "sha256:d99b6067e489657cda0835a34466756ef04e36b597587c3442d405457423ee9b",
+      "name": "Daily 2021_08_31",
+      "prepulled": true
+    },
+    {
+      "path": "docker.io/lsstsqre/sciplat-lab:d_2021_08_30",
+      "tags": { "d_2021_08_30": "Daily 2021_08_30" },
+      "digest": "sha256:16fc46c35b453a2be5593e473d6b102442faaeec42ffda33940f0669d2ac1f88",
+      "name": "Daily 2021_08_30",
+      "prepulled": true
+    }
+  ]
+}

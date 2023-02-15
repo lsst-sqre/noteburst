@@ -28,7 +28,7 @@ from websockets.exceptions import WebSocketException
 from noteburst.config import JupyterImageSelector
 from noteburst.config import config as noteburst_config
 
-from .cachemachine import CachemachineClient, JupyterImage
+from .labcontroller import JupyterImage, LabControllerClient
 
 if TYPE_CHECKING:
     from structlog import BoundLogger
@@ -380,7 +380,7 @@ class JupyterClient:
         )
 
         self._http_client: Optional[httpx.AsyncClient] = None
-        self._cachemachine: Optional[CachemachineClient] = None
+        self._lab_controller_client: Optional[LabControllerClient] = None
         self._common_headers: Dict[str, str]  # set and reset in the context
 
     @property
@@ -392,21 +392,23 @@ class JupyterClient:
         return self._http_client
 
     @property
-    def cachemachine(self) -> CachemachineClient:
-        """The Cachemachine client, only available in the JupyterClient
-        context.
+    def lab_controller(self) -> LabControllerClient:
+        """The Jupyter Lab Controller client, only available in the
+        JupyterClient context.
         """
-        if self._cachemachine is None:
+        if self._lab_controller_client is None:
             self._open_clients()
-        assert self._cachemachine is not None
-        return self._cachemachine
+        assert self._lab_controller_client is not None
+        return self._lab_controller_client
 
     async def __aenter__(self) -> JupyterClient:
         self._open_clients()
         return self
 
     def _open_clients(self) -> None:
-        if (self._http_client is not None) or (self._cachemachine is not None):
+        if (self._http_client is not None) or (
+            self._lab_controller_client is not None
+        ):
             raise RuntimeError(
                 "JupyterClient is already open. Call close() before "
                 "re-opening?"
@@ -429,11 +431,11 @@ class JupyterClient:
             timeout=30.0,  # default is 5, but Hub can be slow
         )
 
-        # Create a cachemachine client
-        # We also send the XSRF token to cachemachine because of how we're
+        # Create a LabController client
+        # We also send the XSRF token to Lab Controller because of how we're
         # sharing the session, but that shouldn't matter.
         assert noteburst_config.gafaelfawr_token
-        self._cachemachine = CachemachineClient(
+        self._lab_controller_client = LabControllerClient(
             self.http_client,
             noteburst_config.gafaelfawr_token.get_secret_value(),
         )
@@ -448,7 +450,7 @@ class JupyterClient:
         using JupyterClient as an async context manager. The client is
         closed automatically.
         """
-        self._cachemachine_client = None
+        self._lab_controller_client = None
 
         await self.http_client.aclose()
         self._http_client = None
@@ -538,12 +540,14 @@ class JupyterClient:
     async def _get_spawn_image(self) -> JupyterImage:
         """Determine what image to spawn."""
         if self.config.image_selector == JupyterImageSelector.recommended:
-            image = await self.cachemachine.get_recommended()
+            image = await self.lab_controller.get_recommended()
         elif self.config.image_selector == JupyterImageSelector.weekly:
-            image = await self.cachemachine.get_latest_weekly()
+            image = await self.lab_controller.get_latest_weekly()
         elif self.config.image_selector == JupyterImageSelector.reference:
             assert self.config.image_reference
-            image = JupyterImage.from_reference(self.config.image_reference)
+            image = await self.lab_controller.get_by_reference(
+                self.config.image_reference
+            )
         else:
             # This should be prevented by the model as long as we don't add a
             # new image class without adding the corresponding condition.
@@ -552,11 +556,11 @@ class JupyterClient:
             )
         return image
 
-    def _build_jupyter_spawn_form(self, image: JupyterImage) -> Dict[str, str]:
+    def _build_jupyter_spawn_form(self, image: JupyterImage) -> Dict[str, Any]:
         """Construct the form to submit to the JupyterHub spawning page."""
         return {
-            "image_list": str(image),
-            "image_dropdown": "use_image_from_dropdown",
+            "image_list": [image.path],
+            "image_dropdown": [image.path],
             "size": self.config.image_size,
         }
 
