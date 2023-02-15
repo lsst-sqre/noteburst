@@ -2,6 +2,7 @@
 
 ## 0.6.0 (Unreleased)
 
+- Migrated from the Cachemachine API to the new JupyterLab Controller API for obtaining the list of available Docker images for JupyterLab workers.
 - Migrated to Python 3.11
 - Adopted pyproject.toml for project metadata and dropped setup.cfg.
 
