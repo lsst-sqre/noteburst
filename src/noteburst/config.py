@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 from urllib.parse import urlparse
 
 from arq.connections import RedisSettings
@@ -62,7 +62,7 @@ class WorkerKeepAliveSetting(str, Enum):
     """Run the keep-alive function at a high frequency (every 30 seconds)."""
 
     normal = "normal"
-    """Run the keep-alive function at a slower frequencey (i.e. 5 minutes)."""
+    """Run the keep-alive function at a slower frequency (i.e. 5 minutes)."""
 
 
 class Config(BaseSettings):
@@ -165,7 +165,7 @@ class WorkerConfig(Config):
     )
 
     @property
-    def aioredlock_redis_config(self) -> List[str]:
+    def aioredlock_redis_config(self) -> list[str]:
         """Redis configurations for aioredlock."""
         return [str(self.identity_lock_redis_url)]
 
@@ -188,7 +188,7 @@ class WorkerConfig(Config):
         return v
 
     @property
-    def parsed_worker_token_scopes(self) -> List[str]:
+    def parsed_worker_token_scopes(self) -> list[str]:
         """Sequence of worker token scopes, parsed from the comma-separated
         list in `worker_token_scopes`.
         """

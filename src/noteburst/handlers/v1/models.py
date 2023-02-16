@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from arq.jobs import JobStatus
 from fastapi import Request
@@ -99,7 +99,7 @@ class NotebookResponse(BaseModel):
 class PostNotebookRequest(BaseModel):
     """The ``POST /notebooks/`` request body."""
 
-    ipynb: Union[str, Dict[str, Any]] = Field(
+    ipynb: Union[str, dict[str, Any]] = Field(
         ...,
         title="The contents of a Jupyter notebook",
         description="If a string, the content is parsed as JSON. "

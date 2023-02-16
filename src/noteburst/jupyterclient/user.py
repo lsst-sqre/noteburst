@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
+
+import httpx
 
 from noteburst.config import config
-
-if TYPE_CHECKING:
-    import httpx.Client
 
 __all__ = ["User", "AuthenticatedUser"]
 
@@ -34,7 +33,7 @@ class User:
     async def login(
         self,
         *,
-        scopes: List[str],
+        scopes: list[str],
         http_client: httpx.AsyncClient,
         token_lifetime: int,
     ) -> AuthenticatedUser:
@@ -51,7 +50,7 @@ class User:
 class AuthenticatedUser(User):
     """A user authenticated with a token."""
 
-    scopes: List[str]
+    scopes: list[str]
     """The token's scopes (example: ``["exec:notebook", "read:tap"]``."""
 
     token: str
@@ -63,7 +62,7 @@ class AuthenticatedUser(User):
         *,
         username: str,
         uid: Optional[str],
-        scopes: List[str],
+        scopes: list[str],
         http_client: httpx.AsyncClient,
         lifetime: int,
     ) -> AuthenticatedUser:
@@ -71,16 +70,16 @@ class AuthenticatedUser(User):
 
         Parameters
         ----------
-        username : `str`
+        username
             The username.
-        uid : `str` or `None`
+        uid
             The user's UID. This can be `None` if the authentication service
             assigns the UID.
-        scopes : `list` of `str`
+        scopes
             The scopes the user's token should possess.
-        http_client : httpx.Client
+        http_client
             The httpx client session.
-        lifetime : int
+        lifetime
             The lifetime of the authentication token, in seconds.
         """
         token_url = f"{config.environment_url}/auth/api/v1/tokens"

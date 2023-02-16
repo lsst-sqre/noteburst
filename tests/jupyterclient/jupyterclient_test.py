@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import httpx
 import pytest
 import respx
@@ -13,17 +11,15 @@ from noteburst.config import JupyterImageSelector
 from noteburst.jupyterclient.jupyterlab import JupyterClient, JupyterConfig
 from noteburst.jupyterclient.user import User
 from tests.support.gafaelfawr import mock_gafaelfawr
-
-if TYPE_CHECKING:
-    from tests.support.cachemachine import MockCachemachine
-    from tests.support.jupyter import MockJupyter
+from tests.support.jupyter import MockJupyter
+from tests.support.labcontroller import MockLabController
 
 
 @pytest.mark.asyncio
 async def test_jupyterclient(
     respx_mock: respx.Router,
     jupyter: MockJupyter,
-    cachemachine: MockCachemachine,
+    labcontroller: MockLabController,
 ) -> None:
     user = User(username="someuser", uid="1234")
     mock_gafaelfawr(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 import httpx
 import structlog
@@ -23,7 +23,7 @@ from .identity import IdentityManager
 config = WorkerConfig()
 
 
-async def startup(ctx: Dict[Any, Any]) -> None:
+async def startup(ctx: dict[Any, Any]) -> None:
     """Runs during working start-up to set up the JupyterLab client and
     populate the worker context.
 
@@ -72,7 +72,7 @@ async def startup(ctx: Dict[Any, Any]) -> None:
         await jupyter_client.log_into_hub()
         try:
             image_info = await jupyter_client.spawn_lab()
-            logger = logger.bind(image_ref=image_info.reference)
+            logger = logger.bind(image_ref=image_info.references)
             async for progress in jupyter_client.spawn_progress():
                 continue
             await jupyter_client.log_into_lab()
@@ -87,9 +87,9 @@ async def startup(ctx: Dict[Any, Any]) -> None:
     logger.info("Start up complete")
 
 
-async def shutdown(ctx: Dict[Any, Any]) -> None:
+async def shutdown(ctx: dict[Any, Any]) -> None:
     """Runs during worker shut-down to release the JupyterLab resources
-    and identitiy claim.
+    and identity claim.
     """
     if "logger" in ctx.keys():
         logger = ctx["logger"]
@@ -117,7 +117,7 @@ async def shutdown(ctx: Dict[Any, Any]) -> None:
 
 # For info on ignoring the type checking here, see
 # https://github.com/samuelcolvin/arq/issues/249
-cron_jobs: List[cron] = []  # type: ignore
+cron_jobs: list[cron] = []  # type: ignore
 if config.worker_keepalive == WorkerKeepAliveSetting.fast:
     f = cron(keep_alive, second={0, 30}, unique=False)  # type: ignore
     cron_jobs.append(f)

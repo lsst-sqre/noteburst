@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
+from httpx import AsyncClient
 from safir.arq import MockArqQueue
 from safir.dependencies.arq import arq_dependency
-
-if TYPE_CHECKING:
-    from httpx import AsyncClient
 
 
 @pytest.fixture

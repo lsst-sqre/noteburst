@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import httpx
 import pytest
+import respx
 
 from noteburst.jupyterclient.user import User
 from tests.support.gafaelfawr import mock_gafaelfawr
-
-if TYPE_CHECKING:
-    import respx
 
 
 @pytest.mark.asyncio

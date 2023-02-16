@@ -1,14 +1,14 @@
-"""Management of Science Platform user identitity for workers.
+"""Management of Science Platform user identity for workers.
 
 Each noteburst worker runs under a unique Science Platform user account. The
-account is aquired through a redis-based lock.
+account is acquired through a redis-based lock.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import structlog
 import yaml
@@ -34,7 +34,7 @@ class IdentityModel(BaseModel):
 
 
 class IdentityConfigModel(BaseModel):
-    __root__: List[IdentityModel]
+    __root__: list[IdentityModel]
 
     @classmethod
     def from_yaml(cls, path: Path) -> IdentityConfigModel:
@@ -76,11 +76,11 @@ class IdentityManager:
     class method. Once initialized, call the `IdentityManager.get_identity`
     method to claim an identity, or obtain the already-claimed identity.
 
-    Parmaeters
+    Parameters
     ----------
-    lock_manager : `aioredlock.Aioredlock`
+    lock_manager
         The lock manager
-    identities : list of `IdentityModel`
+    identities
         The parsed identity pool configuration file.
     """
 
@@ -88,7 +88,7 @@ class IdentityManager:
         self,
         *,
         lock_manager: Aioredlock,
-        identities: List[IdentityModel],
+        identities: list[IdentityModel],
     ) -> None:
         self.lock_manager = lock_manager
         self.identities = identities
@@ -101,12 +101,12 @@ class IdentityManager:
 
         Parameters
         ----------
-        config : `noteburst.config.WorkerConfig`
+        config
             The worker configuration.
 
         Returns
         -------
-        `IdentityManager`
+        IdentityManager
             The identity manager instance.
         """
         lock_manager = Aioredlock(config.aioredlock_redis_config)
@@ -133,7 +133,7 @@ class IdentityManager:
             self._logger.info("Released worker user identity")
 
     async def get_identity(
-        self, _identities: Optional[List[IdentityModel]] = None
+        self, _identities: Optional[list[IdentityModel]] = None
     ) -> IdentityClaim:
         """Get a unique identity (either claiming a new identity or providing
         the already-claimed identity).
@@ -142,7 +142,7 @@ class IdentityManager:
 
         Returns
         -------
-        `IdentityClaim`
+        IdentityClaim
             Information about the Science Platform identity.
         """
         if _identities:
