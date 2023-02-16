@@ -78,9 +78,9 @@ class IdentityManager:
 
     Parameters
     ----------
-    lock_manager : `aioredlock.Aioredlock`
+    lock_manager
         The lock manager
-    identities : list of `IdentityModel`
+    identities
         The parsed identity pool configuration file.
     """
 
@@ -101,12 +101,12 @@ class IdentityManager:
 
         Parameters
         ----------
-        config : `noteburst.config.WorkerConfig`
+        config
             The worker configuration.
 
         Returns
         -------
-        `IdentityManager`
+        IdentityManager
             The identity manager instance.
         """
         lock_manager = Aioredlock(config.aioredlock_redis_config)
@@ -142,7 +142,7 @@ class IdentityManager:
 
         Returns
         -------
-        `IdentityClaim`
+        IdentityClaim
             Information about the Science Platform identity.
         """
         if _identities:

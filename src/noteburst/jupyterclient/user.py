@@ -70,16 +70,16 @@ class AuthenticatedUser(User):
 
         Parameters
         ----------
-        username : `str`
+        username
             The username.
-        uid : `str` or `None`
+        uid
             The user's UID. This can be `None` if the authentication service
             assigns the UID.
-        scopes : `list` of `str`
+        scopes
             The scopes the user's token should possess.
-        http_client : httpx.Client
+        http_client
             The httpx client session.
-        lifetime : int
+        lifetime
             The lifetime of the authentication token, in seconds.
         """
         token_url = f"{config.environment_url}/auth/api/v1/tokens"

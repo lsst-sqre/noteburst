@@ -62,7 +62,7 @@ class WorkerKeepAliveSetting(str, Enum):
     """Run the keep-alive function at a high frequency (every 30 seconds)."""
 
     normal = "normal"
-    """Run the keep-alive function at a slower frequencey (i.e. 5 minutes)."""
+    """Run the keep-alive function at a slower frequency (i.e. 5 minutes)."""
 
 
 class Config(BaseSettings):
