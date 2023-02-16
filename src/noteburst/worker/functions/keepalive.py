@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Dict
+from typing import Any
 
 from noteburst.jupyterclient.jupyterlab import JupyterError
 
 
-async def keep_alive(ctx: Dict[Any, Any]) -> str:
+async def keep_alive(ctx: dict[Any, Any]) -> str:
     """Execute Python code in a JupyterLab pod with a specific Jupyter kernel.
 
     Parameters

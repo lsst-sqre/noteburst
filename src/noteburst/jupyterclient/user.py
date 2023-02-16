@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional
+from typing import Optional
+
+import httpx
 
 from noteburst.config import config
-
-if TYPE_CHECKING:
-    import httpx.Client
 
 __all__ = ["User", "AuthenticatedUser"]
 
@@ -34,7 +33,7 @@ class User:
     async def login(
         self,
         *,
-        scopes: List[str],
+        scopes: list[str],
         http_client: httpx.AsyncClient,
         token_lifetime: int,
     ) -> AuthenticatedUser:
@@ -51,7 +50,7 @@ class User:
 class AuthenticatedUser(User):
     """A user authenticated with a token."""
 
-    scopes: List[str]
+    scopes: list[str]
     """The token's scopes (example: ``["exec:notebook", "read:tap"]``."""
 
     token: str
@@ -63,7 +62,7 @@ class AuthenticatedUser(User):
         *,
         username: str,
         uid: Optional[str],
-        scopes: List[str],
+        scopes: list[str],
         http_client: httpx.AsyncClient,
         lifetime: int,
     ) -> AuthenticatedUser:

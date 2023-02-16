@@ -11,20 +11,17 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from io import StringIO
 from traceback import format_exc
-from typing import TYPE_CHECKING, Any, AsyncIterator, Dict, Optional
+from typing import Any, AsyncIterator, Optional
 from unittest.mock import ANY, AsyncMock, Mock
 from uuid import uuid4
 
 import httpx
+import respx
 import structlog
 from websockets.client import WebSocketClientProtocol
 
 from noteburst.config import config
 from noteburst.jupyterclient.jupyterlab import JupyterLabSession
-
-if TYPE_CHECKING:
-    import respx
-
 
 _GET_NODE = """
 from rubin_jupyter_utils.lab.notebook.utils import get_node
@@ -73,12 +70,12 @@ class MockJupyter:
     """
 
     def __init__(self) -> None:
-        self.sessions: Dict[str, JupyterLabSession] = {}
-        self.state: Dict[str, JupyterState] = {}
+        self.sessions: dict[str, JupyterLabSession] = {}
+        self.state: dict[str, JupyterState] = {}
         self.delete_immediate = True
         self.spawn_timeout = False
-        self._delete_at: Dict[str, Optional[datetime]] = {}
-        self._fail: Dict[str, Dict[JupyterAction, bool]] = {}
+        self._delete_at: dict[str, Optional[datetime]] = {}
+        self._fail: dict[str, dict[JupyterAction, bool]] = {}
 
     def fail(self, user: str, action: JupyterAction) -> None:
         """Configure the given action to fail for the given user."""
@@ -317,9 +314,9 @@ class MockJupyterWebSocket(Mock):
         super().__init__(spec=WebSocketClientProtocol)
         self.user = user
         self.session_id = session_id
-        self._header: Optional[Dict[str, Any]] = None
+        self._header: Optional[dict[str, Any]] = None
         self._code: Optional[str] = None
-        self._state: Dict[str, Any] = {}
+        self._state: dict[str, Any] = {}
 
     def __await__(self) -> MockJupyterWebSocket:
         return self

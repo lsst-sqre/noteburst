@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
 async def run_python(
-    ctx: Dict[Any, Any], py: str, *, kernel_name: str = "LSST"
+    ctx: dict[Any, Any], py: str, *, kernel_name: str = "LSST"
 ) -> str:
     """Execute Python code in a JupyterLab pod with a specific Jupyter kernel.
 

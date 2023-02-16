@@ -9,32 +9,22 @@ import json
 import random
 import string
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    AsyncGenerator,
-    AsyncIterator,
-    Dict,
-    Optional,
-)
+from typing import Any, AsyncGenerator, AsyncIterator, Optional
 from urllib.parse import urljoin, urlparse
 from uuid import uuid4
 
 import httpx
 import websockets
 import websockets.typing
+from structlog import BoundLogger
+from websockets.client import WebSocketClientProtocol
 from websockets.exceptions import WebSocketException
 
 from noteburst.config import JupyterImageSelector
 from noteburst.config import config as noteburst_config
 
 from .labcontroller import JupyterImage, LabControllerClient
-
-if TYPE_CHECKING:
-    from structlog import BoundLogger
-    from websockets.client import WebSocketClientProtocol
-
-    from .user import AuthenticatedUser
+from .user import AuthenticatedUser
 
 __all__ = [
     "SpawnProgressMessage",
@@ -381,7 +371,7 @@ class JupyterClient:
 
         self._http_client: Optional[httpx.AsyncClient] = None
         self._lab_controller_client: Optional[LabControllerClient] = None
-        self._common_headers: Dict[str, str]  # set and reset in the context
+        self._common_headers: dict[str, str]  # set and reset in the context
 
     @property
     def http_client(self) -> httpx.AsyncClient:
@@ -556,7 +546,7 @@ class JupyterClient:
             )
         return image
 
-    def _build_jupyter_spawn_form(self, image: JupyterImage) -> Dict[str, Any]:
+    def _build_jupyter_spawn_form(self, image: JupyterImage) -> dict[str, Any]:
         """Construct the form to submit to the JupyterHub spawning page."""
         return {
             "image_list": [image.path],
@@ -672,8 +662,8 @@ class JupyterClient:
                     raise JupyterError.from_response(self.user.username, r)
 
     async def execute_notebook(
-        self, notebook: Dict[str, Any], kernel_name: str = "LSST"
-    ) -> Dict[str, Any]:
+        self, notebook: dict[str, Any], kernel_name: str = "LSST"
+    ) -> dict[str, Any]:
         """Execute a Jupyter notebook through the JupyterLab Notebook execution
         extension.
 
@@ -704,10 +694,10 @@ class JupyterClient:
 
         return json.loads(r.text)
 
-    async def get_jupyterlab_env(self) -> Dict[str, Any]:
+    async def get_jupyterlab_env(self) -> dict[str, Any]:
         """Get metadata from the JupyterLab environment endpoint.
 
-        Uses the ``/user/:username/rubin/environment`` extension endpint.
+        Uses the ``/user/:username/rubin/environment`` extension endpoint.
         """
         environment_url = self.url_for(
             f"user/{self.user.username}/rubin/environment"

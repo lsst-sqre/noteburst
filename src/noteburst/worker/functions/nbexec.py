@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any, Dict
+from typing import Any
 
 from arq import Retry
 
@@ -14,7 +14,7 @@ from noteburst.jupyterclient.jupyterlab import JupyterError
 
 
 async def nbexec(
-    ctx: Dict[Any, Any],
+    ctx: dict[Any, Any],
     *,
     ipynb: str,
     kernel_name: str = "LSST",

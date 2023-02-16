@@ -6,17 +6,13 @@ import base64
 import json
 import os
 import time
-from typing import TYPE_CHECKING
+from typing import Optional
 from unittest.mock import ANY
 
 import httpx
+import respx
 
 from noteburst.config import config
-
-if TYPE_CHECKING:
-    from typing import Optional
-
-    import respx
 
 __all__ = ["make_gafaelfawr_token", "mock_gafaelfawr"]
 
