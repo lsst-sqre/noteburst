@@ -92,7 +92,9 @@ class Config(BaseSettings):
     """
 
     redis_url: RedisDsn = Field(
-        "redis://localhost:6379/0", env="NOTEBURST_REDIS_URL"
+        env="NOTEBURST_REDIS_URL",
+        # Preferred by mypy over a string default
+        default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
     )
     """URL for the redis instance, used by the worker queue."""
 
@@ -120,7 +122,9 @@ class WorkerConfig(Config):
     """Name of the arq queue that the worker processes from."""
 
     identity_lock_redis_url: RedisDsn = Field(
-        "redis://localhost:6379/1", env="NOTEBURST_WORKER_LOCK_REDIS_URL"
+        env="NOTEBURST_WORKER_LOCK_REDIS_URL",
+        # Preferred by mypy over a string default
+        default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
     )
 
     job_timeout: int = Field(
