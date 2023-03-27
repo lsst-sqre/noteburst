@@ -549,8 +549,8 @@ class JupyterClient:
     def _build_jupyter_spawn_form(self, image: JupyterImage) -> dict[str, Any]:
         """Construct the form to submit to the JupyterHub spawning page."""
         return {
-            "image_list": [image.path],
-            "image_dropdown": [image.path],
+            "image_list": [image.reference],
+            "image_dropdown": [image.reference],
             "size": self.config.image_size,
         }
 

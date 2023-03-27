@@ -14,9 +14,9 @@ from noteburst.config import config
 class JupyterImage(BaseModel):
     """A model for a JupyterLab image in a `LabControllerImages` resource."""
 
-    path: str = Field(
+    reference: str = Field(
         ...,
-        name="path",
+        name="reference",
         example="lighthouse.ceres/library/sketchbook:latest_daily",
         title="Full Docker registry path for lab image",
         description="cf. https://docs.docker.com/registry/introduction/",
@@ -29,8 +29,8 @@ class JupyterImage(BaseModel):
         title="Human-readable version of image tag",
     )
 
-    digest: str = Field(
-        ...,
+    digest: Optional[str] = Field(
+        None,
         name="digest",
         example=(
             "sha256:e693782192ecef4f7846ad2b21"
@@ -39,11 +39,11 @@ class JupyterImage(BaseModel):
         title="unique digest of image contents",
     )
 
-    tags: dict[str, str] = Field(
-        name="tags",
-        title="Map between tag and its display name",
-        default_factory=dict,
+    tag: str = Field(
+        name="tag",
+        title="Image tag",
     )
+
     size: Optional[int] = Field(
         None,
         name="size",
@@ -56,13 +56,6 @@ class JupyterImage(BaseModel):
         example=False,
         title="Whether image is prepulled to all eligible nodes",
     )
-
-    @property
-    def references(self) -> list[str]:
-        r = [f"{self.path}@{self.digest}"]
-        for tag in self.tags:
-            r.append(f"{self.path}:{tag}")
-        return r
 
 
 def underscore_to_dash(x: str) -> str:
@@ -104,7 +97,7 @@ class LabControllerImages(BaseModel):
             Returns the JupyterImage if found, None otherwise.
         """
         for image in self.all:
-            if reference in image.references:
+            if reference == image.reference:
                 return image
 
         return None
