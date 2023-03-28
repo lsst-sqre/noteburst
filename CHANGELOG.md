@@ -1,5 +1,9 @@
 # Change log
 
+## 0.6.1 (2023-03-28)
+
+- Additional updates for JupyterLab Controller image API endpoint.
+
 ## 0.6.0 (2023-02-16)
 
 - Migrated from the Cachemachine API to the new JupyterLab Controller API for obtaining the list of available Docker images for JupyterLab workers.

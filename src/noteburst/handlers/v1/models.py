@@ -88,7 +88,7 @@ class NotebookResponse(BaseModel):
             status=job.status,
             kernel_name=job.kwargs["kernel_name"],
             source=job.kwargs["ipynb"] if include_source else None,
-            self_url=request.url_for("get_nbexec_job", job_id=job.id),
+            self_url=str(request.url_for("get_nbexec_job", job_id=job.id)),
             start_time=job_result.start_time if job_result else None,
             finish_time=job_result.finish_time if job_result else None,
             success=job_result.success if job_result else None,
