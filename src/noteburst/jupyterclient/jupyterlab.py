@@ -212,6 +212,9 @@ class JupyterLabSession:
                 raise CodeExecutionError(
                     username=self.username, code=code, status=status
                 )
+        elif msg_type == "status":
+            # Ignore status messages
+            return WebSocketMessageOutput(content="", done=False)
         else:
             self.logger.warning(
                 "Got a unexpected websocket msg_type",
