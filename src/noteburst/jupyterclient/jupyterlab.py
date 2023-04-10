@@ -215,6 +215,9 @@ class JupyterLabSession:
         elif msg_type == "status":
             # Ignore status messages
             return WebSocketMessageOutput(content="", done=False)
+        elif msg_type == "execute_input":
+            # Ignore execute input messages
+            return WebSocketMessageOutput(content="", done=False)
         else:
             self.logger.warning(
                 "Got a unexpected websocket msg_type",
