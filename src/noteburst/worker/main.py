@@ -120,17 +120,22 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
     try:
         await ctx["identity_manager"].close()
     except Exception as e:
-        logger.warning("Issue closing the identity manager: %s", str(e))
+        logger.warning(
+            "Issue closing the identity manager on worker shutdown",
+            detail=str(e),
+        )
 
     try:
         await ctx["http_client"].aclose()
     except Exception as e:
-        logger.warning("Issue closing the http_client: %s", str(e))
+        logger.warning(
+            "Issue closing the http_client on worker shutdown", detail=str(e)
+        )
 
     try:
         await ctx["jupyter_client"].close()
     except Exception as e:
-        logger.warning("Issue closing the Jupyter client: %s", str(e))
+        logger.warning("Issue closing the Jupyter client", detail=str(e))
 
     logger.info("Worker shutdown complete.")
 
