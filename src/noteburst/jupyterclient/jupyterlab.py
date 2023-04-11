@@ -467,8 +467,13 @@ class JupyterClient:
     async def log_into_hub(self) -> None:
         """Log into JupyterHub or raise a JupyterError."""
         self.logger.debug("Logging into JupyterHub")
-        r = await self.http_client.get(self.url_for("hub/login"))
-        if r.status_code != 200:
+        r = await self.http_client.get(
+            self.url_for("hub/login"), follow_redirects=False
+        )
+        # JupyterHub returns a 302 redirect to the login page on success,
+        # but we don't want to follow that redirect. This request is just
+        # to set cookies.
+        if r.status_code >= 400:
             raise JupyterError.from_response(self.user.username, r)
 
     async def log_into_lab(self) -> None:
