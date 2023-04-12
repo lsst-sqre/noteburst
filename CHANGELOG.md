@@ -1,5 +1,11 @@
 # Change log
 
+## 0.6.2 (2023-04-12)
+
+- Stop following redirects from the `hub/login` endpoint.
+- Explicitly shut down the lab pod on worker shutdown.
+- Update dependencies.
+
 ## 0.6.1 (2023-03-28)
 
 - Additional updates for JupyterLab Controller image API endpoint.

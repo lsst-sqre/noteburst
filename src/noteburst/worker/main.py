@@ -98,19 +98,44 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
     logger.info("Running worker shutdown.")
 
     try:
+        await ctx["jupyter_client"].stop_lab()
+    except Exception as e:
+        logger.warning(
+            "Issue stopping the JupyterLab pod on worker shutdown",
+            detail=str(e),
+        )
+
+    try:
+        is_shutdown = await ctx["jupyter_client"].is_lab_stopped()
+        logger.info(
+            f"JupyterLab pod shutdown on worker shutdown {is_shutdown}",
+            is_shutdown=is_shutdown,
+        )
+    except Exception as e:
+        logger.warning(
+            "Issue getting details on pod shutdown during worker shutdown",
+            detail=str(e),
+        )
+
+    try:
         await ctx["identity_manager"].close()
     except Exception as e:
-        logger.warning("Issue closing the identity manager: %s", str(e))
+        logger.warning(
+            "Issue closing the identity manager on worker shutdown",
+            detail=str(e),
+        )
 
     try:
         await ctx["http_client"].aclose()
     except Exception as e:
-        logger.warning("Issue closing the http_client: %s", str(e))
+        logger.warning(
+            "Issue closing the http_client on worker shutdown", detail=str(e)
+        )
 
     try:
         await ctx["jupyter_client"].close()
     except Exception as e:
-        logger.warning("Issue closing the Jupyter client: %s", str(e))
+        logger.warning("Issue closing the Jupyter client", detail=str(e))
 
     logger.info("Worker shutdown complete.")
 
