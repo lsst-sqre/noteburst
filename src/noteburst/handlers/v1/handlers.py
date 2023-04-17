@@ -119,9 +119,35 @@ async def get_nbexec_job(
     If you require the notebook that was originally submitted, set the
     URL query parameter `source=true`.
     """
-    job_metadata = await arq_queue.get_job_metadata(job_id)
+    try:
+        job_metadata = await arq_queue.get_job_metadata(job_id)
+    except Exception as e:
+        logger.error(
+            "Error getting nbexec job metadata", job_id=job_id, exc_info=e
+        )
+        raise
+    logger.debug(
+        "Got nbexec job metadata",
+        job_id=job_id,
+        job_metadata=job_metadata,
+        status=job_metadata.status,
+    )
+
     if result and job_metadata.status == JobStatus.complete:
-        job_result = await arq_queue.get_job_result(job_id)
+        try:
+            job_result = await arq_queue.get_job_result(job_id)
+        except Exception as e:
+            logger.error(
+                "Error getting nbexec job result", job_id=job_id, exc_info=e
+            )
+            raise
+        logger.debug(
+            "Got nbexec job result",
+            job_id=job_id,
+            job_result=job_result,
+            success=job_result.success,
+            status=job_result.status,
+        )
     else:
         job_result = None
 
