@@ -66,6 +66,6 @@ async def nbexec(
                 logger.warning("Triggering retry")
                 raise Retry(defer=ctx["job_try"] * 5)
             else:
-                raise
+                raise RuntimeError(f"nbexec failed from {str(e)}")
 
     return json.dumps(executed_notebook)
