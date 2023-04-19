@@ -10,6 +10,7 @@ from typing import Any
 
 from arq import Retry
 
+from noteburst.exceptions import NbexecTaskError
 from noteburst.jupyterclient.jupyterlab import JupyterError
 
 
@@ -66,6 +67,6 @@ async def nbexec(
                 logger.warning("Triggering retry")
                 raise Retry(defer=ctx["job_try"] * 5)
             else:
-                raise RuntimeError(f"nbexec failed from {str(e)}")
+                raise NbexecTaskError.from_exception(e)
 
     return json.dumps(executed_notebook)
