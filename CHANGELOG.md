@@ -1,5 +1,10 @@
 # Change log
 
+## 0.6.3 (2023-04-20)
+
+- Fix how failed notebook executions are handled. Previously failed notebooks would prevent Noteburst from getting the results of the execution job. Now the job is shown as concluded but unsuccessful by the `/v1/notebooks/{job_id}` endpoint.
+- Structure uvicorn server logging.
+
 ## 0.6.2 (2023-04-12)
 
 - Stop following redirects from the `hub/login` endpoint.

@@ -82,6 +82,13 @@ class NotebookResponse(BaseModel):
         include_source: bool = False,
         job_result: Optional[JobResult] = None,
     ) -> NotebookResponse:
+        if job_result is not None:
+            ipynb: Optional[str] = (
+                job_result.result if job_result.success else None
+            )
+        else:
+            ipynb = None
+
         return cls(
             job_id=job.id,
             enqueue_time=job.enqueue_time,
@@ -92,7 +99,7 @@ class NotebookResponse(BaseModel):
             start_time=job_result.start_time if job_result else None,
             finish_time=job_result.finish_time if job_result else None,
             success=job_result.success if job_result else None,
-            ipynb=job_result.result if job_result else None,
+            ipynb=ipynb,
         )
 
 
