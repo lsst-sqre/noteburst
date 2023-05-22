@@ -49,6 +49,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
     ctx["http_client"] = http_client
 
     jupyter_config = JupyterConfig(
+        url_prefix=config.jupyterhub_path_prefix,
         image_selector=config.image_selector,
         image_reference=config.image_reference,
     )

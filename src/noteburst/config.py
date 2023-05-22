@@ -86,6 +86,18 @@ class Config(BaseSettings):
     This is used for creating URLs to services, such as JupyterHub.
     """
 
+    jupyterhub_path_prefix: str = Field(
+        "/nb/",
+        env="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
+        description="The path prefix for the JupyterHub service.",
+    )
+
+    nublado_controller_path_prefix: str = Field(
+        "/nublado",
+        env="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
+        description="The path prefix for the Nublado controller service.",
+    )
+
     gafaelfawr_token: SecretStr = Field(env="NOTEBURST_GAFAELFAWR_TOKEN")
     """This token is used to make an admin API call to Gafaelfawr to get a
     token for the user.

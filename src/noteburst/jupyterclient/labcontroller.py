@@ -124,11 +124,16 @@ class LabControllerClient:
         The HTTPX async client.
     token
         The Gafaelfawr token.
+    url_prefix
+        The URL path prefix for Nublado JupyterLab Controller service.
     """
 
-    def __init__(self, http_client: httpx.AsyncClient, token: str) -> None:
+    def __init__(
+        self, *, http_client: httpx.AsyncClient, token: str, url_prefix: str
+    ) -> None:
         self._http_client = http_client
         self._token = token
+        self._url_prefix = url_prefix
 
     async def get_latest_weekly(self) -> JupyterImage:
         """Image for the latest weekly version.
@@ -192,7 +197,9 @@ class LabControllerClient:
 
     async def _get_images(self) -> LabControllerImages:
         headers = {"Authorization": f"bearer {self._token}"}
-        url = urljoin(config.environment_url, "/nublado/spawner/v1/images")
+        url = urljoin(
+            config.environment_url, f"{self._url_prefix}/spawner/v1/images"
+        )
 
         r = await self._http_client.get(url, headers=headers)
         if r.status_code != 200:
