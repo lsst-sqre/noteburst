@@ -1,5 +1,9 @@
 # Change log
 
+## 0.7.0 (2023-05-22)
+
+- The JupyterHub service's URL path prefix is now configurable with the `NOTEBURST_JUPYTERHUB_PATH_PREFIX` environment variable. The default is `/nb/`, which is the existing value.
+
 ## 0.6.3 (2023-04-20)
 
 - Fix how failed notebook executions are handled. Previously failed notebooks would prevent Noteburst from getting the results of the execution job. Now the job is shown as concluded but unsuccessful by the `/v1/notebooks/{job_id}` endpoint.
