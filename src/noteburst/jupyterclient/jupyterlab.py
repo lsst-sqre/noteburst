@@ -432,8 +432,9 @@ class JupyterClient:
         # sharing the session, but that shouldn't matter.
         assert noteburst_config.gafaelfawr_token
         self._lab_controller_client = LabControllerClient(
-            self.http_client,
-            noteburst_config.gafaelfawr_token.get_secret_value(),
+            http_client=self.http_client,
+            token=noteburst_config.gafaelfawr_token.get_secret_value(),
+            url_prefix=noteburst_config.nublado_controller_path_prefix,
         )
 
     async def __aexit__(self, *exc_info: Any) -> None:

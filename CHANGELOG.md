@@ -3,6 +3,7 @@
 ## 0.7.0 (2023-05-22)
 
 - The JupyterHub service's URL path prefix is now configurable with the `NOTEBURST_JUPYTERHUB_PATH_PREFIX` environment variable. The default is `/nb/`, which is the existing value.
+- The Nublado JupyterLab Controller service's URL path prefix is configurable with the `NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX` environment variable. The default is `/nublado`, which is the existing value.
 
 ## 0.6.3 (2023-04-20)
 
