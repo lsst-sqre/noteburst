@@ -17,5 +17,6 @@ Services that use Noteburst:
 .. toctree::
    :hidden:
 
+   user-guide/index
    api
    changelog
