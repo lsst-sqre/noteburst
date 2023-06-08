@@ -54,6 +54,7 @@ See the `Phalanx documentation for Noteburst <https://phalanx.lsst.io/applicatio
 .. envvar:: NOTEBURST_WORKER_IDENTITIES_PATH
 
    (string) The path to the Science Platform worker identities file.
+   See :ref:`worker-identities-yaml`.
 
 .. envvar:: NOTEBURST_WORKER_QUEUE_NAME
 
