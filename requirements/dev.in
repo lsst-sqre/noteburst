@@ -20,4 +20,4 @@ respx
 types-PyYAML
 
 # Documentation
-documenteer[guide]
+documenteer[guide]==1.0.0a1
