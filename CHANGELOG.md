@@ -1,5 +1,16 @@
 # Change log
 
+## 0.7.1 (2023-07-23)
+
+Fixes:
+
+- Add additional logging of JupyterLab spawning failures in workers.
+
+Other changes:
+
+- Added documentation for configuration environment variables.
+- Added OpenAPI docs, rendered by Redoc, to the Sphinx documentation site.
+
 ## 0.7.0 (2023-05-22)
 
 - The JupyterHub service's URL path prefix is now configurable with the `NOTEBURST_JUPYTERHUB_PATH_PREFIX` environment variable. The default is `/nb/`, which is the existing value.
