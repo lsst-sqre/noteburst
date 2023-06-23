@@ -267,6 +267,20 @@ class JupyterError(Exception):
             body=response.text,
         )
 
+    @classmethod
+    async def from_stream(
+        cls, username: str, stream: httpx.Response
+    ) -> JupyterError:
+        body_bytes = await stream.aread()
+        return cls(
+            url=str(stream.url),
+            username=username,
+            status=stream.status_code,
+            reason=stream.reason_phrase,
+            method=stream.request.method,
+            body=body_bytes.decode("utf-8"),
+        )
+
     def __init__(
         self,
         *,
@@ -523,7 +537,7 @@ class JupyterClient:
                 "GET", progress_url, headers=headers
             ) as response_stream:
                 if response_stream.status_code != 200:
-                    raise JupyterError.from_response(
+                    raise await JupyterError.from_stream(
                         self.user.username, response_stream
                     )
                 progress = JupyterSpawnProgress(response_stream, self.logger)

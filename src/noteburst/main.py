@@ -7,10 +7,12 @@ constructed when this module is loaded and is not deferred until a function is
 called.
 """
 
+import json
 from importlib.metadata import version
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_openapi
 from safir.dependencies.arq import arq_dependency
 from safir.dependencies.http_client import http_client_dependency
 from safir.logging import configure_logging, configure_uvicorn_logging
@@ -62,3 +64,14 @@ async def startup_event() -> None:
 @app.on_event("shutdown")
 async def shutdown_event() -> None:
     await http_client_dependency.aclose()
+
+
+def create_openapi() -> str:
+    """Create the OpenAPI spec for static documentation."""
+    spec = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    return json.dumps(spec)

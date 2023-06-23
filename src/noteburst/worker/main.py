@@ -78,8 +78,9 @@ async def startup(ctx: dict[Any, Any]) -> None:
                 continue
             await jupyter_client.log_into_lab()
             break
-        except JupyterError:
+        except JupyterError as e:
             logger.warning("Error spawning pod, will re-try with new identity")
+            logger.debug("Details for error spawning pod", detail=str(e))
             identity = await identity_manager.get_next_identity(identity)
 
     ctx["jupyter_client"] = jupyter_client
