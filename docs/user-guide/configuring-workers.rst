@@ -5,6 +5,17 @@ Configuring Noteburst's JupyterLab workers
 Noteburst works by operating a cluster of workers that each manages their own JupyterLab pods.
 This page describes how these workers are configured.
 
+Background: Kubernetes architecture
+===================================
+
+In Kubernetes, the workers are deployed as a Kubernetes Deployment.
+A Deployment enables multiple Noteburst worker instances to run at the same time.
+These workers share the same configuration (typically through a Kubernetes ConfigMap).
+This means that individual workers can't be assigned specific RSP/JupyterLab user accounts.
+Noteburst works around this by configuring the deployment of Noteburst workers with a pool of identities.
+When a worker starts up, it picks an available identity from the pool and uses that identity to run the JupyterLab pod.
+See the next section for details.
+
 .. _worker-identities-yaml:
 
 Worker identities
