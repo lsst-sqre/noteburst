@@ -8,8 +8,10 @@ called.
 """
 
 import json
+from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
+from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -33,6 +35,20 @@ configure_logging(
 )
 configure_uvicorn_logging(config.log_level)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Start up event
+    await arq_dependency.initialize(
+        mode=config.arq_mode, redis_settings=config.arq_redis_settings
+    )
+
+    yield
+
+    # Shut down event
+    await http_client_dependency.aclose()
+
+
 app = FastAPI(
     title=config.name,
     description=Path(__file__).parent.joinpath("description.md").read_text(),
@@ -41,6 +57,7 @@ app = FastAPI(
     docs_url=f"{config.path_prefix}/docs",
     redoc_url=f"{config.path_prefix}/redoc",
     openapi_tags=[{"name": "v1", "description": "Noteburst v1 REST API"}],
+    lifespan=lifespan,
 )
 """The FastAPI application for noteburst."""
 
@@ -52,18 +69,6 @@ app.include_router(v1_router, prefix=f"{config.path_prefix}/v1")
 
 # Add middleware
 app.add_middleware(XForwardedMiddleware)
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    await arq_dependency.initialize(
-        mode=config.arq_mode, redis_settings=config.arq_redis_settings
-    )
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    await http_client_dependency.aclose()
 
 
 def create_openapi() -> str:
