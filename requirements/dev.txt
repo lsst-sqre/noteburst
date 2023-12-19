@@ -210,9 +210,9 @@ distlib==0.3.8 \
     --hash=sha256:034db59a0b96f8ca18035f36290806a9a6e6bd9d1ff91e45a7f172eb17e51784 \
     --hash=sha256:1530ea13e350031b6312d8580ddb6b27a104275a31106523b8f123787f494f64
     # via virtualenv
-documenteer[guide]==1.0.0a1 \
-    --hash=sha256:b27ee8ad8f6ce8cf1b959f93ca6f158824baaee6eeea8d007bcea539031b3c6b \
-    --hash=sha256:efb0483e61143b4e4c29d4bdf42621dbddcf65f3763451058b352c8bb2d17db8
+documenteer[guide]==1.0.0 \
+    --hash=sha256:6d6f1f97fa7636591c8cb885fadce6055fe5e57a0b694182ac9980d9fd2f69a6 \
+    --hash=sha256:76b0e074833ac3941e4479fa79982f32b09e60fc1c6993e8749b99c9c4f8e1de
     # via
     #   -r requirements/dev.in
     #   documenteer
@@ -220,10 +220,12 @@ docutils==0.20.1 \
     --hash=sha256:96f387a2c5562db4476f09f13bbab2192e764cac08ebbf3a34a95d9b1e4a59d6 \
     --hash=sha256:f08a4e276c3a1583a86dce3e34aba3fe04d02bba2dd51ed16106244e8a923e3b
     # via
+    #   documenteer
     #   myst-parser
     #   pybtex-docutils
     #   pydata-sphinx-theme
     #   sphinx
+    #   sphinx-jinja
     #   sphinx-prompt
     #   sphinxcontrib-bibtex
 filelock==3.13.1 \
@@ -284,6 +286,7 @@ jinja2==3.1.2 \
     # via
     #   myst-parser
     #   sphinx
+    #   sphinx-jinja
     #   sphinxcontrib-redoc
 jsonschema==4.20.0 \
     --hash=sha256:4f614fd46d8d61258610998997743ec5492a648b33cf478c1ddc23ed4598a5fa \
@@ -575,6 +578,9 @@ pygments==2.17.2 \
     #   pydata-sphinx-theme
     #   sphinx
     #   sphinx-prompt
+pylatexenc==2.10 \
+    --hash=sha256:3dd8fd84eb46dc30bee1e23eaab8d8fb5a7f507347b23e5f38ad9675c84f40d3
+    # via documenteer
 pytest==7.4.3 \
     --hash=sha256:0d009c083ea859a71b76adf7c1d502e4bc170b80a8ef002da5806527b9591fac \
     --hash=sha256:d989d136982de4e3b29dabcc838ad581c64e8ed52c11fbe86ddebd9da0818cd5
@@ -805,6 +811,7 @@ sphinx==7.2.6 \
     #   sphinx-automodapi
     #   sphinx-copybutton
     #   sphinx-design
+    #   sphinx-jinja
     #   sphinx-prompt
     #   sphinxcontrib-applehelp
     #   sphinxcontrib-bibtex
@@ -815,6 +822,7 @@ sphinx==7.2.6 \
     #   sphinxcontrib-redoc
     #   sphinxcontrib-serializinghtml
     #   sphinxext-opengraph
+    #   sphinxext-rediraffe
 sphinx-autodoc-typehints==1.25.2 \
     --hash=sha256:3cabc2537e17989b2f92e64a399425c4c8bf561ed73f087bc7414a5003616a50 \
     --hash=sha256:5ed05017d23ad4b937eab3bee9fae9ab0dd63f0b42aa360031f1fad47e47f673
@@ -830,6 +838,10 @@ sphinx-copybutton==0.5.2 \
 sphinx-design==0.5.0 \
     --hash=sha256:1af1267b4cea2eedd6724614f19dcc88fe2e15aff65d06b2f6252cee9c4f4c1e \
     --hash=sha256:e8e513acea6f92d15c6de3b34e954458f245b8e761b45b63950f65373352ab00
+    # via documenteer
+sphinx-jinja==2.0.2 \
+    --hash=sha256:705ebeb9b7a6018ca3f93724315a7c1effa6ba3db44d630e7eaaa15e4ac081a8 \
+    --hash=sha256:c6232b59a894139770be1dc6d0b00a379e4288ce78157904e1f8473dea3e0718
     # via documenteer
 sphinx-prompt==1.8.0 \
     --hash=sha256:369ecc633f0711886f9b3a078c83264245be1adf46abeeb9b88b5519e4b51007 \
@@ -878,6 +890,14 @@ sphinxext-opengraph==0.9.1 \
     --hash=sha256:b3b230cc6a5b5189139df937f0d9c7b23c7c204493b22646273687969dcb760e \
     --hash=sha256:dd2868a1e7c9497977fbbf44cc0844a42af39ca65fe1bb0272518af225d06fc5
     # via documenteer
+sphinxext-rediraffe==0.2.7 \
+    --hash=sha256:651dcbfae5ffda9ffd534dfb8025f36120e5efb6ea1a33f5420023862b9f725d \
+    --hash=sha256:9e430a52d4403847f4ffb3a8dd6dfc34a9fe43525305131f52ed899743a5fd8c
+    # via documenteer
+tomlkit==0.12.3 \
+    --hash=sha256:75baf5012d06501f07bee5bf8e801b9f343e7aac5a92581f20f80ce632e6b5a4 \
+    --hash=sha256:b0a645a9156dc7cb5d3a1f0d4bab66db287fcb8e0430bdd4664a095ea16414ba
+    # via documenteer
 types-pyyaml==6.0.12.12 \
     --hash=sha256:334373d392fde0fdf95af5c3f1661885fa10c52167b14593eb856289e1855062 \
     --hash=sha256:c05bc6c158facb0676674b7f11fe3960db4f389718e19e62bd2b84d6205cfd24
@@ -897,7 +917,9 @@ uc-micro-py==1.0.2 \
 urllib3==2.1.0 \
     --hash=sha256:55901e917a5896a349ff771be919f8bd99aff50b79fe58fec595eb37bbc56bb3 \
     --hash=sha256:df7aa8afb0148fa78488e7899b2c59b5f4ffcfa82e6c54ccb9dd37c1d7b52d54
-    # via requests
+    # via
+    #   documenteer
+    #   requests
 uvicorn==0.24.0.post1 \
     --hash=sha256:09c8e5a79dc466bdf28dead50093957db184de356fcdc48697bad3bde4c2588e \
     --hash=sha256:7c84fea70c619d4a710153482c0d230929af7bcf76c7bfa6de151f0a3a80121e
