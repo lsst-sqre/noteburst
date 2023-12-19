@@ -15,6 +15,7 @@ uvicorn[standard]
 aioredlock
 safir[arq]
 pydantic[dotenv]
+pydantic_settings
 PyYAML
 httpx
 websockets

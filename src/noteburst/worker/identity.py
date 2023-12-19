@@ -13,7 +13,7 @@ from typing import Optional
 import structlog
 import yaml
 from aioredlock import Aioredlock, Lock, LockError
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 from noteburst.config import WorkerConfig
 
@@ -33,13 +33,13 @@ class IdentityModel(BaseModel):
     """
 
 
-class IdentityConfigModel(BaseModel):
-    __root__: list[IdentityModel]
+class IdentityConfigModel(RootModel):
+    root: list[IdentityModel]
 
     @classmethod
     def from_yaml(cls, path: Path) -> IdentityConfigModel:
         data = yaml.safe_load(path.read_text())
-        return cls.parse_obj(data)
+        return cls.model_validate(data)
 
 
 @dataclass
@@ -115,7 +115,7 @@ class IdentityManager:
             identity
             for identity in IdentityConfigModel.from_yaml(
                 config.identities_path
-            ).__root__
+            ).root
         ]
 
         return cls(lock_manager=lock_manager, identities=identities)

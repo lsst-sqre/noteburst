@@ -14,7 +14,7 @@ from safir.arq import JobMetadata, JobResult
 kernel_name_field = Field(
     "LSST",
     title="The name of the Jupyter kernel the kernel is executed with",
-    example="LSST",
+    examples=["LSST"],
     description=(
         "The default kernel, LSST, contains the full Rubin Python "
         "environment, [rubinenv](https://anaconda.org/conda-forge/rubin-env), "

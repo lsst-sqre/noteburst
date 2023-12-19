@@ -8,6 +8,7 @@ import os
 import time
 from typing import Optional
 from unittest.mock import ANY
+from urllib.parse import urljoin
 
 import httpx
 import respx
@@ -74,6 +75,6 @@ def mock_gafaelfawr(
         response = {"token": make_gafaelfawr_token(request_json["username"])}
         return httpx.Response(200, json=response, request=request)
 
-    respx_mock.post(f"{config.environment_url}/auth/api/v1/tokens").mock(
-        side_effect=handler
-    )
+    mock_url = urljoin(f"{config.environment_url}", "/auth/api/v1/tokens")
+    print(mock_url)
+    respx_mock.post(mock_url).mock(side_effect=handler)
