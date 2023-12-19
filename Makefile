@@ -17,4 +17,4 @@ update: update-deps init
 
 .PHONY: run
 run:
-	tox -e=run
+	tox run -e=run
