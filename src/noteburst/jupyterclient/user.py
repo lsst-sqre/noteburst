@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import urljoin
 
 import httpx
 
@@ -82,7 +83,7 @@ class AuthenticatedUser(User):
         lifetime
             The lifetime of the authentication token, in seconds.
         """
-        token_url = f"{config.environment_url}/auth/api/v1/tokens"
+        token_url = urljoin(str(config.environment_url), "/auth/api/v1/tokens")
         token_request_data = {
             "username": username,
             "name": "Noteburst",

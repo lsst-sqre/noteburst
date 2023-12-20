@@ -15,10 +15,10 @@ from uuid import uuid4
 
 import httpx
 import websockets
-import websockets.typing
 from structlog import BoundLogger
 from websockets.client import WebSocketClientProtocol
 from websockets.exceptions import WebSocketException
+from websockets.typing import Data as WebsocketData
 
 from noteburst.config import JupyterImageSelector
 from noteburst.config import config as noteburst_config
@@ -172,7 +172,7 @@ class JupyterLabSession:
         return result
 
     async def _process_run_python_message(
-        self, raw_message: websockets.typing.Data, msg_id: str, code: str
+        self, raw_message: WebsocketData, msg_id: str, code: str
     ) -> WebSocketMessageOutput:
         """Process an individual message received from the websocket,
         initiated from `run_python`.
@@ -386,7 +386,7 @@ class JupyterClient:
         self.config = config
 
         self.jupyter_url = urljoin(
-            noteburst_config.environment_url, self.config.url_prefix
+            str(noteburst_config.environment_url), self.config.url_prefix
         )
 
         self._http_client: Optional[httpx.AsyncClient] = None
@@ -661,7 +661,7 @@ class JupyterClient:
             # if the connection is dropped. This could be good for very
             # long lived clients
             # https://websockets.readthedocs.io/en/stable/reference/client.html#using-a-connection
-            async with websockets.connect(  # type: ignore
+            async with websockets.connect(
                 wss_channels_uri, extra_headers=websocket_headers
             ) as websocket:
                 self.logger.info("Created websocket connection")

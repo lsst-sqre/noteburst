@@ -53,12 +53,18 @@ class JupyterState(Enum):
 
 def url_for_path(route: str) -> str:
     """Construct a URL for JupyterHub/Proxy."""
-    return f"{config.environment_url}/nb/{route}"
+    env_url = str(config.environment_url)
+    if env_url.endswith("/"):
+        env_url = env_url[:-1]
+    return f"{env_url}/nb/{route}"
 
 
 def url_for_pattern(route: str) -> str:
     """Construct a URL for JupyterHub/Proxy."""
-    prefix = re.escape(f"{config.environment_url}/nb/")
+    env_url = str(config.environment_url)
+    if env_url.endswith("/"):
+        env_url = env_url[:-1]
+    prefix = re.escape(f"{env_url}/nb/")
     return prefix + route
 
 

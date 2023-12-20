@@ -5,38 +5,19 @@ from __future__ import annotations
 from enum import Enum
 from pathlib import Path
 from typing import Any, Mapping, Optional
-from urllib.parse import urlparse
 
 from arq.connections import RedisSettings
-from pydantic import (
-    BaseSettings,
-    Field,
-    HttpUrl,
-    RedisDsn,
-    SecretStr,
-    validator,
-)
+from pydantic import Field, HttpUrl, RedisDsn, SecretStr, validator
+from pydantic_settings import BaseSettings
 from safir.arq import ArqMode
+from safir.logging import LogLevel, Profile
 
-__all__ = ["Config", "Profile", "LogLevel"]
-
-
-class Profile(str, Enum):
-    production = "production"
-
-    development = "development"
-
-
-class LogLevel(str, Enum):
-    DEBUG = "DEBUG"
-
-    INFO = "INFO"
-
-    WARNING = "WARNING"
-
-    ERROR = "ERROR"
-
-    CRITICAL = "CRITICAL"
+__all__ = [
+    "Config",
+    "JupyterImageSelector",
+    "WorkerConfig",
+    "WorkerKeepAliveSetting",
+]
 
 
 class JupyterImageSelector(str, Enum):
@@ -66,21 +47,21 @@ class WorkerKeepAliveSetting(str, Enum):
 
 
 class Config(BaseSettings):
-    name: str = Field("Noteburst", env="SAFIR_NAME")
+    name: str = Field("Noteburst", alias="SAFIR_NAME")
 
-    profile: Profile = Field(Profile.production, env="SAFIR_PROFILE")
+    profile: Profile = Field(Profile.production, alias="SAFIR_PROFILE")
 
-    log_level: LogLevel = Field(LogLevel.INFO, env="SAFIR_LOG_LEVEL")
+    log_level: LogLevel = Field(LogLevel.INFO, alias="SAFIR_LOG_LEVEL")
 
     logger_name: str = "noteburst"
     """The root name of the Python logger, which is also the name of the
     root Python module.
     """
 
-    path_prefix: str = Field("/noteburst", env="NOTEBURST_PATH_PREFIX")
+    path_prefix: str = Field("/noteburst", alias="NOTEBURST_PATH_PREFIX")
     """The URL path prefix where noteburst is hosted."""
 
-    environment_url: HttpUrl = Field(env="NOTEBURST_ENVIRONMENT_URL")
+    environment_url: HttpUrl = Field(alias="NOTEBURST_ENVIRONMENT_URL")
     """The base URL of the Rubin Science Platform environment.
 
     This is used for creating URLs to services, such as JupyterHub.
@@ -88,60 +69,64 @@ class Config(BaseSettings):
 
     jupyterhub_path_prefix: str = Field(
         "/nb/",
-        env="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
+        alias="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
         description="The path prefix for the JupyterHub service.",
     )
 
     nublado_controller_path_prefix: str = Field(
         "/nublado",
-        env="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
+        alias="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
         description="The path prefix for the Nublado controller service.",
     )
 
-    gafaelfawr_token: SecretStr = Field(env="NOTEBURST_GAFAELFAWR_TOKEN")
+    gafaelfawr_token: SecretStr = Field(alias="NOTEBURST_GAFAELFAWR_TOKEN")
     """This token is used to make an admin API call to Gafaelfawr to get a
     token for the user.
     """
 
     redis_url: RedisDsn = Field(
-        env="NOTEBURST_REDIS_URL",
+        alias="NOTEBURST_REDIS_URL",
         # Preferred by mypy over a string default
         default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
     )
     """URL for the redis instance, used by the worker queue."""
 
-    arq_mode: ArqMode = Field(ArqMode.production, env="NOTEBURST_ARQ_MODE")
+    arq_mode: ArqMode = Field(ArqMode.production, alias="NOTEBURST_ARQ_MODE")
 
     @property
     def arq_redis_settings(self) -> RedisSettings:
         """Create a Redis settings instance for arq."""
-        url_parts = urlparse(self.redis_url)
+        # url_parts = urlparse(self.redis_url)
         redis_settings = RedisSettings(
-            host=url_parts.hostname or "localhost",
-            port=url_parts.port or 6379,
-            database=int(url_parts.path.lstrip("/")) if url_parts.path else 0,
+            host=self.redis_url.host or "localhost",
+            port=self.redis_url.port or 6379,
+            database=int(self.redis_url.path.lstrip("/"))
+            if self.redis_url.path
+            else 0,
         )
         return redis_settings
 
 
 class WorkerConfig(Config):
-    identities_path: Path = Field(..., env="NOTEBURST_WORKER_IDENTITIES_PATH")
+    identities_path: Path = Field(
+        ..., alias="NOTEBURST_WORKER_IDENTITIES_PATH"
+    )
     """Path to the configuration file with the pool of Science Platform
     identities available to workers.
     """
 
-    queue_name: str = Field("arq:queue", env="NOTEBURST_WORKER_QUEUE_NAME")
+    queue_name: str = Field("arq:queue", alias="NOTEBURST_WORKER_QUEUE_NAME")
     """Name of the arq queue that the worker processes from."""
 
     identity_lock_redis_url: RedisDsn = Field(
-        env="NOTEBURST_WORKER_LOCK_REDIS_URL",
+        alias="NOTEBURST_WORKER_LOCK_REDIS_URL",
         # Preferred by mypy over a string default
         default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
     )
 
     job_timeout: int = Field(
         300,
-        env="NOTEBURST_WORKER_JOB_TIMEOUT",
+        alias="NOTEBURST_WORKER_JOB_TIMEOUT",
         description=(
             "The timeout, in seconds, for a job until it is timed out."
         ),
@@ -149,13 +134,13 @@ class WorkerConfig(Config):
 
     worker_token_lifetime: int = Field(
         2419200,
-        env="NOTEBURST_WORKER_TOKEN_LIFETIME",
+        alias="NOTEBURST_WORKER_TOKEN_LIFETIME",
         description="Worker auth token lifetime in seconds.",
     )
 
     worker_token_scopes: str = Field(
         "exec:notebook",
-        env="NOTEBURST_WORKER_TOKEN_SCOPES",
+        alias="NOTEBURST_WORKER_TOKEN_SCOPES",
         description=(
             "Worker (nublado2 pod) token scopes as a comma-separated string."
         ),
@@ -163,13 +148,13 @@ class WorkerConfig(Config):
 
     image_selector: JupyterImageSelector = Field(
         JupyterImageSelector.recommended,
-        env="NOTEBURST_WORKER_IMAGE_SELECTOR",
+        alias="NOTEBURST_WORKER_IMAGE_SELECTOR",
         description="Method for selecting a Jupyter image to run.",
     )
 
     image_reference: Optional[str] = Field(
         None,
-        env="NOTEBURST_WORKER_IMAGE_REFERENCE",
+        alias="NOTEBURST_WORKER_IMAGE_REFERENCE",
         description=(
             "Docker image reference, if NOTEBURST_WORKER_IMAGE_SELECTOR is "
             "``reference``."
@@ -177,7 +162,7 @@ class WorkerConfig(Config):
     )
 
     worker_keepalive: WorkerKeepAliveSetting = Field(
-        WorkerKeepAliveSetting.normal, env="NOTEBURST_WORKER_KEEPALIVE"
+        WorkerKeepAliveSetting.normal, alias="NOTEBURST_WORKER_KEEPALIVE"
     )
 
     @property

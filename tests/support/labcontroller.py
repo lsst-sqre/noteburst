@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import urljoin
 
 import httpx
 import respx
@@ -32,6 +33,6 @@ class MockLabController:
 def mock_labcontroller(respx_router: respx.Router) -> MockLabController:
     """Set up a mock JupterLab Controller."""
     m = MockLabController()
-    url = f"{config.environment_url}/nublado/spawner/v1/images"
+    url = urljoin(str(config.environment_url), "/nublado/spawner/v1/images")
     respx_router.get(url).mock(side_effect=m.images)
     return m

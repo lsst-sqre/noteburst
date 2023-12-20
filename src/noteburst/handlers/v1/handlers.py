@@ -64,7 +64,7 @@ async def post_nbexec(
     response_data = await NotebookResponse.from_job_metadata(
         job=job_metadata, request=request
     )
-    response.headers["Location"] = response_data.self_url
+    response.headers["Location"] = str(response_data.self_url)
     return response_data
 
 

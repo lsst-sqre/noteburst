@@ -146,11 +146,11 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
 # https://github.com/samuelcolvin/arq/issues/249
 cron_jobs: list[cron] = []  # type: ignore
 if config.worker_keepalive == WorkerKeepAliveSetting.fast:
-    f = cron(keep_alive, second={0, 30}, unique=False)  # type: ignore
+    f = cron(keep_alive, second={0, 30}, unique=False)
     cron_jobs.append(f)
 elif config.worker_keepalive == WorkerKeepAliveSetting.normal:
     f = cron(
-        keep_alive,  # type: ignore
+        keep_alive,
         minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
         unique=False,
     )

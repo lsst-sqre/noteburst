@@ -16,44 +16,38 @@ class JupyterImage(BaseModel):
 
     reference: str = Field(
         ...,
-        name="reference",
-        example="lighthouse.ceres/library/sketchbook:latest_daily",
+        examples=["lighthouse.ceres/library/sketchbook:latest_daily"],
         title="Full Docker registry path for lab image",
         description="cf. https://docs.docker.com/registry/introduction/",
     )
 
     name: str = Field(
         ...,
-        name="name",
-        example="Latest Daily (Daily 2077_10_23)",
+        examples=["Latest Daily (Daily 2077_10_23)"],
         title="Human-readable version of image tag",
     )
 
     digest: Optional[str] = Field(
         None,
-        name="digest",
-        example=(
+        examples=[
             "sha256:e693782192ecef4f7846ad2b21"
             "b1574682e700747f94c5a256b5731331a2eec2"
-        ),
+        ],
         title="unique digest of image contents",
     )
 
     tag: str = Field(
-        name="tag",
         title="Image tag",
     )
 
     size: Optional[int] = Field(
         None,
-        name="size",
-        example=8675309,
+        examples=[8675309],
         title="Size in bytes of image.  None if image size is unknown",
     )
     prepulled: bool = Field(
         False,
-        name="prepulled",
-        example=False,
+        examples=[False],
         title="Whether image is prepulled to all eligible nodes",
     )
 
@@ -198,7 +192,8 @@ class LabControllerClient:
     async def _get_images(self) -> LabControllerImages:
         headers = {"Authorization": f"bearer {self._token}"}
         url = urljoin(
-            config.environment_url, f"{self._url_prefix}/spawner/v1/images"
+            str(config.environment_url),
+            f"{self._url_prefix}/spawner/v1/images",
         )
 
         r = await self._http_client.get(url, headers=headers)
@@ -207,7 +202,7 @@ class LabControllerClient:
             raise LabControllerError(msg)
         try:
             data = r.json()
-            return LabControllerImages.parse_obj(data)
+            return LabControllerImages.model_validate(data)
         except Exception as e:
             msg = f"Invalid response from JupyterLab Controller: {str(e)}"
             raise LabControllerError(msg)

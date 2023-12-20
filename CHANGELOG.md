@@ -1,49 +1,65 @@
 # Change log
 
+<!-- scriv-insert-here -->
+
 ## 0.7.1 (2023-07-23)
 
-Fixes:
+### Bug fixes
 
 - Add additional logging of JupyterLab spawning failures in workers.
 
-Other changes:
+### Other changes
 
 - Added documentation for configuration environment variables.
 - Added OpenAPI docs, rendered by Redoc, to the Sphinx documentation site.
 
 ## 0.7.0 (2023-05-22)
 
+### New features
+
 - The JupyterHub service's URL path prefix is now configurable with the `NOTEBURST_JUPYTERHUB_PATH_PREFIX` environment variable. The default is `/nb/`, which is the existing value.
 - The Nublado JupyterLab Controller service's URL path prefix is configurable with the `NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX` environment variable. The default is `/nublado`, which is the existing value.
 
 ## 0.6.3 (2023-04-20)
+
+### Bug fixes
 
 - Fix how failed notebook executions are handled. Previously failed notebooks would prevent Noteburst from getting the results of the execution job. Now the job is shown as concluded but unsuccessful by the `/v1/notebooks/{job_id}` endpoint.
 - Structure uvicorn server logging.
 
 ## 0.6.2 (2023-04-12)
 
+### Bug fixes
+
 - Stop following redirects from the `hub/login` endpoint.
 - Explicitly shut down the lab pod on worker shutdown.
-- Update dependencies.
 
 ## 0.6.1 (2023-03-28)
+
+### Bug fixes
 
 - Additional updates for JupyterLab Controller image API endpoint.
 
 ## 0.6.0 (2023-02-16)
 
+### New features
+
 - Migrated from the Cachemachine API to the new JupyterLab Controller API for obtaining the list of available Docker images for JupyterLab workers.
+
+### Other changes
+
 - Migrated to Python 3.11
 - Adopted pyproject.toml for project metadata and dropped setup.cfg.
 
 ## 0.5.0 (2022-07-04)
 
-- Its now possible to skip retries on notebook execution failures in the `nbexec` task by passing an `enable_retry=False` keyword argument.
-  This is useful for applications that use Noteburst for continuous integration.
-- Updated dependencies.
+### New features
+
+- Its now possible to skip retries on notebook execution failures in the `nbexec` task by passing an `enable_retry=False` keyword argument. This is useful for applications that use Noteburst for continuous integration.
 
 ## 0.4.0 (2022-06-15)
+
+### New features
 
 - The worker identity configuration can now omit the `uid` field for environments where Gafaelfawr is able to assign a UID (e.g. through an LDAP backend).
 - New configurations for workers:
@@ -54,6 +70,8 @@ Other changes:
 - Noteburst now uses the arq client and dependency from Safir 3.2, which was originally developed from Noteburst.
 
 ## 0.3.0 (2022-05-24)
+
+### New features
 
 Improved handling of the JupyterLab pod for noteburst workers:
 
@@ -67,11 +85,15 @@ Improved handling of the JupyterLab pod for noteburst workers:
 
 ## 0.2.0 (2022-03-14)
 
+### New features
+
 - Initial version of the `/v1/` HTTP API.
 - Migration to Safir 3 and its database framework.
 - Noteburst is now cross-published to the GitHub Container Registry, `ghcr.io/lsst-sqre/noteburst`.
 - Migration to Python 3.10.
 
 ## 0.1.0 (2021-09-29)
+
+### New features
 
 - Initial development version of Noteburst.

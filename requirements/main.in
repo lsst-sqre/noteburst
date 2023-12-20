@@ -14,7 +14,8 @@ uvicorn[standard]
 # Other dependencies.
 aioredlock
 safir[arq]
-pydantic[dotenv]
+pydantic
+pydantic_settings
 PyYAML
 httpx
 websockets
