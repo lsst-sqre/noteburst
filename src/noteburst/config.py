@@ -100,9 +100,11 @@ class Config(BaseSettings):
         redis_settings = RedisSettings(
             host=self.redis_url.host or "localhost",
             port=self.redis_url.port or 6379,
-            database=int(self.redis_url.path.lstrip("/"))
-            if self.redis_url.path
-            else 0,
+            database=(
+                int(self.redis_url.path.lstrip("/"))
+                if self.redis_url.path
+                else 0
+            ),
         )
         return redis_settings
 
