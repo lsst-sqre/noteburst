@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import httpx
 import websockets
+from pydantic import BaseModel, Field
 from structlog import BoundLogger
 from websockets.client import WebSocketClientProtocol
 from websockets.exceptions import WebSocketException
@@ -357,6 +358,36 @@ class CodeExecutionError(Exception):
         return message
 
 
+class NotebookExecutionErrorModel(BaseModel):
+    """The error from the /user/:username/rubin/execute endpoint."""
+
+    traceback: str = Field(description="The exeception traceback.")
+
+    ename: str = Field(description="The exception name.")
+
+    evalue: str = Field(description="The exception value.")
+
+    err_msg: str = Field(description="The exception message.")
+
+
+class NotebookExecutionResult(BaseModel):
+    """The result of the /user/:username/rubin/execute endpoint."""
+
+    notebook: str = Field(
+        description="The notebook that was executed, as a JSON string."
+    )
+
+    resources: dict[str, Any] = Field(
+        description=(
+            "The resources used to execute the notebook, as a JSON string."
+        )
+    )
+
+    error: NotebookExecutionErrorModel | None = Field(
+        None, description="The error that occurred during execution."
+    )
+
+
 class JupyterClient:
     """A client for JupyterLab, via JupyterHub.
 
@@ -689,7 +720,7 @@ class JupyterClient:
 
     async def execute_notebook(
         self, notebook: dict[str, Any], kernel_name: str = "LSST"
-    ) -> dict[str, Any]:
+    ) -> NotebookExecutionResult:
         """Execute a Jupyter notebook through the JupyterLab Notebook execution
         extension.
 
@@ -705,20 +736,19 @@ class JupyterClient:
 
         Raises
         ------
-        JupyterError
+        NotebookExecutionResult
             Raised if there is an error interacting with the JupyterLab
             Notebook execution extension.
         """
         exec_url = self.url_for(f"user/{self.user.username}/rubin/execution")
         r = await self.http_client.post(
             exec_url,
-            # headers=headers,
             content=json.dumps(notebook).encode("utf-8"),
         )
         if r.status_code != 200:
             raise JupyterError.from_response(self.user.username, r)
 
-        return json.loads(r.text)
+        return NotebookExecutionResult.model_validate_json(r.text)
 
     async def get_jupyterlab_env(self) -> dict[str, Any]:
         """Get metadata from the JupyterLab environment endpoint.

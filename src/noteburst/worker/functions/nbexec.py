@@ -6,12 +6,12 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any
+from typing import Any, cast
 
 from arq import Retry
 
 from noteburst.exceptions import NbexecTaskError
-from noteburst.jupyterclient.jupyterlab import JupyterError
+from noteburst.jupyterclient.jupyterlab import JupyterClient, JupyterError
 
 
 async def nbexec(
@@ -37,22 +37,26 @@ async def nbexec(
     Returns
     -------
     str
-        The executed Jupyter notebook (ipynb) as a serialized JSON string.
+        The notebook execution result, a JSON-serialized
+        `NotebookExecutionResult` object.
     """
     logger = ctx["logger"].bind(
-        task="nbexec", job_attempt=ctx.get("job_try", -1)
+        task="nbexec",
+        job_attempt=ctx.get("job_try", -1),
+        job_id=ctx.get("job_id", "unknown"),
+        kernel_name=kernel_name,
     )
-    logger.info("Running nbexec")
+    logger.debug("Running nbexec")
 
-    jupyter_client = ctx["jupyter_client"]
+    jupyter_client = cast(JupyterClient, ctx["jupyter_client"])
 
     parsed_notebook = json.loads(ipynb)
     logger.debug("Got ipynb", ipynb=parsed_notebook)
     try:
-        executed_notebook = await jupyter_client.execute_notebook(
+        execution_result = await jupyter_client.execute_notebook(
             parsed_notebook, kernel_name=kernel_name
         )
-        logger.debug("nbexec success")
+        logger.info("nbexec finished", error=execution_result.error)
     except JupyterError as e:
         logger.error("nbexec error", jupyter_status=e.status)
         if e.status >= 400 and e.status < 500:
@@ -64,9 +68,9 @@ async def nbexec(
         else:
             # trigger re-try with increasing back-off
             if enable_retry:
-                logger.warning("Triggering retry")
+                logger.warning("nbexec triggering retry")
                 raise Retry(defer=ctx["job_try"] * 5)
             else:
                 raise NbexecTaskError.from_exception(e)
 
-    return json.dumps(executed_notebook)
+    return execution_result.model_dump_json()
