@@ -747,6 +747,7 @@ class JupyterClient:
         )
         if r.status_code != 200:
             raise JupyterError.from_response(self.user.username, r)
+        self.logger.debug("Got response from /rubin/execution", text=r.text)
 
         return NotebookExecutionResult.model_validate_json(r.text)
 
