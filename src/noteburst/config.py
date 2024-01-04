@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Optional, Self
 
 from arq.connections import RedisSettings
-from pydantic import Field, HttpUrl, RedisDsn, SecretStr, validator
+from pydantic import Field, HttpUrl, RedisDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings
 from safir.arq import ArqMode
 from safir.logging import LogLevel, Profile
@@ -47,6 +47,8 @@ class WorkerKeepAliveSetting(str, Enum):
 
 
 class Config(BaseSettings):
+    """Noteburst app configuration."""
+
     name: str = Field("Noteburst", alias="SAFIR_NAME")
 
     profile: Profile = Field(Profile.production, alias="SAFIR_PROFILE")
@@ -100,9 +102,11 @@ class Config(BaseSettings):
         redis_settings = RedisSettings(
             host=self.redis_url.host or "localhost",
             port=self.redis_url.port or 6379,
-            database=int(self.redis_url.path.lstrip("/"))
-            if self.redis_url.path
-            else 0,
+            database=(
+                int(self.redis_url.path.lstrip("/"))
+                if self.redis_url.path
+                else 0
+            ),
         )
         return redis_settings
 
@@ -170,23 +174,21 @@ class WorkerConfig(Config):
         """Redis configurations for aioredlock."""
         return [str(self.identity_lock_redis_url)]
 
-    @validator("image_reference")
-    def is_image_ref_set(
-        cls, v: Optional[str], values: Mapping[str, Any]
-    ) -> Optional[str]:
+    @model_validator(mode="after")
+    def is_image_ref_set(self) -> Self:
         """Validate that image_reference is set if image_selector is
         set to reference.
         """
         if (
-            v is None
-            and values["image_selector"] == JupyterImageSelector.reference
+            self.image_reference is None
+            and self.image_selector == JupyterImageSelector.reference
         ):
             raise ValueError(
                 "Set NOTEBURST_WORKER_IMAGE_REFERENCE since "
                 "NOTEBURST_WORKER_IMAGE_SELECTOR is ``reference``."
             )
 
-        return v
+        return self
 
     @property
     def parsed_worker_token_scopes(self) -> list[str]:

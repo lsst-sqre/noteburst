@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -66,7 +67,14 @@ async def test_post_nbexec(
     assert data["status"] == "in_progress"
 
     # Toggle the job to complete
-    await arq_queue.set_complete(job_id, result=sample_ipynb_executed)
+    result = json.dumps(
+        {
+            "notebook": sample_ipynb_executed,
+            "resources": {},
+            "error": None,
+        }
+    )
+    await arq_queue.set_complete(job_id, result=result)
     response = await client.get(job_url)
     assert response.status_code == 200
     data = response.json()

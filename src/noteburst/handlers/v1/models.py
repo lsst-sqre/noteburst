@@ -11,6 +11,11 @@ from fastapi import Request
 from pydantic import AnyHttpUrl, BaseModel, Field
 from safir.arq import JobMetadata, JobResult
 
+from noteburst.jupyterclient.jupyterlab import (
+    NotebookExecutionErrorModel,
+    NotebookExecutionResult,
+)
+
 kernel_name_field = Field(
     "LSST",
     title="The name of the Jupyter kernel the kernel is executed with",
@@ -21,6 +26,25 @@ kernel_name_field = Field(
         "which includes the LSST Science Pipelines."
     ),
 )
+
+
+class NotebookError(BaseModel):
+    """Information about an exception that occurred during notebook exec."""
+
+    name: str = Field(description="The name of the exception.")
+    message: str = Field(description="The exception's message.")
+
+    @classmethod
+    def from_nbexec_error(
+        cls, error: NotebookExecutionErrorModel
+    ) -> NotebookError:
+        """Create a NotebookError from a NotebookExecutionErrorModel, which
+        is the result of execution in ``/user/:username/rubin/execute``.
+        """
+        return cls(
+            name=error.ename,
+            message=error.err_msg,
+        )
 
 
 class NotebookResponse(BaseModel):
@@ -73,6 +97,12 @@ class NotebookResponse(BaseModel):
         "present if the result is available.",
     )
 
+    ipynb_error: Optional[NotebookError] = Field(
+        None,
+        title="The error that occurred during notebook execution",
+        description="This field is null if an exeception did not occur.",
+    )
+
     @classmethod
     async def from_job_metadata(
         cls,
@@ -82,12 +112,21 @@ class NotebookResponse(BaseModel):
         include_source: bool = False,
         job_result: Optional[JobResult] = None,
     ) -> NotebookResponse:
-        if job_result is not None:
-            ipynb: Optional[str] = (
-                job_result.result if job_result.success else None
+        if job_result is not None and job_result.success:
+            print("job_result.result")
+            print(type(job_result.result))
+            print(job_result.result)
+            nbexec_result = NotebookExecutionResult.model_validate_json(
+                job_result.result
             )
+            ipynb = nbexec_result.notebook
+            if nbexec_result.error:
+                error = NotebookError.from_nbexec_error(nbexec_result.error)
+            else:
+                error = None
         else:
             ipynb = None
+            error = None
 
         return cls(
             job_id=job.id,
@@ -100,6 +139,7 @@ class NotebookResponse(BaseModel):
             finish_time=job_result.finish_time if job_result else None,
             success=job_result.success if job_result else None,
             ipynb=ipynb,
+            ipynb_error=error,
         )
 
 

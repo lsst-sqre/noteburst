@@ -2,6 +2,35 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.8.0'></a>
+## 0.8.0 (2024-01-04)
+
+### Backwards-incompatible changes
+
+-
+
+### New features
+
+- The response to `GET /notebooks/:job_id` now includes an `ipynb_error` field that contains structured information about any exception that occurred when executing the notebook. As well, if an exception occurred, the resultant notebook is still included in the response. That is, notebook failures are no longer considered failed jobs.
+
+- The `job_id` is now included in log messages when running the `nbexec` job under arq.
+
+- The user guide includes a new tutorial for using the Noteburst web API.
+
+### Bug fixes
+
+-
+
+### Other changes
+
+- Update to Pydantic 2
+- Adopt FastAPI's lifespan feature
+- Adopt scriv for changelog management
+
+- Update GitHub Actions workflows, including integrating Neophile for dependency updates.
+
+- Update to Python 3.12.
+
 ## 0.7.1 (2023-07-23)
 
 ### Bug fixes
