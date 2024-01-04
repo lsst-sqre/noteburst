@@ -31,7 +31,6 @@ kernel_name_field = Field(
 class NotebookError(BaseModel):
     """Information about an exception that occurred during notebook exec."""
 
-    traceback: str = Field(description="The traceback of the exception.")
     name: str = Field(description="The name of the exception.")
     message: str = Field(description="The exception's message.")
 
@@ -43,7 +42,6 @@ class NotebookError(BaseModel):
         is the result of execution in ``/user/:username/rubin/execute``.
         """
         return cls(
-            traceback=error.traceback,
             name=error.ename,
             message=error.err_msg,
         )
