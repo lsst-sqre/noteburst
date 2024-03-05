@@ -1,5 +1,7 @@
 """V1 REST API handlers."""
 
+from typing import Annotated
+
 import structlog
 from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -25,8 +27,8 @@ async def post_nbexec(
     *,
     request: Request,
     response: Response,
-    logger: structlog.BoundLogger = Depends(auth_logger_dependency),
-    arq_queue: ArqQueue = Depends(arq_dependency),
+    logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
+    arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
 ) -> NotebookResponse:
     """Submits a notebook for execution. The notebook is executed
     asynchronously via a pool of JupyterLab (Nublado) instances.
@@ -94,8 +96,8 @@ async def get_nbexec_job(
             "includes the executed notebook and metadata about the run."
         ),
     ),
-    logger: structlog.BoundLogger = Depends(auth_logger_dependency),
-    arq_queue: ArqQueue = Depends(arq_dependency),
+    logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
+    arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
 ) -> NotebookResponse:
     """Provides information about a notebook execution job, and the result
     (if available).
@@ -121,9 +123,10 @@ async def get_nbexec_job(
     """
     try:
         job_metadata = await arq_queue.get_job_metadata(job_id)
-    except Exception as e:
-        logger.error(
-            "Error getting nbexec job metadata", job_id=job_id, exc_info=e
+    except Exception:
+        logger.exception(
+            "Error getting nbexec job metadata",
+            job_id=job_id,
         )
         raise
     logger.debug(
@@ -136,9 +139,10 @@ async def get_nbexec_job(
     if result and job_metadata.status == JobStatus.complete:
         try:
             job_result = await arq_queue.get_job_result(job_id)
-        except Exception as e:
-            logger.error(
-                "Error getting nbexec job result", job_id=job_id, exc_info=e
+        except Exception:
+            logger.exception(
+                "Error getting nbexec job result",
+                job_id=job_id,
             )
             raise
         logger.debug(

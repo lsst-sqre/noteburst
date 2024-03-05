@@ -161,8 +161,9 @@ ignore = [
 select = ["ALL"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/example/handlers/**" = [
+"src/noteburst/handlers/**" = [
     "D103",    # FastAPI handlers should not have docstrings
+    "D401",    # FastAPI handler docstrings may be API docs
 ]
 "tests/**" = [
     "C901",    # tests are allowed to be complex, sometimes that's convenient
@@ -173,6 +174,7 @@ select = ["ALL"]
     "S101",    # tests should use assert
     "S106",    # tests are allowed to hard-code dummy passwords
     "SLF001",  # tests are allowed to access private members
+    "T201",    # tests are allowed to use print
 ]
 
 [tool.ruff.lint.isort]

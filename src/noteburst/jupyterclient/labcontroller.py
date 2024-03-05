@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 from urllib.parse import urljoin
 
 import httpx
@@ -27,7 +26,7 @@ class JupyterImage(BaseModel):
         title="Human-readable version of image tag",
     )
 
-    digest: Optional[str] = Field(
+    digest: str | None = Field(
         None,
         examples=[
             "sha256:e693782192ecef4f7846ad2b21"
@@ -40,7 +39,7 @@ class JupyterImage(BaseModel):
         title="Image tag",
     )
 
-    size: Optional[int] = Field(
+    size: int | None = Field(
         None,
         examples=[8675309],
         title="Size in bytes of image.  None if image size is unknown",
@@ -53,31 +52,32 @@ class JupyterImage(BaseModel):
 
 
 def underscore_to_dash(x: str) -> str:
+    """Convert underscores to dashes in a string."""
     return x.replace("_", "-")
 
 
 class LabControllerImages(BaseModel):
     """A model for the ``GET /nublado/spawner/v1/images`` response."""
 
-    recommended: Optional[JupyterImage] = Field(
+    recommended: JupyterImage | None = Field(
         None, title="The recommended image"
     )
 
-    latest_weekly: Optional[JupyterImage] = Field(
+    latest_weekly: JupyterImage | None = Field(
         None, title="The latest weekly release image"
     )
 
-    latest_daily: Optional[JupyterImage] = Field(
+    latest_daily: JupyterImage | None = Field(
         None, title="The latest daily release image"
     )
 
-    latest_release: Optional[JupyterImage] = Field(
+    latest_release: JupyterImage | None = Field(
         None, title="The latest release image"
     )
 
     all: list[JupyterImage] = Field(default_factory=list, title="All images")
 
-    def get_by_reference(self, reference: str) -> Optional[JupyterImage]:
+    def get_by_reference(self, reference: str) -> JupyterImage | None:
         """Get the JupyterImage with a corresponding reference.
 
         Parameters
@@ -204,5 +204,5 @@ class LabControllerClient:
             data = r.json()
             return LabControllerImages.model_validate(data)
         except Exception as e:
-            msg = f"Invalid response from JupyterLab Controller: {str(e)}"
-            raise LabControllerError(msg)
+            msg = f"Invalid response from JupyterLab Controller: {e!s}"
+            raise LabControllerError(msg) from e

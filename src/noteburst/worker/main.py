@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 import httpx
 import structlog
@@ -24,8 +24,7 @@ config = WorkerConfig()
 
 
 async def startup(ctx: dict[Any, Any]) -> None:
-    """Runs during working start-up to set up the JupyterLab client and
-    populate the worker context.
+    """Set up worker context on startup.
 
     Notes
     -----
@@ -74,7 +73,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         try:
             image_info = await jupyter_client.spawn_lab()
             logger = logger.bind(image_ref=image_info.reference)
-            async for progress in jupyter_client.spawn_progress():
+            async for _ in jupyter_client.spawn_progress():
                 continue
             await jupyter_client.log_into_lab()
             break
@@ -90,10 +89,8 @@ async def startup(ctx: dict[Any, Any]) -> None:
 
 
 async def shutdown(ctx: dict[Any, Any]) -> None:
-    """Runs during worker shut-down to release the JupyterLab resources
-    and identity claim.
-    """
-    if "logger" in ctx.keys():
+    """Clean up the worker context on shutdown."""
+    if "logger" in ctx:
         logger = ctx["logger"]
     else:
         logger = structlog.get_logger(__name__)
@@ -144,7 +141,7 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
 
 # For info on ignoring the type checking here, see
 # https://github.com/samuelcolvin/arq/issues/249
-cron_jobs: list[cron] = []  # type: ignore
+cron_jobs: list[cron] = []  # type: ignore [valid-type]
 if config.worker_keepalive == WorkerKeepAliveSetting.fast:
     f = cron(keep_alive, second={0, 30}, unique=False)
     cron_jobs.append(f)
@@ -163,7 +160,7 @@ class WorkerSettings:
     See `arq.worker.Worker` for details on these attributes.
     """
 
-    functions = [ping, nbexec, run_python]
+    functions: ClassVar = [ping, nbexec, run_python]
 
     cron_jobs = cron_jobs
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any
 
 from arq.jobs import JobStatus
 from fastapi import Request
@@ -66,38 +66,38 @@ class NotebookResponse(BaseModel):
 
     self_url: AnyHttpUrl = Field(title="The URL of this resource")
 
-    source: Optional[str] = Field(
+    source: str | None = Field(
         None,
         title="The content of the source ipynb file (JSON-encoded string)",
         description="This field is null unless the source is requested.",
     )
 
-    start_time: Optional[datetime] = Field(
+    start_time: datetime | None = Field(
         None,
         title="Time when the notebook execution started (UTC)",
         description="This field is present if the result is available.",
     )
 
-    finish_time: Optional[datetime] = Field(
+    finish_time: datetime | None = Field(
         None,
         title="Time when the notebook execution completed (UTC)",
         description="This field is present only if the result is available.",
     )
 
-    success: Optional[bool] = Field(
+    success: bool | None = Field(
         None,
         title="Whether the execution was successful or not",
         description="This field is present if the result is available.",
     )
 
-    ipynb: Optional[str] = Field(
+    ipynb: str | None = Field(
         None,
         title="The contents of the executed Jupyter notebook",
         description="The ipynb is a JSON-encoded string. This field is "
         "present if the result is available.",
     )
 
-    ipynb_error: Optional[NotebookError] = Field(
+    ipynb_error: NotebookError | None = Field(
         None,
         title="The error that occurred during notebook execution",
         description="This field is null if an exeception did not occur.",
@@ -110,12 +110,9 @@ class NotebookResponse(BaseModel):
         job: JobMetadata,
         request: Request,
         include_source: bool = False,
-        job_result: Optional[JobResult] = None,
+        job_result: JobResult | None = None,
     ) -> NotebookResponse:
         if job_result is not None and job_result.success:
-            print("job_result.result")
-            print(type(job_result.result))
-            print(job_result.result)
             nbexec_result = NotebookExecutionResult.model_validate_json(
                 job_result.result
             )
@@ -146,7 +143,7 @@ class NotebookResponse(BaseModel):
 class PostNotebookRequest(BaseModel):
     """The ``POST /notebooks/`` request body."""
 
-    ipynb: Union[str, dict[str, Any]] = Field(
+    ipynb: str | dict[str, Any] = Field(
         ...,
         title="The contents of a Jupyter notebook",
         description="If a string, the content is parsed as JSON. "

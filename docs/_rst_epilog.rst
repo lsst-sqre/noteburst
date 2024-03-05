@@ -3,4 +3,4 @@
 .. _pytest: https://docs.pytest.org/en/latest/
 .. _tox: https://tox.readthedocs.io/en/latest/
 .. _httpie: https://httpie.io/cli
-.. _`Rubin Science Platform environment`: 
+.. _`Rubin Science Platform environment`:

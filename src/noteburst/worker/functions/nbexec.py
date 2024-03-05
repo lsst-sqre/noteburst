@@ -58,19 +58,17 @@ async def nbexec(
         )
         logger.info("nbexec finished", error=execution_result.error)
     except JupyterError as e:
-        logger.error("nbexec error", jupyter_status=e.status)
+        logger.exception("nbexec error", jupyter_status=e.status)
         if e.status >= 400 and e.status < 500:
-            logger.error(
+            logger.exception(
                 "Authentication error to Jupyter. Forcing worker shutdown",
                 jupyter_status=e.status,
             )
             sys.exit("400 class error from Jupyter")
+        elif enable_retry:
+            logger.warning("nbexec triggering retry")
+            raise Retry(defer=ctx["job_try"] * 5) from None
         else:
-            # trigger re-try with increasing back-off
-            if enable_retry:
-                logger.warning("nbexec triggering retry")
-                raise Retry(defer=ctx["job_try"] * 5)
-            else:
-                raise NbexecTaskError.from_exception(e)
+            raise NbexecTaskError.from_exception(e) from e
 
     return execution_result.model_dump_json()

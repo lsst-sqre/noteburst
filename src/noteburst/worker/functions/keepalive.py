@@ -31,9 +31,9 @@ async def keep_alive(ctx: dict[Any, Any]) -> str:
         ) as session:
             await session.run_python("print('alive')")
     except JupyterError as e:
-        logger.error("keep_alive error", jupyter_status=e.status)
+        logger.exception("keep_alive error", jupyter_status=e.status)
         if e.status >= 400 and e.status < 500:
-            logger.error(
+            logger.exception(
                 "Authentication error to Jupyter. Forcing worker shutdown",
                 jupyter_status=e.status,
             )

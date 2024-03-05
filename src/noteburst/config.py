@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Self
+from typing import Self
 
 from arq.connections import RedisSettings
 from pydantic import Field, HttpUrl, RedisDsn, SecretStr, model_validator
@@ -98,8 +98,7 @@ class Config(BaseSettings):
     @property
     def arq_redis_settings(self) -> RedisSettings:
         """Create a Redis settings instance for arq."""
-        # url_parts = urlparse(self.redis_url)
-        redis_settings = RedisSettings(
+        return RedisSettings(
             host=self.redis_url.host or "localhost",
             port=self.redis_url.port or 6379,
             database=(
@@ -108,10 +107,11 @@ class Config(BaseSettings):
                 else 0
             ),
         )
-        return redis_settings
 
 
 class WorkerConfig(Config):
+    """Configuration superset for arq worker processes."""
+
     identities_path: Path = Field(
         ..., alias="NOTEBURST_WORKER_IDENTITIES_PATH"
     )
@@ -156,7 +156,7 @@ class WorkerConfig(Config):
         description="Method for selecting a Jupyter image to run.",
     )
 
-    image_reference: Optional[str] = Field(
+    image_reference: str | None = Field(
         None,
         alias="NOTEBURST_WORKER_IMAGE_REFERENCE",
         description=(

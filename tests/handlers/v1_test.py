@@ -50,8 +50,8 @@ async def test_post_nbexec(
     data2 = response.json()
     assert data == data2
 
-    assert "source" not in data2.keys()
-    assert "ipynb" not in data2.keys()
+    assert "source" not in data2
+    assert "ipynb" not in data2
 
     # Request the job with the source ipynb included
     response = await client.get(job_url, params={"source": "true"})

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import contextlib
-from typing import Any, AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
+from typing import Any
 
 import pytest
 import pytest_asyncio
@@ -71,7 +72,7 @@ def jupyter(monkeypatch: MonkeyPatch, respx_mock: respx.Router) -> MockJupyter:
 
 @pytest.fixture
 def worker_context() -> dict[Any, Any]:
-    """A mock ctx (context) fixture for arq workers."""
+    """Mock the ctx (context) for arq workers."""
     ctx: dict[Any, Any] = {}
 
     # Prep identity_manager

@@ -6,10 +6,11 @@ import asyncio
 import contextlib
 import datetime
 import json
-import random
 import string
+from collections.abc import AsyncGenerator, AsyncIterator
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, AsyncIterator, Optional
+from random import SystemRandom
+from typing import Any, Self
 from urllib.parse import urljoin, urlparse
 from uuid import uuid4
 
@@ -62,7 +63,7 @@ class JupyterSpawnProgress:
     def __init__(self, response: httpx.Response, logger: BoundLogger) -> None:
         self._response = response
         self._logger = logger
-        self._start = datetime.datetime.now(tz=datetime.timezone.utc)
+        self._start = datetime.datetime.now(tz=datetime.UTC)
 
     async def __aiter__(self) -> AsyncIterator[SpawnProgressMessage]:
         """Iterate over spawn progress events."""
@@ -83,19 +84,16 @@ class JupyterSpawnProgress:
                     ready=event_dict.get("ready", False),
                 )
             except Exception as e:
-                msg = f"Ignoring invalid progress event: {raw_event}: {str(e)}"
+                msg = f"Ignoring invalid progress event: {raw_event}: {e!s}"
                 self._logger.warning(
                     msg, raw_event=raw_event, exception=str(e)
                 )
                 continue
 
             # Log and yield the event
-            now = datetime.datetime.now(tz=datetime.timezone.utc)
+            now = datetime.datetime.now(tz=datetime.UTC)
             elapsed = int((now - self._start).total_seconds())
-            if event.ready:
-                status = "complete"
-            else:
-                status = "in progress"
+            status = "complete" if event.ready else "in progress"
             self._logger.info(
                 "Spawning",
                 status=status,
@@ -239,7 +237,7 @@ class JupyterConfig:
     url_prefix: str = "/nb/"
     """URL path prefix for the JupyterHub service."""
 
-    image_reference: Optional[str] = None
+    image_reference: str | None = None
     """Docker reference to the JupyterLab image to spawn.
 
     May be null if ``image_selector`` is is not
@@ -288,9 +286,9 @@ class JupyterError(Exception):
         url: str,
         username: str,
         status: int,
-        reason: Optional[str],
+        reason: str | None,
         method: str,
-        body: Optional[str] = None,
+        body: str | None = None,
     ) -> None:
         self.url = url
         self.status = status
@@ -298,15 +296,14 @@ class JupyterError(Exception):
         self.method = method
         self.body = body
         self.username = username
-        self.timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.timestamp = datetime.datetime.now(tz=datetime.UTC)
         super().__init__(f"Status {status} from {method} {url}")
 
     def __str__(self) -> str:
-        result = (
+        return (
             f"{self.username}: status {self.status} ({self.reason}) from"
             f" {self.method} {self.url}"
         )
-        return result
 
 
 class JupyterLabSessionError(Exception):
@@ -332,9 +329,9 @@ class CodeExecutionError(Exception):
         username: str,
         code: str,
         code_type: str = "code",
-        error: Optional[str] = None,
-        status: Optional[str] = None,
-        result: Optional[str] = None,
+        error: str | None = None,
+        status: str | None = None,
+        result: str | None = None,
     ) -> None:
         self.username = username
         self.code = code
@@ -420,8 +417,8 @@ class JupyterClient:
             str(noteburst_config.environment_url), self.config.url_prefix
         )
 
-        self._http_client: Optional[httpx.AsyncClient] = None
-        self._lab_controller_client: Optional[LabControllerClient] = None
+        self._http_client: httpx.AsyncClient | None = None
+        self._lab_controller_client: LabControllerClient | None = None
         self._common_headers: dict[str, str]  # set and reset in the context
 
     @property
@@ -429,7 +426,8 @@ class JupyterClient:
         """The HTTPX client instance associated with the Jupyter session.."""
         if self._http_client is None:
             self._open_clients()
-        assert self._http_client is not None
+        if self._http_client is None:
+            raise RuntimeError("http_client is not set")
         return self._http_client
 
     @property
@@ -439,10 +437,11 @@ class JupyterClient:
         """
         if self._lab_controller_client is None:
             self._open_clients()
-        assert self._lab_controller_client is not None
+        if self._lab_controller_client is None:
+            raise RuntimeError("LabControllerClient is not set set up")
         return self._lab_controller_client
 
-    async def __aenter__(self) -> JupyterClient:
+    async def __aenter__(self) -> Self:
         self._open_clients()
         return self
 
@@ -455,9 +454,8 @@ class JupyterClient:
                 "re-opening?"
             )
 
-        xsrf_token = "".join(
-            random.choices(string.ascii_uppercase + string.digits, k=16)
-        )
+        alphabet = string.ascii_uppercase + string.digits
+        xsrf_token = "".join(SystemRandom().choices(alphabet, k=16))
         headers = {
             "x-xsrftoken": xsrf_token,
             "Authorization": f"Bearer {self.user.token}",
@@ -475,14 +473,13 @@ class JupyterClient:
         # Create a LabController client
         # We also send the XSRF token to Lab Controller because of how we're
         # sharing the session, but that shouldn't matter.
-        assert noteburst_config.gafaelfawr_token
         self._lab_controller_client = LabControllerClient(
             http_client=self.http_client,
             token=noteburst_config.gafaelfawr_token.get_secret_value(),
             url_prefix=noteburst_config.nublado_controller_path_prefix,
         )
 
-    async def __aexit__(self, *exc_info: Any) -> None:
+    async def __aexit__(self, *exc_info: object) -> None:
         await self.close()
 
     async def close(self) -> None:
@@ -591,7 +588,11 @@ class JupyterClient:
         elif self.config.image_selector == JupyterImageSelector.weekly:
             image = await self.lab_controller.get_latest_weekly()
         elif self.config.image_selector == JupyterImageSelector.reference:
-            assert self.config.image_reference
+            if self.config.image_reference is None:
+                raise ValueError(
+                    "No image reference provided using "
+                    "JupyterImageSelector.reference."
+                )
             image = await self.lab_controller.get_by_reference(
                 self.config.image_reference
             )
@@ -624,7 +625,7 @@ class JupyterClient:
         if r.status_code not in [200, 202, 204]:
             raise JupyterError.from_response(self.user.username, r)
 
-    async def is_lab_stopped(self, final: bool = False) -> bool:
+    async def is_lab_stopped(self, *, final: bool = False) -> bool:
         """Determine if the lab is fully stopped.
 
         Parameters
@@ -648,7 +649,7 @@ class JupyterClient:
 
     @contextlib.asynccontextmanager
     async def open_lab_session(
-        self, notebook_name: Optional[str] = None, *, kernel_name: str = "LSST"
+        self, notebook_name: str | None = None, *, kernel_name: str = "LSST"
     ) -> AsyncGenerator[JupyterLabSession, None]:
         """Open a JupyterLab session.
 
@@ -684,7 +685,7 @@ class JupyterClient:
             header: mock_request.headers[header] for header in copied_headers
         }
 
-        session_id: Optional[str] = None  # will be set if a session is opened
+        session_id: str | None = None  # will be set if a session is opened
         self.logger.debug("Trying to create websocket connection")
         try:
             # An alternative to the async context it to use connect in an
@@ -708,7 +709,7 @@ class JupyterClient:
         except WebSocketException as e:
             raise JupyterLabSessionError.from_exception(
                 username=self.user.username, exception=e
-            )
+            ) from e
         finally:
             if session_id:
                 session_id_url = self.url_for(
@@ -762,5 +763,4 @@ class JupyterClient:
         r = await self.http_client.get(environment_url)
         if r.status_code != 200:
             raise JupyterError.from_response(self.user.username, r)
-        env_data = r.json()
-        return env_data
+        return r.json()
