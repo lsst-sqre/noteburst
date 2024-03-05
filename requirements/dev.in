@@ -18,6 +18,7 @@ pytest-cov
 uvicorn
 respx
 types-PyYAML
+ruff
 
 # Documentation
 documenteer[guide]>=1.0.0
