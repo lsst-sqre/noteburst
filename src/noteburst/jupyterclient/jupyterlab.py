@@ -10,7 +10,7 @@ import string
 from collections.abc import AsyncGenerator, AsyncIterator
 from dataclasses import dataclass
 from random import SystemRandom
-from typing import Any, Self
+from typing import Annotated, Any, Self
 from urllib.parse import urljoin, urlparse
 from uuid import uuid4
 
@@ -356,33 +356,38 @@ class CodeExecutionError(Exception):
 
 
 class NotebookExecutionErrorModel(BaseModel):
-    """The error from the /user/:username/rubin/execute endpoint."""
+    """The error from the ``/user/:username/rubin/execute`` endpoint."""
 
-    traceback: str = Field(description="The exeception traceback.")
+    traceback: Annotated[str, Field(description="The exeception traceback.")]
 
-    ename: str = Field(description="The exception name.")
+    ename: Annotated[str, Field(description="The exception name.")]
 
-    evalue: str = Field(description="The exception value.")
+    evalue: Annotated[str, Field(description="The exception value.")]
 
-    err_msg: str = Field(description="The exception message.")
+    err_msg: Annotated[str, Field(description="The exception message.")]
 
 
 class NotebookExecutionResult(BaseModel):
     """The result of the /user/:username/rubin/execute endpoint."""
 
-    notebook: str = Field(
-        description="The notebook that was executed, as a JSON string."
-    )
+    notebook: Annotated[
+        str,
+        Field(description="The notebook that was executed, as a JSON string."),
+    ]
 
-    resources: dict[str, Any] = Field(
-        description=(
-            "The resources used to execute the notebook, as a JSON string."
-        )
-    )
+    resources: Annotated[
+        dict[str, Any],
+        Field(
+            description=(
+                "The resources used to execute the notebook, as a JSON string."
+            )
+        ),
+    ]
 
-    error: NotebookExecutionErrorModel | None = Field(
-        None, description="The error that occurred during execution."
-    )
+    error: Annotated[
+        NotebookExecutionErrorModel | None,
+        Field(description="The error that occurred during execution."),
+    ] = None
 
 
 class JupyterClient:

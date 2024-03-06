@@ -20,7 +20,7 @@ external_router = APIRouter()
 class Index(BaseModel):
     """Metadata about the application."""
 
-    metadata: SafirMetadata = Field(..., title="Package metadata")
+    metadata: Annotated[SafirMetadata, Field(title="Package metadata")]
 
 
 @external_router.get(

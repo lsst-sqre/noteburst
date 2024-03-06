@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Annotated
 
 import structlog
 import yaml
 from aioredlock import Aioredlock, Lock, LockError
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, Field, RootModel
 
 from noteburst.config import WorkerConfig
 
@@ -22,14 +23,19 @@ class IdentityModel(BaseModel):
     configuration file.
     """
 
-    username: str
-    """The username of the user account."""
+    username: Annotated[
+        str, Field(description="The username of the user account.")
+    ]
 
-    uid: str | None = None
-    """The UID of the user account.
-
-    This can be `None` if the authentication system assigns the UID.
-    """
+    uid: Annotated[
+        str | None,
+        Field(
+            description=(
+                "The UID of the user account. This can be `None` if the "
+                "authentication system assigns the UID."
+            )
+        ),
+    ] = None
 
 
 class IdentityConfigModel(RootModel):

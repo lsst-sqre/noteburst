@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
 from arq.jobs import JobStatus
 from fastapi import Request
@@ -31,8 +31,8 @@ kernel_name_field = Field(
 class NotebookError(BaseModel):
     """Information about an exception that occurred during notebook exec."""
 
-    name: str = Field(description="The name of the exception.")
-    message: str = Field(description="The exception's message.")
+    name: Annotated[str, Field(description="The name of the exception.")]
+    message: Annotated[str, Field(description="The exception's message.")]
 
     @classmethod
     def from_nbexec_error(
@@ -52,56 +52,72 @@ class NotebookResponse(BaseModel):
     result and source notebooks.
     """
 
-    job_id: str = Field(title="The job ID")
+    job_id: Annotated[str, Field(title="The job ID")]
 
-    kernel_name: str = kernel_name_field
+    kernel_name: Annotated[str, kernel_name_field]
 
-    enqueue_time: datetime = Field(
-        title="Time when the job was added to the queue (UTC)"
-    )
+    enqueue_time: Annotated[
+        datetime, Field(title="Time when the job was added to the queue (UTC)")
+    ]
 
-    status: JobStatus = Field(
-        title="The current status of the notebook execution job"
-    )
+    status: Annotated[
+        JobStatus,
+        Field(title="The current status of the notebook execution job"),
+    ]
 
-    self_url: AnyHttpUrl = Field(title="The URL of this resource")
+    self_url: Annotated[AnyHttpUrl, Field(title="The URL of this resource")]
 
-    source: str | None = Field(
-        None,
-        title="The content of the source ipynb file (JSON-encoded string)",
-        description="This field is null unless the source is requested.",
-    )
+    source: Annotated[
+        str | None,
+        Field(
+            title="The content of the source ipynb file (JSON-encoded string)",
+            description="This field is null unless the source is requested.",
+        ),
+    ] = None
 
-    start_time: datetime | None = Field(
-        None,
-        title="Time when the notebook execution started (UTC)",
-        description="This field is present if the result is available.",
-    )
+    start_time: Annotated[
+        datetime | None,
+        Field(
+            title="Time when the notebook execution started (UTC)",
+            description="This field is present if the result is available.",
+        ),
+    ] = None
 
-    finish_time: datetime | None = Field(
-        None,
-        title="Time when the notebook execution completed (UTC)",
-        description="This field is present only if the result is available.",
-    )
+    finish_time: Annotated[
+        datetime | None,
+        Field(
+            title="Time when the notebook execution completed (UTC)",
+            description=(
+                "This field is present only if the result is available."
+            ),
+        ),
+    ] = None
 
-    success: bool | None = Field(
-        None,
-        title="Whether the execution was successful or not",
-        description="This field is present if the result is available.",
-    )
+    success: Annotated[
+        bool | None,
+        Field(
+            title="Whether the execution was successful or not",
+            description="This field is present if the result is available.",
+        ),
+    ] = None
 
-    ipynb: str | None = Field(
-        None,
-        title="The contents of the executed Jupyter notebook",
-        description="The ipynb is a JSON-encoded string. This field is "
-        "present if the result is available.",
-    )
+    ipynb: Annotated[
+        str | None,
+        Field(
+            title="The contents of the executed Jupyter notebook",
+            description="The ipynb is a JSON-encoded string. This field is "
+            "present if the result is available.",
+        ),
+    ] = None
 
-    ipynb_error: NotebookError | None = Field(
-        None,
-        title="The error that occurred during notebook execution",
-        description="This field is null if an exeception did not occur.",
-    )
+    ipynb_error: Annotated[
+        NotebookError | None,
+        Field(
+            None,
+            title="The error that occurred during notebook execution",
+            description="This field is null if an exeception did not occur.",
+        ),
+    ] = None
 
     @classmethod
     async def from_job_metadata(
@@ -112,6 +128,7 @@ class NotebookResponse(BaseModel):
         include_source: bool = False,
         job_result: JobResult | None = None,
     ) -> NotebookResponse:
+        """Create a NotebookResponse from a job."""
         if job_result is not None and job_result.success:
             nbexec_result = NotebookExecutionResult.model_validate_json(
                 job_result.result
@@ -143,30 +160,35 @@ class NotebookResponse(BaseModel):
 class PostNotebookRequest(BaseModel):
     """The ``POST /notebooks/`` request body."""
 
-    ipynb: str | dict[str, Any] = Field(
-        ...,
-        title="The contents of a Jupyter notebook",
-        description="If a string, the content is parsed as JSON. "
-        "Alternatively, the content can be submitted pre-parsed as "
-        "an object.",
-    )
-
-    kernel_name: str = kernel_name_field
-
-    enable_retry: bool = Field(
-        True,
-        title="Enable retries on failures",
-        description=(
-            "If true (default), noteburst will retry notebook "
-            "execution if the notebook fails, with an increasing back-off "
-            "time between tries. This is useful for dealing with transient "
-            "issues. However, if you are using Noteburst for continuous "
-            "integration of notebooks, disabling retries provides faster "
-            "feedback."
+    ipynb: Annotated[
+        str | dict[str, Any],
+        Field(
+            title="The contents of a Jupyter notebook",
+            description="If a string, the content is parsed as JSON. "
+            "Alternatively, the content can be submitted pre-parsed as "
+            "an object.",
         ),
-    )
+    ]
+
+    kernel_name: Annotated[str, kernel_name_field]
+
+    enable_retry: Annotated[
+        bool,
+        Field(
+            title="Enable retries on failures",
+            description=(
+                "If true (default), noteburst will retry notebook "
+                "execution if the notebook fails, with an increasing back-off "
+                "time between tries. This is useful for dealing with "
+                "transient issues. However, if you are using Noteburst for "
+                "continuous integration of notebooks, disabling retries "
+                "provides faster feedback."
+            ),
+        ),
+    ] = True
 
     def get_ipynb_as_str(self) -> str:
+        """Get the ipynb as a JSON-encoded string."""
         if isinstance(self.ipynb, str):
             return self.ipynb
         else:

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Annotated
 from urllib.parse import urljoin
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from noteburst.config import config
 
@@ -13,42 +14,51 @@ from noteburst.config import config
 class JupyterImage(BaseModel):
     """A model for a JupyterLab image in a `LabControllerImages` resource."""
 
-    reference: str = Field(
-        ...,
-        examples=["lighthouse.ceres/library/sketchbook:latest_daily"],
-        title="Full Docker registry path for lab image",
-        description="cf. https://docs.docker.com/registry/introduction/",
-    )
+    reference: Annotated[
+        str,
+        Field(
+            examples=["lighthouse.ceres/library/sketchbook:latest_daily"],
+            title="Full Docker registry path for lab image",
+            description="cf. https://docs.docker.com/registry/introduction/",
+        ),
+    ]
 
-    name: str = Field(
-        ...,
-        examples=["Latest Daily (Daily 2077_10_23)"],
-        title="Human-readable version of image tag",
-    )
+    name: Annotated[
+        str,
+        Field(
+            examples=["Latest Daily (Daily 2077_10_23)"],
+            title="Human-readable version of image tag",
+        ),
+    ]
 
-    digest: str | None = Field(
-        None,
-        examples=[
-            "sha256:e693782192ecef4f7846ad2b21"
-            "b1574682e700747f94c5a256b5731331a2eec2"
-        ],
-        title="unique digest of image contents",
-    )
+    digest: Annotated[
+        str | None,
+        Field(
+            examples=[
+                "sha256:e693782192ecef4f7846ad2b21"
+                "b1574682e700747f94c5a256b5731331a2eec2"
+            ],
+            title="unique digest of image contents",
+        ),
+    ] = None
 
-    tag: str = Field(
-        title="Image tag",
-    )
+    tag: Annotated[str, Field(title="Image tag")]
 
-    size: int | None = Field(
-        None,
-        examples=[8675309],
-        title="Size in bytes of image.  None if image size is unknown",
-    )
-    prepulled: bool = Field(
-        False,
-        examples=[False],
-        title="Whether image is prepulled to all eligible nodes",
-    )
+    size: Annotated[
+        int | None,
+        Field(
+            examples=[8675309],
+            title="Size in bytes of image.  None if image size is unknown",
+        ),
+    ] = None
+
+    prepulled: Annotated[
+        bool,
+        Field(
+            examples=[False],
+            title="Whether image is prepulled to all eligible nodes",
+        ),
+    ] = False
 
 
 def underscore_to_dash(x: str) -> str:
@@ -59,23 +69,31 @@ def underscore_to_dash(x: str) -> str:
 class LabControllerImages(BaseModel):
     """A model for the ``GET /nublado/spawner/v1/images`` response."""
 
-    recommended: JupyterImage | None = Field(
-        None, title="The recommended image"
-    )
+    recommended: Annotated[
+        JupyterImage | None, Field(title="The recommended image")
+    ] = None
 
-    latest_weekly: JupyterImage | None = Field(
-        None, title="The latest weekly release image"
-    )
+    latest_weekly: Annotated[
+        JupyterImage | None, Field(title="The latest weekly release image")
+    ] = None
 
-    latest_daily: JupyterImage | None = Field(
-        None, title="The latest daily release image"
-    )
+    latest_daily: Annotated[
+        JupyterImage | None, Field(title="The latest daily release image")
+    ] = None
 
-    latest_release: JupyterImage | None = Field(
-        None, title="The latest release image"
-    )
+    latest_release: Annotated[
+        JupyterImage | None, Field(title="The latest release image")
+    ] = None
 
-    all: list[JupyterImage] = Field(default_factory=list, title="All images")
+    all: Annotated[
+        list[JupyterImage], Field(default_factory=list, title="All images")
+    ]
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=underscore_to_dash,
+    )
+    """Pydantic model configuration."""
 
     def get_by_reference(self, reference: str) -> JupyterImage | None:
         """Get the JupyterImage with a corresponding reference.
@@ -95,10 +113,6 @@ class LabControllerImages(BaseModel):
                 return image
 
         return None
-
-    class Config:
-        allow_population_by_field_name = True
-        alias_generator = underscore_to_dash
 
 
 class LabControllerError(Exception):
