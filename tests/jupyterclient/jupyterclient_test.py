@@ -50,8 +50,6 @@ async def test_jupyterclient(
 
             await jupyter_client.log_into_lab()
 
-            # FIXME the test code for this isn't full set up yet
-            # async with jupyter_client.open_lab_session() as lab_session:
-            #     print(lab_session.kernel_id)
+            # Note: the test code for running open_lab_session isn't available
 
             await jupyter_client.stop_lab()

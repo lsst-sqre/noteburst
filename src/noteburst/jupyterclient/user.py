@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Optional
 from urllib.parse import urljoin
 
 import httpx
@@ -25,7 +24,7 @@ class User:
     username: str
     """The user's username."""
 
-    uid: Optional[str]
+    uid: str | None
     """The user's UID.
 
     This can be set as `None` if the authentication services provides the UID.
@@ -62,7 +61,7 @@ class AuthenticatedUser(User):
         cls,
         *,
         username: str,
-        uid: Optional[str],
+        uid: str | None,
         scopes: list[str],
         http_client: httpx.AsyncClient,
         lifetime: int,
@@ -88,7 +87,7 @@ class AuthenticatedUser(User):
             "username": username,
             "name": "Noteburst",
             "token_type": "user",
-            "token_name": f"noteburst {str(float(time.time()))}",
+            "token_name": f"noteburst {float(time.time())!s}",
             "scopes": scopes,
             "expires": int(time.time() + lifetime),
         }

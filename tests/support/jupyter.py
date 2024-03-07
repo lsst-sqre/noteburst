@@ -6,12 +6,14 @@ import asyncio
 import json
 import re
 from base64 import urlsafe_b64decode
+from collections.abc import AsyncIterator
 from contextlib import redirect_stdout
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import StringIO
 from traceback import format_exc
-from typing import Any, AsyncIterator, Optional
+from types import TracebackType
+from typing import Any, Self
 from unittest.mock import ANY, AsyncMock, Mock
 from uuid import uuid4
 
@@ -80,7 +82,7 @@ class MockJupyter:
         self.state: dict[str, JupyterState] = {}
         self.delete_immediate = True
         self.spawn_timeout = False
-        self._delete_at: dict[str, Optional[datetime]] = {}
+        self._delete_at: dict[str, datetime | None] = {}
         self._fail: dict[str, dict[JupyterAction, bool]] = {}
 
     def fail(self, user: str, action: JupyterAction) -> None:
@@ -110,7 +112,7 @@ class MockJupyter:
             body = {"name": user, "servers": {"": server}}
         elif state == JupyterState.LAB_RUNNING:
             delete_at = self._delete_at.get(user)
-            if delete_at and (datetime.now(tz=timezone.utc)) > delete_at:
+            if delete_at and (datetime.now(tz=UTC)) > delete_at:
                 del self._delete_at[user]
                 self.state[user] = JupyterState.LOGGED_IN
             if delete_at:
@@ -203,7 +205,7 @@ class MockJupyter:
         if self.delete_immediate:
             self.state[user] = JupyterState.LOGGED_IN
         else:
-            now = datetime.now(tz=timezone.utc)
+            now = datetime.now(tz=UTC)
             self._delete_at[user] = now + timedelta(seconds=5)
         return httpx.Response(202, request=request)
 
@@ -320,18 +322,21 @@ class MockJupyterWebSocket(Mock):
         super().__init__(spec=WebSocketClientProtocol)
         self.user = user
         self.session_id = session_id
-        self._header: Optional[dict[str, Any]] = None
-        self._code: Optional[str] = None
+        self._header: dict[str, Any] | None = None
+        self._code: str | None = None
         self._state: dict[str, Any] = {}
 
     def __await__(self) -> MockJupyterWebSocket:
         return self
 
-    async def __aenter__(self) -> MockJupyterWebSocket:
+    async def __aenter__(self) -> Self:
         return await self
 
     async def __aexit__(
-        self, exc_type: Any, exc_value: Any, traceback: Any
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         pass
 
@@ -391,7 +396,7 @@ class MockJupyterWebSocket(Mock):
                 try:
                     output = StringIO()
                     with redirect_stdout(output):
-                        exec(self._code, self._state)
+                        exec(self._code, self._state)  # noqa: S102
                     self._code = None
                     yield json.dumps(
                         {
@@ -401,9 +406,9 @@ class MockJupyterWebSocket(Mock):
                         }
                     )
                 except Exception:
-                    result = {
+                    result: dict[str, str | dict[str, Any]] = {
                         "msg_type": "error",
-                        "parent_header": self._header,
+                        "parent_header": self._header or {},
                         "content": {"traceback": format_exc()},
                     }
                     self._header = None
@@ -411,7 +416,7 @@ class MockJupyterWebSocket(Mock):
             else:
                 result = {
                     "msg_type": "execute_reply",
-                    "parent_header": self._header,  # type: ignore
+                    "parent_header": self._header or {},
                     "content": {"status": "ok"},
                 }
                 self._header = None

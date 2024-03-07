@@ -8,10 +8,10 @@ called.
 """
 
 import json
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
-from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi

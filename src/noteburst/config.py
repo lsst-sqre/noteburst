@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Self
+from typing import Annotated, Self
 
 from arq.connections import RedisSettings
 from pydantic import Field, HttpUrl, RedisDsn, SecretStr, model_validator
@@ -49,57 +49,99 @@ class WorkerKeepAliveSetting(str, Enum):
 class Config(BaseSettings):
     """Noteburst app configuration."""
 
-    name: str = Field("Noteburst", alias="SAFIR_NAME")
+    name: Annotated[str, Field(alias="SAFIR_NAME")] = "Noteburst"
 
-    profile: Profile = Field(Profile.production, alias="SAFIR_PROFILE")
+    profile: Annotated[
+        Profile, Field(alias="SAFIR_PROFILE")
+    ] = Profile.production
 
-    log_level: LogLevel = Field(LogLevel.INFO, alias="SAFIR_LOG_LEVEL")
+    log_level: Annotated[
+        LogLevel, Field(alias="SAFIR_LOG_LEVEL")
+    ] = LogLevel.INFO
 
-    logger_name: str = "noteburst"
-    """The root name of the Python logger, which is also the name of the
-    root Python module.
-    """
+    logger_name: Annotated[
+        str,
+        Field(
+            description=(
+                "The root name of the Python logger, which is also the name "
+                "of the root Python module"
+            )
+        ),
+    ] = "noteburst"
 
-    path_prefix: str = Field("/noteburst", alias="NOTEBURST_PATH_PREFIX")
-    """The URL path prefix where noteburst is hosted."""
+    path_prefix: Annotated[
+        str,
+        Field(
+            "/noteburst",
+            alias="NOTEBURST_PATH_PREFIX",
+            description="The URL path prefix where noteburst is hosted.",
+        ),
+    ] = "/noteburst"
 
-    environment_url: HttpUrl = Field(alias="NOTEBURST_ENVIRONMENT_URL")
-    """The base URL of the Rubin Science Platform environment.
+    environment_url: Annotated[
+        HttpUrl,
+        Field(
+            alias="NOTEBURST_ENVIRONMENT_URL",
+            description=(
+                "The base URL of the Rubin Science Platform environment. This "
+                "is used for creating URLs to services, such as JupyterHub."
+            ),
+        ),
+    ]
 
-    This is used for creating URLs to services, such as JupyterHub.
-    """
+    jupyterhub_path_prefix: Annotated[
+        str,
+        Field(
+            alias="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
+            description="The path prefix for the JupyterHub service.",
+        ),
+    ] = "/nb/"
 
-    jupyterhub_path_prefix: str = Field(
-        "/nb/",
-        alias="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
-        description="The path prefix for the JupyterHub service.",
-    )
+    nublado_controller_path_prefix: Annotated[
+        str,
+        Field(
+            alias="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
+            description="The path prefix for the Nublado controller service.",
+        ),
+    ] = "/nublado"
 
-    nublado_controller_path_prefix: str = Field(
-        "/nublado",
-        alias="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
-        description="The path prefix for the Nublado controller service.",
-    )
+    gafaelfawr_token: Annotated[
+        SecretStr,
+        Field(
+            alias="NOTEBURST_GAFAELFAWR_TOKEN",
+            description=(
+                "This token is used to make an admin API call to Gafaelfawr "
+                "to get a token for the user."
+            ),
+        ),
+    ]
 
-    gafaelfawr_token: SecretStr = Field(alias="NOTEBURST_GAFAELFAWR_TOKEN")
-    """This token is used to make an admin API call to Gafaelfawr to get a
-    token for the user.
-    """
+    redis_url: Annotated[
+        RedisDsn,
+        Field(
+            alias="NOTEBURST_REDIS_URL",
+            # Preferred by mypy over a string default
+            default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
+            description=(
+                "URL for the redis instance, used by the worker queue.",
+            ),
+        ),
+    ]
 
-    redis_url: RedisDsn = Field(
-        alias="NOTEBURST_REDIS_URL",
-        # Preferred by mypy over a string default
-        default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
-    )
-    """URL for the redis instance, used by the worker queue."""
-
-    arq_mode: ArqMode = Field(ArqMode.production, alias="NOTEBURST_ARQ_MODE")
+    arq_mode: Annotated[
+        ArqMode,
+        Field(
+            alias="NOTEBURST_ARQ_MODE",
+            description=(
+                "The Arq mode. Use 'test' to mock arq/redis for testing."
+            ),
+        ),
+    ] = ArqMode.production
 
     @property
     def arq_redis_settings(self) -> RedisSettings:
         """Create a Redis settings instance for arq."""
-        # url_parts = urlparse(self.redis_url)
-        redis_settings = RedisSettings(
+        return RedisSettings(
             host=self.redis_url.host or "localhost",
             port=self.redis_url.port or 6379,
             database=(
@@ -108,66 +150,103 @@ class Config(BaseSettings):
                 else 0
             ),
         )
-        return redis_settings
 
 
 class WorkerConfig(Config):
-    identities_path: Path = Field(
-        ..., alias="NOTEBURST_WORKER_IDENTITIES_PATH"
-    )
-    """Path to the configuration file with the pool of Science Platform
-    identities available to workers.
-    """
+    """Configuration superset for arq worker processes."""
 
-    queue_name: str = Field("arq:queue", alias="NOTEBURST_WORKER_QUEUE_NAME")
-    """Name of the arq queue that the worker processes from."""
-
-    identity_lock_redis_url: RedisDsn = Field(
-        alias="NOTEBURST_WORKER_LOCK_REDIS_URL",
-        # Preferred by mypy over a string default
-        default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
-    )
-
-    job_timeout: int = Field(
-        300,
-        alias="NOTEBURST_WORKER_JOB_TIMEOUT",
-        description=(
-            "The timeout, in seconds, for a job until it is timed out."
+    identities_path: Annotated[
+        Path,
+        Field(
+            alias="NOTEBURST_WORKER_IDENTITIES_PATH",
+            description=(
+                "Path to the configuration file with the pool of Science "
+                "Platform identities available to workers."
+            ),
         ),
-    )
+    ]
 
-    worker_token_lifetime: int = Field(
-        2419200,
-        alias="NOTEBURST_WORKER_TOKEN_LIFETIME",
-        description="Worker auth token lifetime in seconds.",
-    )
-
-    worker_token_scopes: str = Field(
-        "exec:notebook",
-        alias="NOTEBURST_WORKER_TOKEN_SCOPES",
-        description=(
-            "Worker (nublado2 pod) token scopes as a comma-separated string."
+    queue_name: Annotated[
+        str,
+        Field(
+            alias="NOTEBURST_WORKER_QUEUE_NAME",
+            description=(
+                "Name of the arq queue that the worker processes from."
+            ),
         ),
-    )
+    ] = "arq:queue"
 
-    image_selector: JupyterImageSelector = Field(
-        JupyterImageSelector.recommended,
-        alias="NOTEBURST_WORKER_IMAGE_SELECTOR",
-        description="Method for selecting a Jupyter image to run.",
-    )
-
-    image_reference: Optional[str] = Field(
-        None,
-        alias="NOTEBURST_WORKER_IMAGE_REFERENCE",
-        description=(
-            "Docker image reference, if NOTEBURST_WORKER_IMAGE_SELECTOR is "
-            "``reference``."
+    identity_lock_redis_url: Annotated[
+        RedisDsn,
+        Field(
+            alias="NOTEBURST_WORKER_LOCK_REDIS_URL",
+            # Preferred by mypy over a string default
+            default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
+            description=(
+                "URL for the redis instance, used by the worker to lock "
+                "JupyterLab user identities to a worker instance."
+            ),
         ),
-    )
+    ]
 
-    worker_keepalive: WorkerKeepAliveSetting = Field(
-        WorkerKeepAliveSetting.normal, alias="NOTEBURST_WORKER_KEEPALIVE"
-    )
+    job_timeout: Annotated[
+        int,
+        Field(
+            alias="NOTEBURST_WORKER_JOB_TIMEOUT",
+            description=(
+                "The timeout, in seconds, for a job until it is timed out."
+            ),
+        ),
+    ] = 300
+
+    worker_token_lifetime: Annotated[
+        int,
+        Field(
+            alias="NOTEBURST_WORKER_TOKEN_LIFETIME",
+            description="Worker auth token lifetime in seconds.",
+        ),
+    ] = 2419200
+
+    worker_token_scopes: Annotated[
+        str,
+        Field(
+            alias="NOTEBURST_WORKER_TOKEN_SCOPES",
+            description=(
+                "Worker (nublado pod) token scopes as a comma-separated "
+                "string."
+            ),
+        ),
+    ] = "exec:notebook"
+
+    image_selector: Annotated[
+        JupyterImageSelector,
+        Field(
+            alias="NOTEBURST_WORKER_IMAGE_SELECTOR",
+            description="Method for selecting a Jupyter image to run.",
+        ),
+    ] = JupyterImageSelector.recommended
+
+    image_reference: Annotated[
+        str | None,
+        Field(
+            alias="NOTEBURST_WORKER_IMAGE_REFERENCE",
+            description=(
+                "Docker image reference, if NOTEBURST_WORKER_IMAGE_SELECTOR "
+                "is ``reference``."
+            ),
+        ),
+    ] = None
+
+    worker_keepalive: Annotated[
+        WorkerKeepAliveSetting,
+        Field(
+            alias="NOTEBURST_WORKER_KEEPALIVE",
+            description=(
+                "Keep-alive setting for the worker process. This setting "
+                "must be fast enough to defeat the Nublado pod culler."
+            ),
+        ),
+    ] = WorkerKeepAliveSetting.normal
 
     @property
     def aioredlock_redis_config(self) -> list[str]:

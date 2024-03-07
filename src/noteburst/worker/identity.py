@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Annotated
 
 import structlog
 import yaml
 from aioredlock import Aioredlock, Lock, LockError
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, Field, RootModel
 
 from noteburst.config import WorkerConfig
 
@@ -23,17 +23,24 @@ class IdentityModel(BaseModel):
     configuration file.
     """
 
-    username: str
-    """The username of the user account."""
+    username: Annotated[
+        str, Field(description="The username of the user account.")
+    ]
 
-    uid: Optional[str] = None
-    """The UID of the user account.
-
-    This can be `None` if the authentication system assigns the UID.
-    """
+    uid: Annotated[
+        str | None,
+        Field(
+            description=(
+                "The UID of the user account. This can be `None` if the "
+                "authentication system assigns the UID."
+            )
+        ),
+    ] = None
 
 
 class IdentityConfigModel(RootModel):
+    """Model for the IdentityConfigModel-based configuration file."""
+
     root: list[IdentityModel]
 
     @classmethod
@@ -49,7 +56,7 @@ class IdentityClaim:
     username: str
     """The username of the user account."""
 
-    uid: Optional[str]
+    uid: str | None
     """The UID of the user account."""
 
     lock: Lock
@@ -92,7 +99,7 @@ class IdentityManager:
     ) -> None:
         self.lock_manager = lock_manager
         self.identities = identities
-        self._current_identity: Optional[IdentityClaim] = None
+        self._current_identity: IdentityClaim | None = None
         self._logger = structlog.get_logger(__name__)
 
     @classmethod
@@ -111,12 +118,9 @@ class IdentityManager:
         """
         lock_manager = Aioredlock(config.aioredlock_redis_config)
 
-        identities = [
-            identity
-            for identity in IdentityConfigModel.from_yaml(
-                config.identities_path
-            ).root
-        ]
+        identities = list(
+            IdentityConfigModel.from_yaml(config.identities_path).root
+        )
 
         return cls(lock_manager=lock_manager, identities=identities)
 
@@ -133,7 +137,7 @@ class IdentityManager:
             self._logger.info("Released worker user identity")
 
     async def get_identity(
-        self, _identities: Optional[list[IdentityModel]] = None
+        self, _identities: list[IdentityModel] | None = None
     ) -> IdentityClaim:
         """Get a unique identity (either claiming a new identity or providing
         the already-claimed identity).
@@ -145,10 +149,7 @@ class IdentityManager:
         IdentityClaim
             Information about the Science Platform identity.
         """
-        if _identities:
-            identities = _identities
-        else:
-            identities = self.identities
+        identities = _identities if _identities else self.identities
 
         if self._current_identity:
             if self._current_identity.valid:
@@ -192,13 +193,20 @@ class IdentityManager:
         await self._release_identity()
 
         for i, identity in enumerate(self.identities):
-            if identity.username == prev_identity.username:
-                break
+            # Find the same identity as before to then get the next one
+            if identity.username != prev_identity.username:
+                continue
 
-        if i + 1 >= len(self.identities):
-            raise IdentityClaimError(
-                "Could not claim an Science Platform identity (none "
-                "available)."
+            if i + 1 >= len(self.identities):
+                raise IdentityClaimError(
+                    "Could not claim an Science Platform identity (none "
+                    "available)."
+                )
+
+            return await self.get_identity(
+                _identities=self.identities[i + 1 :]
             )
 
-        return await self.get_identity(_identities=self.identities[i + 1 :])
+        raise IdentityClaimError(
+            "Could not claim an Science Platform identity (none available)."
+        )

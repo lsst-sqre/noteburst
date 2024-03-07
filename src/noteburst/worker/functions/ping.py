@@ -6,6 +6,7 @@ from typing import Any
 
 
 async def ping(ctx: dict[Any, Any]) -> str:
+    """Log a ping message and return a string."""
     logger = ctx["logger"].bind(task="ping")
     logger.info("Running ping")
 

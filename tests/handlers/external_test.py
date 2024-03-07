@@ -10,7 +10,7 @@ from noteburst.config import config
 
 @pytest.mark.asyncio
 async def test_get_index(client: AsyncClient) -> None:
-    """Test ``GET /noteburst/``"""
+    """Test ``GET /noteburst/``."""
     response = await client.get("/noteburst/")
     assert response.status_code == 200
     data = response.json()

@@ -20,7 +20,7 @@ class TaskError(Exception):
 
     @classmethod
     def from_exception(cls, exc: Exception) -> Self:
-        return cls(f"{cls.task_name} task error\n\n{str(exc)}")
+        return cls(f"{cls.task_name} task error\n\n{exc!s}")
 
 
 class NbexecTaskError(TaskError):
