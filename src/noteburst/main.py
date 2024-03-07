@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from safir.dependencies.arq import arq_dependency
 from safir.dependencies.http_client import http_client_dependency
+from safir.fastapi import ClientRequestError, client_request_error_handler
 from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
 
@@ -69,6 +70,8 @@ app.include_router(v1_router, prefix=f"{config.path_prefix}/v1")
 
 # Add middleware
 app.add_middleware(XForwardedMiddleware)
+
+app.exception_handler(ClientRequestError)(client_request_error_handler)
 
 
 def create_openapi() -> str:

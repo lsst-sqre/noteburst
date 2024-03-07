@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Self
 
-__all__ = ["TaskError", "NbexecTaskError"]
+from fastapi import status
+from safir.fastapi import ClientRequestError
+
+__all__ = ["TaskError", "NbexecTaskError", "NoteburstClientRequestError"]
 
 
 class TaskError(Exception):
@@ -27,3 +30,14 @@ class NbexecTaskError(TaskError):
     """Error related to a notebook execution task (nbexec)."""
 
     task_name = "nbexec"
+
+
+class NoteburstClientRequestError(ClientRequestError):
+    """Error related to the API client."""
+
+
+class JobNotFoundError(NoteburstClientRequestError):
+    """Error raised when a notebook execution job is not found."""
+
+    error = "unknown_job"
+    status_code = status.HTTP_404_NOT_FOUND

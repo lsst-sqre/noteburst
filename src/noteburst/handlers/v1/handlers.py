@@ -5,9 +5,12 @@ from typing import Annotated
 import structlog
 from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Query, Request, Response
-from safir.arq import ArqQueue
+from safir.arq import ArqQueue, JobNotFound
 from safir.dependencies.arq import arq_dependency
 from safir.dependencies.gafaelfawr import auth_logger_dependency
+from safir.models import ErrorLocation, ErrorModel
+
+from noteburst.exceptions import JobNotFoundError
 
 from .models import NotebookResponse, PostNotebookRequest
 
@@ -75,6 +78,7 @@ async def post_nbexec(
     summary="Get information about a notebook execution job",
     response_model=NotebookResponse,
     response_model_exclude_none=True,
+    responses={404: {"description": "Not found", "model": ErrorModel}},
 )
 async def get_nbexec_job(
     *,
@@ -123,6 +127,10 @@ async def get_nbexec_job(
     """
     try:
         job_metadata = await arq_queue.get_job_metadata(job_id)
+    except JobNotFound:
+        raise JobNotFoundError(
+            "Job not found", location=ErrorLocation.path, field_path=["job_id"]
+        ) from None
     except Exception:
         logger.exception(
             "Error getting nbexec job metadata",
@@ -139,6 +147,12 @@ async def get_nbexec_job(
     if result and job_metadata.status == JobStatus.complete:
         try:
             job_result = await arq_queue.get_job_result(job_id)
+        except JobNotFound:
+            raise JobNotFoundError(
+                "Job not found",
+                location=ErrorLocation.path,
+                field_path=["job_id"],
+            ) from None
         except Exception:
             logger.exception(
                 "Error getting nbexec job result",
