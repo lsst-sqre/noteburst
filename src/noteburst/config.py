@@ -138,6 +138,16 @@ class Config(BaseSettings):
         ),
     ] = ArqMode.production
 
+    slack_webhook_url: Annotated[
+        HttpUrl | None,
+        Field(
+            alias="NOTEBURST_SLACK_WEBHOOK_URL",
+            description=(
+                "Webhook URL for sending error messages to a Slack channel."
+            ),
+        ),
+    ] = None
+
     @property
     def arq_redis_settings(self) -> RedisSettings:
         """Create a Redis settings instance for arq."""

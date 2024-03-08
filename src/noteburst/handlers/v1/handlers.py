@@ -9,12 +9,13 @@ from safir.arq import ArqQueue, JobNotFound
 from safir.dependencies.arq import arq_dependency
 from safir.dependencies.gafaelfawr import auth_logger_dependency
 from safir.models import ErrorLocation, ErrorModel
+from safir.slack.webhook import SlackRouteErrorHandler
 
 from noteburst.exceptions import JobNotFoundError
 
 from .models import NotebookResponse, PostNotebookRequest
 
-v1_router = APIRouter(tags=["v1"])
+v1_router = APIRouter(tags=["v1"], route_class=SlackRouteErrorHandler)
 """FastAPI router for the /v1/ REST API"""
 
 

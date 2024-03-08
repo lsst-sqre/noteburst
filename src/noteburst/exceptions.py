@@ -6,8 +6,14 @@ from typing import Self
 
 from fastapi import status
 from safir.fastapi import ClientRequestError
+from safir.slack.blockkit import SlackException
 
-__all__ = ["TaskError", "NbexecTaskError", "NoteburstClientRequestError"]
+__all__ = [
+    "TaskError",
+    "NbexecTaskError",
+    "NoteburstClientRequestError",
+    "NoteburstError",
+]
 
 
 class TaskError(Exception):
@@ -41,3 +47,11 @@ class JobNotFoundError(NoteburstClientRequestError):
 
     error = "unknown_job"
     status_code = status.HTTP_404_NOT_FOUND
+
+
+class NoteburstError(SlackException):
+    """Base class for internal Noteburst exceptions on the FastAPI side.
+
+    This exception derives from SlackException so that uncaught internal
+    exceptions are reported to Slack.
+    """
