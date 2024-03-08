@@ -7,11 +7,14 @@ from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Query, Request, Response
 from safir.arq import ArqQueue, JobNotFound
 from safir.dependencies.arq import arq_dependency
-from safir.dependencies.gafaelfawr import auth_logger_dependency
+from safir.dependencies.gafaelfawr import (
+    auth_dependency,
+    auth_logger_dependency,
+)
 from safir.models import ErrorLocation, ErrorModel
 from safir.slack.webhook import SlackRouteErrorHandler
 
-from noteburst.exceptions import JobNotFoundError
+from noteburst.exceptions import JobNotFoundError, NoteburstJobError
 
 from .models import NotebookResponse, PostNotebookRequest
 
@@ -102,6 +105,7 @@ async def get_nbexec_job(
         ),
     ),
     logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
+    user: Annotated[str, Depends(auth_dependency)],
     arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
 ) -> NotebookResponse:
     """Provides information about a notebook execution job, and the result
@@ -132,12 +136,12 @@ async def get_nbexec_job(
         raise JobNotFoundError(
             "Job not found", location=ErrorLocation.path, field_path=["job_id"]
         ) from None
-    except Exception:
-        logger.exception(
-            "Error getting nbexec job metadata",
+    except Exception as e:
+        raise NoteburstJobError(
+            "Error getting job metadata",
+            user=user,
             job_id=job_id,
-        )
-        raise
+        ) from e
     logger.debug(
         "Got nbexec job metadata",
         job_id=job_id,
@@ -154,12 +158,12 @@ async def get_nbexec_job(
                 location=ErrorLocation.path,
                 field_path=["job_id"],
             ) from None
-        except Exception:
-            logger.exception(
+        except Exception as e:
+            raise NoteburstJobError(
                 "Error getting nbexec job result",
+                user=user,
                 job_id=job_id,
-            )
-            raise
+            ) from e
         logger.debug(
             "Got nbexec job result",
             job_id=job_id,

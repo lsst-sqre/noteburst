@@ -6,7 +6,7 @@ from typing import Self
 
 from fastapi import status
 from safir.fastapi import ClientRequestError
-from safir.slack.blockkit import SlackException
+from safir.slack.blockkit import SlackException, SlackMessage, SlackTextField
 
 __all__ = [
     "TaskError",
@@ -55,3 +55,18 @@ class NoteburstError(SlackException):
     This exception derives from SlackException so that uncaught internal
     exceptions are reported to Slack.
     """
+
+
+class NoteburstJobError(NoteburstError):
+    """Error related to a notebook execution job."""
+
+    def __init__(self, msg: str, *, user: str | None, job_id: str) -> None:
+        super().__init__(msg, user=user)
+        self.job_id = job_id
+
+    def to_slack(self) -> SlackMessage:
+        message = super().to_slack()
+        message.fields.append(
+            SlackTextField(heading="Job ID", text=self.job_id)
+        )
+        return message
