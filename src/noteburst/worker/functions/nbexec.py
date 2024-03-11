@@ -9,6 +9,7 @@ import sys
 from typing import Any, cast
 
 from arq import Retry
+from safir.slack.blockkit import SlackCodeBlock, SlackTextField
 
 from noteburst.exceptions import NbexecTaskError
 from noteburst.jupyterclient.jupyterlab import JupyterClient, JupyterError
@@ -64,11 +65,64 @@ async def nbexec(
                 "Authentication error to Jupyter. Forcing worker shutdown",
                 jupyter_status=e.status,
             )
+
+            if "slack" in ctx and "slack_message_factory" in ctx:
+                slack_client = ctx["slack"]
+                message = ctx["slack_message_factory"](
+                    "Noteburst worker shutting down due to Jupyter "
+                    "authentication error during nbexec."
+                )
+                message.blocks.append(
+                    SlackCodeBlock(heading="Exception", code=str(e))
+                )
+                message.fields.append(
+                    SlackTextField(
+                        heading="Jupyter response", text=str(e.status)
+                    )
+                )
+                message.fields.append(
+                    SlackTextField(
+                        heading="Job ID", text=ctx.get("job_id", "unknown")
+                    )
+                )
+                message.fields.append(
+                    SlackTextField(
+                        heading="Attempt", text=ctx.get("job_try", "unknown")
+                    )
+                )
+                await slack_client.post(message)
+
             sys.exit("400 class error from Jupyter")
         elif enable_retry:
             logger.warning("nbexec triggering retry")
             raise Retry(defer=ctx["job_try"] * 5) from None
         else:
+            if "slack" in ctx and "slack_message_factory" in ctx:
+                slack_client = ctx["slack"]
+                message = ctx["slack_message_factory"]("Nbexec failed.")
+                message.blocks.append(
+                    SlackCodeBlock(heading="Exception", code=str(e))
+                )
+                message.fields.append(
+                    SlackTextField(
+                        heading="Jupyter response", text=str(e.status)
+                    )
+                )
+                message.fields.append(
+                    SlackTextField(
+                        heading="Job ID", text=ctx.get("job_id", "unknown")
+                    )
+                )
+                message.fields.append(
+                    SlackTextField(
+                        heading="Attempt", text=ctx.get("job_try", "unknown")
+                    )
+                )
+                message.blocks.append(
+                    SlackCodeBlock(heading="Notebook", code=ipynb)
+                )
+                await slack_client.post(message)
+
             raise NbexecTaskError.from_exception(e) from e
 
     return execution_result.model_dump_json()
