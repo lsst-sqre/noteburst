@@ -747,10 +747,22 @@ class JupyterClient:
             Notebook execution extension.
         """
         exec_url = self.url_for(f"user/{self.user.username}/rubin/execution")
-        r = await self.http_client.post(
-            exec_url,
-            content=json.dumps(notebook).encode("utf-8"),
-        )
+        try:
+            r = await self.http_client.post(
+                exec_url,
+                content=json.dumps(notebook).encode("utf-8"),
+            )
+        except httpx.HTTPError as e:
+            # This often occurs from timeouts, so we want to convert the
+            # generic HTTPError to a JupyterError.
+            raise JupyterError(
+                url=exec_url,
+                username=self.user.username,
+                status=500,
+                reason="Internal Server Error",
+                method="POST",
+                body=str(e),
+            ) from e
         if r.status_code != 200:
             raise JupyterError.from_response(self.user.username, r)
         self.logger.debug("Got response from /rubin/execution", text=r.text)
