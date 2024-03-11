@@ -19,3 +19,4 @@ pydantic_settings
 PyYAML
 httpx
 websockets
+humanize
