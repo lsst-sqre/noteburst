@@ -8,6 +8,8 @@ import httpx
 import structlog
 from arq import cron
 from safir.logging import configure_logging
+from safir.slack.blockkit import SlackMessage, SlackTextField
+from safir.slack.webhook import SlackWebhookClient
 
 from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
 from noteburst.jupyterclient.jupyterlab import (
@@ -47,6 +49,9 @@ async def startup(ctx: dict[Any, Any]) -> None:
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
 
+    slack_client = SlackWebhookClient(config.slack_webhook_url)
+    ctx["slack"] = slack_client
+
     jupyter_config = JupyterConfig(
         url_prefix=config.jupyterhub_path_prefix,
         image_selector=config.image_selector,
@@ -85,7 +90,28 @@ async def startup(ctx: dict[Any, Any]) -> None:
     ctx["jupyter_client"] = jupyter_client
     ctx["logger"] = logger
 
-    logger.info("Start up complete")
+    logger.info(
+        "Noteburst worker startup complete.",
+        image_selector=config.image_selector,
+        image_reference=config.image_reference,
+    )
+
+    slack_client.post(
+        SlackMessage(
+            message="Noteburst worker started",
+            fields=[
+                SlackTextField(
+                    heading="Username",
+                    text=identity.username,
+                ),
+                SlackTextField(
+                    heading="Image Selector",
+                    text=config.image_selector,
+                ),
+                SlackTextField(heading="Image", text=image_info.name),
+            ],
+        )
+    )
 
 
 async def shutdown(ctx: dict[Any, Any]) -> None:
