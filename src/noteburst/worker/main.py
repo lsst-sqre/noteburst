@@ -49,8 +49,13 @@ async def startup(ctx: dict[Any, Any]) -> None:
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
 
-    slack_client = SlackWebhookClient(config.slack_webhook_url)
-    ctx["slack"] = slack_client
+    if config.slack_webhook_url:
+        slack_client = SlackWebhookClient(
+            str(config.slack_webhook_url),
+            "Noteburst worker",
+            logger=logger,
+        )
+        ctx["slack"] = slack_client
 
     jupyter_config = JupyterConfig(
         url_prefix=config.jupyterhub_path_prefix,
@@ -96,22 +101,24 @@ async def startup(ctx: dict[Any, Any]) -> None:
         image_reference=config.image_reference,
     )
 
-    slack_client.post(
-        SlackMessage(
-            message="Noteburst worker started",
-            fields=[
-                SlackTextField(
-                    heading="Username",
-                    text=identity.username,
-                ),
-                SlackTextField(
-                    heading="Image Selector",
-                    text=config.image_selector,
-                ),
-                SlackTextField(heading="Image", text=image_info.name),
-            ],
+    if "slack" in ctx:
+        slack_client = ctx["slack"]
+        await slack_client.post(
+            SlackMessage(
+                message="Noteburst worker started",
+                fields=[
+                    SlackTextField(
+                        heading="Username",
+                        text=identity.username,
+                    ),
+                    SlackTextField(
+                        heading="Image Selector",
+                        text=config.image_selector,
+                    ),
+                    SlackTextField(heading="Image", text=image_info.name),
+                ],
+            )
         )
-    )
 
 
 async def shutdown(ctx: dict[Any, Any]) -> None:

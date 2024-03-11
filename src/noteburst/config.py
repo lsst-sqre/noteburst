@@ -51,13 +51,13 @@ class Config(BaseSettings):
 
     name: Annotated[str, Field(alias="SAFIR_NAME")] = "Noteburst"
 
-    profile: Annotated[
-        Profile, Field(alias="SAFIR_PROFILE")
-    ] = Profile.production
+    profile: Annotated[Profile, Field(alias="SAFIR_PROFILE")] = (
+        Profile.production
+    )
 
-    log_level: Annotated[
-        LogLevel, Field(alias="SAFIR_LOG_LEVEL")
-    ] = LogLevel.INFO
+    log_level: Annotated[LogLevel, Field(alias="SAFIR_LOG_LEVEL")] = (
+        LogLevel.INFO
+    )
 
     logger_name: Annotated[
         str,
