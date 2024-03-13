@@ -13,12 +13,15 @@ from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
 
+import structlog
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from safir.dependencies.arq import arq_dependency
 from safir.dependencies.http_client import http_client_dependency
+from safir.fastapi import ClientRequestError, client_request_error_handler
 from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
+from safir.slack.webhook import SlackRouteErrorHandler
 
 from .config import config
 from .handlers.external import external_router
@@ -34,6 +37,8 @@ configure_logging(
     name=config.logger_name,
 )
 configure_uvicorn_logging(config.log_level)
+
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
@@ -69,6 +74,13 @@ app.include_router(v1_router, prefix=f"{config.path_prefix}/v1")
 
 # Add middleware
 app.add_middleware(XForwardedMiddleware)
+
+if config.slack_webhook_url:
+    SlackRouteErrorHandler.initialize(
+        str(config.slack_webhook_url), "Noteburst", logger
+    )
+
+app.exception_handler(ClientRequestError)(client_request_error_handler)
 
 
 def create_openapi() -> str:

@@ -2,12 +2,23 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.9.0'></a>
+
+## 0.9.0 (2024-03-13)
+
+### New features
+
+- Add formatted errors when a job is not found for the `GET /v1/notebooks/:job_id` endpoint.
+
+- Errors and uncaught exceptions are now sent to Slack via a Slack webhook. The webhook URL is set via the `SLACK_WEBHOOK_URL` environment variable.
+
+### Other changes
+
+- The code base now uses Ruff for linting and formatting, replacing black, isort, and flake8. This change is part of the ongoing effort to standardize SQuaRE code bases and improve the developer experience.
+
 <a id='changelog-0.8.0'></a>
+
 ## 0.8.0 (2024-01-04)
-
-### Backwards-incompatible changes
-
--
 
 ### New features
 
@@ -16,10 +27,6 @@
 - The `job_id` is now included in log messages when running the `nbexec` job under arq.
 
 - The user guide includes a new tutorial for using the Noteburst web API.
-
-### Bug fixes
-
--
 
 ### Other changes
 

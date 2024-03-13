@@ -5,13 +5,20 @@ from typing import Annotated
 import structlog
 from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Query, Request, Response
-from safir.arq import ArqQueue
+from safir.arq import ArqQueue, JobNotFound
 from safir.dependencies.arq import arq_dependency
-from safir.dependencies.gafaelfawr import auth_logger_dependency
+from safir.dependencies.gafaelfawr import (
+    auth_dependency,
+    auth_logger_dependency,
+)
+from safir.models import ErrorLocation, ErrorModel
+from safir.slack.webhook import SlackRouteErrorHandler
+
+from noteburst.exceptions import JobNotFoundError, NoteburstJobError
 
 from .models import NotebookResponse, PostNotebookRequest
 
-v1_router = APIRouter(tags=["v1"])
+v1_router = APIRouter(tags=["v1"], route_class=SlackRouteErrorHandler)
 """FastAPI router for the /v1/ REST API"""
 
 
@@ -75,6 +82,7 @@ async def post_nbexec(
     summary="Get information about a notebook execution job",
     response_model=NotebookResponse,
     response_model_exclude_none=True,
+    responses={404: {"description": "Not found", "model": ErrorModel}},
 )
 async def get_nbexec_job(
     *,
@@ -97,6 +105,7 @@ async def get_nbexec_job(
         ),
     ),
     logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
+    user: Annotated[str, Depends(auth_dependency)],
     arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
 ) -> NotebookResponse:
     """Provides information about a notebook execution job, and the result
@@ -123,12 +132,16 @@ async def get_nbexec_job(
     """
     try:
         job_metadata = await arq_queue.get_job_metadata(job_id)
-    except Exception:
-        logger.exception(
-            "Error getting nbexec job metadata",
+    except JobNotFound:
+        raise JobNotFoundError(
+            "Job not found", location=ErrorLocation.path, field_path=["job_id"]
+        ) from None
+    except Exception as e:
+        raise NoteburstJobError(
+            "Error getting job metadata",
+            user=user,
             job_id=job_id,
-        )
-        raise
+        ) from e
     logger.debug(
         "Got nbexec job metadata",
         job_id=job_id,
@@ -139,12 +152,18 @@ async def get_nbexec_job(
     if result and job_metadata.status == JobStatus.complete:
         try:
             job_result = await arq_queue.get_job_result(job_id)
-        except Exception:
-            logger.exception(
+        except JobNotFound:
+            raise JobNotFoundError(
+                "Job not found",
+                location=ErrorLocation.path,
+                field_path=["job_id"],
+            ) from None
+        except Exception as e:
+            raise NoteburstJobError(
                 "Error getting nbexec job result",
+                user=user,
                 job_id=job_id,
-            )
-            raise
+            ) from e
         logger.debug(
             "Got nbexec job result",
             job_id=job_id,

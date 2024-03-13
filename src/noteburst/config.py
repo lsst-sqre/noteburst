@@ -51,13 +51,13 @@ class Config(BaseSettings):
 
     name: Annotated[str, Field(alias="SAFIR_NAME")] = "Noteburst"
 
-    profile: Annotated[
-        Profile, Field(alias="SAFIR_PROFILE")
-    ] = Profile.production
+    profile: Annotated[Profile, Field(alias="SAFIR_PROFILE")] = (
+        Profile.production
+    )
 
-    log_level: Annotated[
-        LogLevel, Field(alias="SAFIR_LOG_LEVEL")
-    ] = LogLevel.INFO
+    log_level: Annotated[LogLevel, Field(alias="SAFIR_LOG_LEVEL")] = (
+        LogLevel.INFO
+    )
 
     logger_name: Annotated[
         str,
@@ -137,6 +137,16 @@ class Config(BaseSettings):
             ),
         ),
     ] = ArqMode.production
+
+    slack_webhook_url: Annotated[
+        HttpUrl | None,
+        Field(
+            alias="NOTEBURST_SLACK_WEBHOOK_URL",
+            description=(
+                "Webhook URL for sending error messages to a Slack channel."
+            ),
+        ),
+    ] = None
 
     @property
     def arq_redis_settings(self) -> RedisSettings:

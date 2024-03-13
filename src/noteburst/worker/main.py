@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any, ClassVar
 
 import httpx
+import humanize
 import structlog
 from arq import cron
 from safir.logging import configure_logging
+from safir.slack.blockkit import SlackMessage, SlackTextField
+from safir.slack.webhook import SlackWebhookClient
 
 from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
 from noteburst.jupyterclient.jupyterlab import (
@@ -47,6 +51,14 @@ async def startup(ctx: dict[Any, Any]) -> None:
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
 
+    if config.slack_webhook_url:
+        slack_client = SlackWebhookClient(
+            str(config.slack_webhook_url),
+            "Noteburst worker",
+            logger=logger,
+        )
+        ctx["slack"] = slack_client
+
     jupyter_config = JupyterConfig(
         url_prefix=config.jupyterhub_path_prefix,
         image_selector=config.image_selector,
@@ -85,10 +97,48 @@ async def startup(ctx: dict[Any, Any]) -> None:
     ctx["jupyter_client"] = jupyter_client
     ctx["logger"] = logger
 
-    logger.info("Start up complete")
+    logger.info(
+        "Noteburst worker startup complete.",
+        image_selector=config.image_selector,
+        image_reference=config.image_reference,
+    )
+
+    if "slack" in ctx:
+        slack_client = ctx["slack"]
+
+        date_created = datetime.now(tz=UTC)
+
+        def create_message(message: str) -> SlackMessage:
+            now = datetime.now(tz=UTC)
+            age = now - date_created
+
+            return SlackMessage(
+                message=message,
+                fields=[
+                    SlackTextField(
+                        heading="Username",
+                        text=identity.username,
+                    ),
+                    SlackTextField(
+                        heading="Image Selector",
+                        text=config.image_selector,
+                    ),
+                    SlackTextField(heading="Image", text=image_info.name),
+                    SlackTextField(
+                        heading="Age", text=humanize.naturaldelta(age)
+                    ),
+                ],
+            )
+
+        ctx["slack_message_factory"] = create_message
+
+        # Make a start-up message
+        await slack_client.post(
+            ctx["slack_message_factory"]("Noteburst worker started")
+        )
 
 
-async def shutdown(ctx: dict[Any, Any]) -> None:
+async def shutdown(ctx: dict[Any, Any]) -> None:  # noqa: PLR0912
     """Clean up the worker context on shutdown."""
     if "logger" in ctx:
         logger = ctx["logger"]
@@ -137,6 +187,14 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
         logger.warning("Issue closing the Jupyter client", detail=str(e))
 
     logger.info("Worker shutdown complete.")
+
+    if "slack" in ctx and "slack_message_factory" in ctx:
+        slack_client = ctx["slack"]
+        await slack_client.post(
+            ctx["slack_message_factory"](
+                "Noteburst worker shut down complete."
+            )
+        )
 
 
 # For info on ignoring the type checking here, see
