@@ -76,7 +76,7 @@ async def nbexec(
             )
             message.fields.append(
                 SlackTextField(
-                    heading="Attempt", text=ctx.get("job_try", "unknown")
+                    heading="Attempt", text=str(ctx.get("job_try", "unknown"))
                 )
             )
             message.blocks.append(
@@ -111,7 +111,8 @@ async def nbexec(
                 )
                 message.fields.append(
                     SlackTextField(
-                        heading="Attempt", text=ctx.get("job_try", "unknown")
+                        heading="Attempt",
+                        text=str(ctx.get("job_try", "unknown")),
                     )
                 )
                 await slack_client.post(message)
