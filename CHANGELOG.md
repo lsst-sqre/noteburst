@@ -2,6 +2,14 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.9.1'></a>
+## 0.9.1 (2024-03-21)
+
+### Bug fixes
+
+- Fix Slack error messaging in the `nbexec` worker function.
+- Extract and use the actual XSRF token when communicating with the Hub and Lab.
+
 <a id='changelog-0.9.0'></a>
 
 ## 0.9.0 (2024-03-13)

@@ -137,7 +137,11 @@ class LabControllerClient:
     """
 
     def __init__(
-        self, *, http_client: httpx.AsyncClient, token: str, url_prefix: str
+        self,
+        *,
+        http_client: httpx.AsyncClient,
+        token: str,
+        url_prefix: str,
     ) -> None:
         self._http_client = http_client
         self._token = token
@@ -204,7 +208,9 @@ class LabControllerClient:
         return image
 
     async def _get_images(self) -> LabControllerImages:
-        headers = {"Authorization": f"bearer {self._token}"}
+        headers = {
+            "Authorization": f"bearer {self._token}",
+        }
         url = urljoin(
             str(config.environment_url),
             f"{self._url_prefix}/spawner/v1/images",
