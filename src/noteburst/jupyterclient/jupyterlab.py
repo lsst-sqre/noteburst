@@ -732,13 +732,23 @@ class JupyterClient:
                 content=json.dumps(notebook).encode("utf-8"),
                 headers=headers,
             )
-        except httpx.HTTPError as e:
+            r.raise_for_status()
+        except httpx.ReadTimeout as e:
+            raise JupyterError(
+                url=exec_url,
+                username=self.user.username,
+                status=500,
+                reason="/execution endpoint timeout",
+                method="POST",
+                body=str(e),
+            ) from e
+        except httpx.HTTPStatusError as e:
             # This often occurs from timeouts, so we want to convert the
             # generic HTTPError to a JupyterError.
             raise JupyterError(
                 url=exec_url,
                 username=self.user.username,
-                status=500,
+                status=r.status_code,
                 reason="Internal Server Error",
                 method="POST",
                 body=str(e),
