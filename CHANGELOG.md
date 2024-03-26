@@ -2,7 +2,22 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.10.0'></a>
+
+## 0.10.0 (2024-03-26)
+
+### New features
+
+- Add a `NOTEBURST_WORKER_MAX_CONCURRENT_JOBS` environment variable configuration to limit the number of concurrent jobs a worker can run. The default is 3. Previously this was 10. This should be set to be equal or less than the number of CPUs available to the JupyterLab pod.
+
+- The notebook execution client now waits as long as possible for the `/execution` endpoint in the JupyterLab pod to return the executed notebook. Previously the client would wait for a fixed amount of time, which could be too short for long-running notebooks. The JupyterLab server may still time-out the request, though.
+
+### Bug fixes
+
+- Improved handling of the XSRF token when authenticated to JupyterHub and JupyterLab pods. This is required in JupyterLab 4.1.
+
 <a id='changelog-0.9.1'></a>
+
 ## 0.9.1 (2024-03-21)
 
 ### Bug fixes
