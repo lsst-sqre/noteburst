@@ -231,3 +231,5 @@ class WorkerSettings:
     on_shutdown = shutdown
 
     job_timeout = config.job_timeout
+
+    max_jobs = config.max_concurrent_jobs

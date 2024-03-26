@@ -14,7 +14,7 @@ from uuid import uuid4
 
 import httpx
 import websockets
-from httpx import Cookies
+from httpx import Cookies, Timeout
 from pydantic import BaseModel, Field
 from structlog import BoundLogger
 from websockets.client import WebSocketClientProtocol
@@ -727,18 +727,32 @@ class JupyterClient:
         if self._lab_xsrf:
             headers["X-XSRFToken"] = self._lab_xsrf
         try:
+            # The timeout is designed to catch issues connecting to JupyterLab
+            # but to wait as long as possible for the notebook itself
+            # to execute.
             r = await self.http_client.post(
                 exec_url,
                 content=json.dumps(notebook).encode("utf-8"),
                 headers=headers,
+                timeout=Timeout(5.0, read=None),
             )
-        except httpx.HTTPError as e:
+            r.raise_for_status()
+        except httpx.ReadTimeout as e:
+            raise JupyterError(
+                url=exec_url,
+                username=self.user.username,
+                status=500,
+                reason="/execution endpoint timeout",
+                method="POST",
+                body=str(e),
+            ) from e
+        except httpx.HTTPStatusError as e:
             # This often occurs from timeouts, so we want to convert the
             # generic HTTPError to a JupyterError.
             raise JupyterError(
                 url=exec_url,
                 username=self.user.username,
-                status=500,
+                status=r.status_code,
                 reason="Internal Server Error",
                 method="POST",
                 body=str(e),

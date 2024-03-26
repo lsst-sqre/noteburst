@@ -209,6 +209,18 @@ class WorkerConfig(Config):
         ),
     ] = 300
 
+    max_concurrent_jobs: Annotated[
+        int,
+        Field(
+            alias="NOTEBURST_WORKER_MAX_CONCURRENT_JOBS",
+            description=(
+                "The maximum number of concurrent jobs a worker can handle. "
+                "This should be equal to less than the number of CPUs on the "
+                "JupyterLab pod."
+            ),
+        ),
+    ] = 3
+
     worker_token_lifetime: Annotated[
         int,
         Field(
