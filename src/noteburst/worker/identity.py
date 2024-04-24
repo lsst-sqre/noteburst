@@ -28,11 +28,21 @@ class IdentityModel(BaseModel):
     ]
 
     uid: Annotated[
-        str | None,
+        int | None,
         Field(
             description=(
                 "The UID of the user account. This can be `None` if the "
                 "authentication system assigns the UID."
+            )
+        ),
+    ] = None
+
+    gid: Annotated[
+        int | None,
+        Field(
+            description=(
+                "The GID of the user account. This can be `None` if the "
+                "authentication system assigns the GID."
             )
         ),
     ] = None
@@ -56,8 +66,11 @@ class IdentityClaim:
     username: str
     """The username of the user account."""
 
-    uid: str | None
+    uid: int | None
     """The UID of the user account."""
+
+    gid: int | None
+    """The GID of the user account."""
 
     lock: Lock
     """The aioredlock lock that this claim holds."""
@@ -170,7 +183,10 @@ class IdentityManager:
 
             self._logger.info("Claimed identity", username=identity.username)
             self._current_identity = IdentityClaim(
-                username=identity.username, uid=identity.uid, lock=lock
+                username=identity.username,
+                uid=identity.uid,
+                gid=identity.gid,
+                lock=lock,
             )
             return self._current_identity
 
