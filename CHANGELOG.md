@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.11.0'></a>
+## 0.11.0 (2024-04-24)
+
+### Bug fixes
+
+- Nublado v3 requires gid as well as uid, and both uid and gid should be int rather than str
+
 <a id='changelog-0.10.0'></a>
 
 ## 0.10.0 (2024-03-26)

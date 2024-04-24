@@ -36,7 +36,8 @@ def make_gafaelfawr_token(username: str | None = None) -> str:
 def mock_gafaelfawr(
     respx_mock: respx.Router,
     username: str | None = None,
-    uid: str | None = None,
+    uid: int | None = None,
+    gid: int | None = None,
 ) -> None:
     """Mock out the call to Gafaelfawr ``/auth/api/v1/tokens`` endpoint to
     create a user token.
@@ -60,11 +61,14 @@ def mock_gafaelfawr(
             "expires": ANY,
             "name": "Noteburst",
             "uid": ANY,
+            "gid": ANY,
         }
         if username:
             assert request_json["username"] == username
         if uid:
             assert request_json["uid"] == uid
+        if gid:
+            assert request_json["gid"] == gid
         assert request_json["token_name"].startswith("noteburst ")
         assert request_json["expires"] > time.time()
         response = {"token": make_gafaelfawr_token(request_json["username"])}

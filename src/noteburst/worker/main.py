@@ -70,7 +70,9 @@ async def startup(ctx: dict[Any, Any]) -> None:
     while True:
         logger = logger.bind(worker_username=identity.username)
 
-        user = User(username=identity.username, uid=identity.uid)
+        user = User(
+            username=identity.username, uid=identity.uid, gid=identity.gid
+        )
         authed_user = await user.login(
             scopes=config.parsed_worker_token_scopes,
             http_client=http_client,
