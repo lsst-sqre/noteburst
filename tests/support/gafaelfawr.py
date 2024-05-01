@@ -55,7 +55,7 @@ def mock_gafaelfawr(
         # so we can't check it here.
         assert request_json == {
             "username": ANY,
-            "token_type": "user",
+            "token_type": "service",
             "token_name": ANY,
             "scopes": ["exec:notebook"],
             "expires": ANY,

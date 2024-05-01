@@ -97,7 +97,7 @@ class AuthenticatedUser(User):
         token_request_data = {
             "username": username,
             "name": "Noteburst",
-            "token_type": "user",
+            "token_type": "service",
             "token_name": f"noteburst {float(time.time())!s}",
             "scopes": scopes,
             "expires": int(time.time() + lifetime),
