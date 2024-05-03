@@ -90,6 +90,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
                 "Error logging into JupyterHub",
                 body=e.response.json(),
             )
+            raise
         try:
             image_info = await jupyter_client.spawn_lab()
             logger = logger.bind(image_ref=image_info.reference)
