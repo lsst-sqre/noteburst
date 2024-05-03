@@ -97,7 +97,7 @@ class AuthenticatedUser(User):
         token_request_data = {
             "username": username,
             "name": "Noteburst",
-            "token_type": "user",
+            "token_type": "service",
             "token_name": f"noteburst {float(time.time())!s}",
             "scopes": scopes,
             "expires": int(time.time() + lifetime),
@@ -115,6 +115,7 @@ class AuthenticatedUser(User):
             },
             json=token_request_data,
         )
+        print(r.json())  # noqa: T201
         r.raise_for_status()
         body = r.json()
         return cls(
