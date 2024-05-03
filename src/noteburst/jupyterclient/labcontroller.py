@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
+from structlog.stdlib import BoundLogger
 
 from noteburst.config import config
 
@@ -95,7 +96,9 @@ class LabControllerImages(BaseModel):
     )
     """Pydantic model configuration."""
 
-    def get_by_reference(self, reference: str) -> JupyterImage | None:
+    def get_by_reference(
+        self, reference: str, logger: BoundLogger
+    ) -> JupyterImage | None:
         """Get the JupyterImage with a corresponding reference.
 
         Parameters
@@ -109,6 +112,7 @@ class LabControllerImages(BaseModel):
             Returns the JupyterImage if found, None otherwise.
         """
         for image in self.all:
+            logger.info("Image reference", image=image.reference)
             if reference == image.reference:
                 return image
 
@@ -142,10 +146,12 @@ class LabControllerClient:
         http_client: httpx.AsyncClient,
         token: str,
         url_prefix: str,
+        logger: BoundLogger,
     ) -> None:
         self._http_client = http_client
         self._token = token
         self._url_prefix = url_prefix
+        self._logger = logger
 
     async def get_latest_weekly(self) -> JupyterImage:
         """Image for the latest weekly version.
@@ -200,7 +206,7 @@ class LabControllerClient:
             An error occurred talking to JupyterLab Controller.
         """
         images = await self._get_images()
-        image = images.get_by_reference(reference)
+        image = images.get_by_reference(reference, logger=self._logger)
         if image is None:
             raise LabControllerError(
                 f"No image with reference {reference} found."
