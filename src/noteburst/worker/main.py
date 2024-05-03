@@ -91,6 +91,9 @@ async def startup(ctx: dict[Any, Any]) -> None:
                 body=e.response.json(),
             )
             raise
+        except Exception:
+            logger.exception("Generic error logging into JupyterHub")
+            raise
         try:
             image_info = await jupyter_client.spawn_lab()
             logger = logger.bind(image_ref=image_info.reference)
