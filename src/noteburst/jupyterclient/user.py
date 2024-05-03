@@ -115,7 +115,6 @@ class AuthenticatedUser(User):
             },
             json=token_request_data,
         )
-        print(r.json())  # noqa: T201
         r.raise_for_status()
         body = r.json()
         return cls(

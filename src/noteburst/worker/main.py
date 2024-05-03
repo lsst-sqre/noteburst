@@ -83,7 +83,13 @@ async def startup(ctx: dict[Any, Any]) -> None:
         jupyter_client = JupyterClient(
             user=authed_user, logger=logger, config=jupyter_config
         )
-        await jupyter_client.log_into_hub()
+        try:
+            await jupyter_client.log_into_hub()
+        except httpx.HTTPStatusError as e:
+            logger.exception(
+                "Error logging into JupyterHub",
+                body=e.response.json(),
+            )
         try:
             image_info = await jupyter_client.spawn_lab()
             logger = logger.bind(image_ref=image_info.reference)
