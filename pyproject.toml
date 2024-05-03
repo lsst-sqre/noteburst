@@ -176,6 +176,9 @@ select = ["ALL"]
     "SLF001",  # tests are allowed to access private members
     "T201",    # tests are allowed to use print
 ]
+"src/noteburst/worker/main.py" = [
+    "PLR0915", # along a long function
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["noteburst", "tests"]

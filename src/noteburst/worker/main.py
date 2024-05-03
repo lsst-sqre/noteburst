@@ -73,11 +73,19 @@ async def startup(ctx: dict[Any, Any]) -> None:
         user = User(
             username=identity.username, uid=identity.uid, gid=identity.gid
         )
-        authed_user = await user.login(
-            scopes=config.parsed_worker_token_scopes,
-            http_client=http_client,
-            token_lifetime=config.worker_token_lifetime,
-        )
+        try:
+            authed_user = await user.login(
+                scopes=config.parsed_worker_token_scopes,
+                http_client=http_client,
+                token_lifetime=config.worker_token_lifetime,
+            )
+        except httpx.HTTPStatusError as e:
+            logger.exception(
+                "Error authenticating the worker's user",
+                body=e.response.json(),
+                status_code=e.response.status_code,
+            )
+            raise
         logger.info("Authenticated the worker's user.")
 
         jupyter_client = JupyterClient(
