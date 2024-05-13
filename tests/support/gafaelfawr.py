@@ -56,7 +56,6 @@ def mock_gafaelfawr(
         assert request_json == {
             "username": ANY,
             "token_type": "service",
-            "token_name": ANY,
             "scopes": ["exec:notebook"],
             "expires": ANY,
             "name": "Noteburst",
@@ -69,7 +68,6 @@ def mock_gafaelfawr(
             assert request_json["uid"] == uid
         if gid:
             assert request_json["gid"] == gid
-        assert request_json["token_name"].startswith("noteburst ")
         assert request_json["expires"] > time.time()
         response = {"token": make_gafaelfawr_token(request_json["username"])}
         return httpx.Response(200, json=response, request=request)

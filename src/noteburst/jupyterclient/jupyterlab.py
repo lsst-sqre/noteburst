@@ -16,7 +16,7 @@ import httpx
 import websockets
 from httpx import Cookies, Timeout
 from pydantic import BaseModel, Field
-from structlog import BoundLogger
+from structlog.stdlib import BoundLogger
 from websockets.client import WebSocketClientProtocol
 from websockets.exceptions import WebSocketException
 from websockets.typing import Data as WebsocketData
@@ -442,6 +442,7 @@ class JupyterClient:
             http_client=self.http_client,
             token=noteburst_config.gafaelfawr_token.get_secret_value(),
             url_prefix=noteburst_config.nublado_controller_path_prefix,
+            logger=self.logger,
         )
         return self._lab_controller_client
 
