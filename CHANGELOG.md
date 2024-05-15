@@ -20,9 +20,9 @@
 
 ## 0.11.0 (2024-04-24)
 
-### Bug fixes
+### New features
 
-- Nublado v3 requires gid as well as uid, and both uid and gid should be int rather than str
+- Add support for `gid` as well as `uid` fields in the worker identity configuration. Both `uid` and `gid` are now validated as integers
 
 <a id='changelog-0.10.0'></a>
 
