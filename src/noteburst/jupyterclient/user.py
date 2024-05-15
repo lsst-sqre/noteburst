@@ -98,7 +98,6 @@ class AuthenticatedUser(User):
             "username": username,
             "name": "Noteburst",
             "token_type": "service",
-            "token_name": f"noteburst {float(time.time())!s}",
             "scopes": scopes,
             "expires": int(time.time() + lifetime),
         }

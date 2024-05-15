@@ -14,7 +14,7 @@ from uuid import uuid4
 
 import httpx
 import websockets
-from httpx import Cookies, Timeout
+from httpx import Cookies, Response, Timeout
 from pydantic import BaseModel, Field
 from structlog import BoundLogger
 from websockets.client import WebSocketClientProtocol
@@ -463,6 +463,23 @@ class JupyterClient:
         http_url = self.url_for(path)
         return urlparse(http_url)._replace(scheme="wss").geturl()
 
+    def _extract_xsrf(self, response: Response) -> str | None:
+        """Extract the XSRF token from the cookies in a response.
+
+        Parameters
+        ----------
+        response
+            Response from a Jupyter server.
+
+        Returns
+        -------
+        str or None
+            Extracted XSRF value or `None` if none was present.
+        """
+        cookies = Cookies()
+        cookies.extract_cookies(response)
+        return cookies.get("_xsrf")
+
     async def log_into_hub(self) -> None:
         """Log into JupyterHub or raise a JupyterError."""
         self.logger.debug("Logging into JupyterHub")
@@ -472,25 +489,42 @@ class JupyterClient:
         # to set cookies.
         if r.status_code >= 400:
             raise JupyterError.from_response(self.user.username, r)
-        cookies = Cookies()
-        cookies.extract_cookies(r)
-        xsrf = cookies.get("_xsrf")
+        xsrf = self._extract_xsrf(r)
         if xsrf:
             self._hub_xsrf = xsrf
 
     async def log_into_lab(self) -> None:
         """Log into JupyterLab or raise a JupyterError."""
         self.logger.debug("Logging into JupyterLab")
+        url = self.url_for(f"user/{self.user.username}/lab")
+        # Setting ``Sec-Fetch-Mode`` is not currently required, but it
+        # suppresses an annoying error message in the lab logs.
+        headers = {"Sec-Fetch-Mode": "navigate"}
         r = await self.http_client.get(
-            self.url_for(f"user/{self.user.username}/lab")
+            url, headers=headers, follow_redirects=False
         )
-        if r.status_code != 200:
-            raise JupyterError.from_response(self.user.username, r)
-        cookies = Cookies()
-        cookies.extract_cookies(r)
-        xsrf = cookies.get("_xsrf")
-        if xsrf:
+        while r.is_redirect:
+            xsrf = self._extract_xsrf(r)
+            if xsrf and xsrf != self._hub_xsrf:
+                self._lab_xsrf = xsrf
+            next_url = urljoin(url, r.headers["Location"])
+            r = await self.http_client.get(
+                next_url, headers=headers, follow_redirects=False
+            )
+        r.raise_for_status()
+        xsrf = self._extract_xsrf(r)
+        if xsrf and xsrf != self._hub_xsrf:
             self._lab_xsrf = xsrf
+        if not self._lab_xsrf:
+            raise JupyterError(
+                reason="No XSRF token found for JupyterLab",
+                url=url,
+                username=self.user.username,
+                status=r.status_code,
+                method="GET",
+                body=r.text,
+            )
+        self.logger.debug("Logged into JupyterLab with XSRF token")
 
     async def spawn_lab(self) -> JupyterImage:
         """Spawn a JupyterLab pod."""
@@ -629,6 +663,7 @@ class JupyterClient:
         Send and receive messages from JupyterLab using the ``websocket``
         property on `JupyterLabSession`.
         """
+        self.logger.debug("Opening JupyterLab session")
         session_url = self.url_for(f"user/{self.user.username}/api/sessions")
         session_type = "notebook" if notebook_name else "console"
         body = {
@@ -640,6 +675,8 @@ class JupyterClient:
         headers = {}
         if self._lab_xsrf:
             headers["X-XSRFToken"] = self._lab_xsrf
+        else:
+            self.logger.warning("No XSRF token found for JupyterLab.")
         r = await self.http_client.post(
             session_url, json=body, headers=headers
         )
@@ -726,6 +763,11 @@ class JupyterClient:
         headers = {}
         if self._lab_xsrf:
             headers["X-XSRFToken"] = self._lab_xsrf
+        elif self._hub_xsrf:
+            self.logger.warning(
+                "No XSRF token found for JupyterLab, using hub token."
+            )
+            headers["X-XSRFToken"] = self._hub_xsrf
         try:
             # The timeout is designed to catch issues connecting to JupyterLab
             # but to wait as long as possible for the notebook itself

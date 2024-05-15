@@ -2,7 +2,22 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.12.0'></a>
+
+## 0.12.0 (2024-05-15)
+
+### New features
+
+- Create Gafaelfawr service tokens instead of user tokens for authenticated calls to JupyterHub and JupyterLab. Gafaelfawr is standardizing on the new service token type for all service-to-service authentication.
+
+- Reduced the frequency of keep alive tasks for the Noteburst workers to once every 15 minutes, from once every 5 minutes. This is intended to clean up the logging output.
+
+### Bug fixes
+
+- Correctly extract cookies from the middle of the redirect chain caused by initial authentication to a Nublado lab. This fixes failures seen with labs containing JupyterHub 4.1.3.
+
 <a id='changelog-0.11.0'></a>
+
 ## 0.11.0 (2024-04-24)
 
 ### Bug fixes
