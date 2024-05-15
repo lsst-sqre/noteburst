@@ -208,7 +208,7 @@ if config.worker_keepalive == WorkerKeepAliveSetting.fast:
 elif config.worker_keepalive == WorkerKeepAliveSetting.normal:
     f = cron(
         keep_alive,
-        minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
+        minute={0, 15, 30, 45},
         unique=False,
     )
     cron_jobs.append(f)
