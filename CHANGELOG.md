@@ -2,6 +2,20 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.12.1'></a>
+
+## 0.12.1 (2024-08-02)
+
+### Bug fixes
+
+- When logging into JupyterHub, a Noteburst now looks for XRSF tokens from each redirect.
+
+### Other changes
+
+- Adopt `ruff-shared.toml` from https://github.com/lsst/templates
+- Adopt uv for dependency management and resolution.
+- Adopt explicit ASGITransport for setting up test HTTPX client.
+
 <a id='changelog-0.12.0'></a>
 
 ## 0.12.0 (2024-05-15)

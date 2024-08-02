@@ -140,7 +140,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         )
 
 
-async def shutdown(ctx: dict[Any, Any]) -> None:  # noqa: PLR0912
+async def shutdown(ctx: dict[Any, Any]) -> None:
     """Clean up the worker context on shutdown."""
     if "logger" in ctx:
         logger = ctx["logger"]

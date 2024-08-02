@@ -483,15 +483,29 @@ class JupyterClient:
     async def log_into_hub(self) -> None:
         """Log into JupyterHub or raise a JupyterError."""
         self.logger.debug("Logging into JupyterHub")
-        r = await self.http_client.get(self.url_for("hub/home"))
-        # JupyterHub returns a 302 redirect to the login page on success,
-        # but we don't want to follow that redirect. This request is just
-        # to set cookies.
-        if r.status_code >= 400:
-            raise JupyterError.from_response(self.user.username, r)
+        url = self.url_for("hub/home")
+        r = await self.http_client.get(url, follow_redirects=False)
+        while r.is_redirect:
+            xsrf = self._extract_xsrf(r)
+            if xsrf and xsrf != self._lab_xsrf:
+                self._hub_xsrf = xsrf
+            next_url = urljoin(url, r.headers["Location"])
+            r = await self.http_client.get(next_url, follow_redirects=False)
+        r.raise_for_status()
         xsrf = self._extract_xsrf(r)
-        if xsrf:
+        if xsrf and xsrf != self._lab_xsrf:
             self._hub_xsrf = xsrf
+
+        if not self._hub_xsrf:
+            raise JupyterError(
+                reason="No XSRF token found for JupyterHub",
+                url=url,
+                username=self.user.username,
+                status=r.status_code,
+                method="GET",
+                body=r.text,
+            )
+        self.logger.debug("Logged into JupyterHub with XSRF token")
 
     async def log_into_lab(self) -> None:
         """Log into JupyterLab or raise a JupyterError."""
