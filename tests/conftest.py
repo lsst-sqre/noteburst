@@ -14,7 +14,7 @@ import websockets
 from _pytest.monkeypatch import MonkeyPatch
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from noteburst import main
 from tests.support.arq import MockIdentityClaim, MockIdentityManager
@@ -43,7 +43,9 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
     """Return an ``httpx.AsyncClient`` configured to talk to the test app."""
     headers = {"X-Auth-Request-User": "user"}
     async with AsyncClient(
-        app=app, base_url="https://example.com/", headers=headers
+        transport=ASGITransport(app=app),  # type: ignore[arg-type]
+        base_url="https://example.com/",
+        headers=headers,
     ) as client:
         yield client
 
