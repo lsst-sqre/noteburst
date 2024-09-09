@@ -68,6 +68,7 @@ async def post_nbexec(
         ipynb=request_data.get_ipynb_as_str(),
         kernel_name=request_data.kernel_name,
         enable_retry=request_data.enable_retry,
+        timeout=request_data.timeout,
     )
     logger.info("Finished enqueing an nbexec task", job_id=job_metadata.id)
     response_data = await NotebookResponse.from_job_metadata(

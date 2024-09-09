@@ -11,6 +11,7 @@ from safir.slack.blockkit import SlackException, SlackMessage, SlackTextField
 __all__ = [
     "TaskError",
     "NbexecTaskError",
+    "NbexecTaskTimeoutError",
     "NoteburstClientRequestError",
     "NoteburstError",
 ]
@@ -36,6 +37,14 @@ class NbexecTaskError(TaskError):
     """Error related to a notebook execution task (nbexec)."""
 
     task_name = "nbexec"
+
+
+class NbexecTaskTimeoutError(NbexecTaskError):
+    """Error raised when a notebook execution task times out."""
+
+    @classmethod
+    def from_exception(cls, exc: Exception) -> Self:
+        return cls(f"{cls.task_name} timeout error\n\n{exc!s}")
 
 
 class NoteburstClientRequestError(ClientRequestError):

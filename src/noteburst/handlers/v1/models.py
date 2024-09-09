@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Any
 
 from arq.jobs import JobStatus
 from fastapi import Request
 from pydantic import AnyHttpUrl, BaseModel, Field
 from safir.arq import JobMetadata, JobResult
+from safir.pydantic import HumanTimedelta
 
 from noteburst.jupyterclient.jupyterlab import (
     NotebookExecutionErrorModel,
@@ -171,6 +172,17 @@ class PostNotebookRequest(BaseModel):
     ]
 
     kernel_name: Annotated[str, kernel_name_field]
+
+    timeout: HumanTimedelta = Field(
+        default_factory=lambda: timedelta(seconds=300),
+        title="Timeout for notebook execution.",
+        description=(
+            "The timeout can either be written as a number in seconds or as a "
+            "human-readable duration string. For example, '5m' is 5 minutes, "
+            "'1h' is 1 hour, '1d' is 1 day. If the notebook execution does "
+            "not complete within this time, the job is marked as failed."
+        ),
+    )
 
     enable_retry: Annotated[
         bool,

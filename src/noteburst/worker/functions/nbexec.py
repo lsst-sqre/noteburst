@@ -4,14 +4,16 @@ execution extension.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
+from datetime import timedelta
 from typing import Any, cast
 
 from arq import Retry
 from safir.slack.blockkit import SlackCodeBlock, SlackTextField
 
-from noteburst.exceptions import NbexecTaskError
+from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 from noteburst.jupyterclient.jupyterlab import JupyterClient, JupyterError
 
 
@@ -21,6 +23,7 @@ async def nbexec(
     ipynb: str,
     kernel_name: str = "LSST",
     enable_retry: bool = True,
+    timeout: timedelta | None = None,  # noqa: ASYNC109
 ) -> str:
     """Execute a notebook, as an asynchronous arq worker task.
 
@@ -54,10 +57,15 @@ async def nbexec(
     parsed_notebook = json.loads(ipynb)
     logger.debug("Got ipynb", ipynb=parsed_notebook)
     try:
-        execution_result = await jupyter_client.execute_notebook(
-            parsed_notebook, kernel_name=kernel_name
+        execution_result = await asyncio.wait_for(
+            jupyter_client.execute_notebook(
+                parsed_notebook, kernel_name=kernel_name
+            ),
+            timeout=timeout.total_seconds() if timeout else None,
         )
         logger.info("nbexec finished", error=execution_result.error)
+    except TimeoutError as e:
+        raise NbexecTaskTimeoutError.from_exception(e) from e
     except JupyterError as e:
         logger.exception("nbexec error", jupyter_status=e.status)
         if "slack" in ctx and "slack_message_factory" in ctx:
