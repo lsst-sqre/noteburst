@@ -161,6 +161,15 @@ class NotebookResponse(BaseModel):
         ),
     ] = None
 
+    timeout: Annotated[
+        float | None,
+        Field(
+            None,
+            title="The job's timeout in seconds",
+            description="This field is null if a timeout was not set.",
+        ),
+    ] = None
+
     @classmethod
     async def from_job_metadata(
         cls,
@@ -224,6 +233,7 @@ class NotebookResponse(BaseModel):
             error=noteburst_error,
             ipynb=ipynb,
             ipynb_error=ipynb_error,
+            timeout=job.kwargs["timeout"].total_seconds(),
         )
 
 
