@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
+from enum import Enum
 from typing import Annotated, Any
 
 from arq.jobs import JobStatus
 from fastapi import Request
 from pydantic import AnyHttpUrl, BaseModel, Field
 from safir.arq import JobMetadata, JobResult
+from safir.pydantic import HumanTimedelta
 
+from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 from noteburst.jupyterclient.jupyterlab import (
     NotebookExecutionErrorModel,
     NotebookExecutionResult,
@@ -45,6 +48,34 @@ class NotebookError(BaseModel):
             name=error.ename,
             message=error.err_msg,
         )
+
+
+class NoteburstErrorCodes(Enum):
+    """Error codes for Noteburst errors."""
+
+    timeout = "timeout"
+    """The notebook execution timed out."""
+
+    jupyter_error = "jupyter_error"
+    """An error occurred contacting the Jupyter server."""
+
+    unknown = "unknown"
+    """An unknown error occurred."""
+
+
+class NoteburstExecutionError(BaseModel):
+    """Information about an exception that occurred during noteburst's
+    execution of a notebook (other than an exception raised in the notebook
+    itself).
+    """
+
+    code: NoteburstErrorCodes = Field(
+        description="The reference code of the error."
+    )
+
+    message: str | None = Field(
+        None, description="Additional information about the exception."
+    )
 
 
 class NotebookResponse(BaseModel):
@@ -101,6 +132,17 @@ class NotebookResponse(BaseModel):
         ),
     ] = None
 
+    error: Annotated[
+        NoteburstExecutionError | None,
+        Field(
+            description=(
+                "An error occurred during notebook execution, other than an "
+                "exception in the notebook itself. This field is null if an "
+                "error did not occur."
+            )
+        ),
+    ] = None
+
     ipynb: Annotated[
         str | None,
         Field(
@@ -119,6 +161,15 @@ class NotebookResponse(BaseModel):
         ),
     ] = None
 
+    timeout: Annotated[
+        float | None,
+        Field(
+            None,
+            title="The job's timeout in seconds",
+            description="This field is null if a timeout was not set.",
+        ),
+    ] = None
+
     @classmethod
     async def from_job_metadata(
         cls,
@@ -129,18 +180,45 @@ class NotebookResponse(BaseModel):
         job_result: JobResult | None = None,
     ) -> NotebookResponse:
         """Create a NotebookResponse from a job."""
+        # When a job is a "success" it means that the arq worker didn't raise
+        # an exception, so we can expect an ipynb result. However the ipynb
+        # might have still raised an exception which is part of
+        # nbexec_result.error and we want to pass that back to the user.
         if job_result is not None and job_result.success:
             nbexec_result = NotebookExecutionResult.model_validate_json(
                 job_result.result
             )
             ipynb = nbexec_result.notebook
             if nbexec_result.error:
-                error = NotebookError.from_nbexec_error(nbexec_result.error)
+                ipynb_error = NotebookError.from_nbexec_error(
+                    nbexec_result.error
+                )
             else:
-                error = None
+                ipynb_error = None
         else:
             ipynb = None
-            error = None
+            ipynb_error = None
+
+        # In this case the job is complete but failed (an exception was raised)
+        # so we want to pass the exception back to the user.
+        noteburst_error = None
+        if job_result and not job_result.success:
+            if e := job_result.result:
+                if isinstance(job_result.result, NbexecTaskTimeoutError):
+                    noteburst_error = NoteburstExecutionError(
+                        code=NoteburstErrorCodes.timeout,
+                        message=str(e).strip(),
+                    )
+                elif isinstance(job_result.result, NbexecTaskError):
+                    noteburst_error = NoteburstExecutionError(
+                        code=NoteburstErrorCodes.jupyter_error,
+                        message=str(e).strip(),
+                    )
+                elif isinstance(job_result.result, Exception):
+                    noteburst_error = NoteburstExecutionError(
+                        code=NoteburstErrorCodes.unknown,
+                        message=str(e).strip(),
+                    )
 
         return cls(
             job_id=job.id,
@@ -152,8 +230,10 @@ class NotebookResponse(BaseModel):
             start_time=job_result.start_time if job_result else None,
             finish_time=job_result.finish_time if job_result else None,
             success=job_result.success if job_result else None,
+            error=noteburst_error,
             ipynb=ipynb,
-            ipynb_error=error,
+            ipynb_error=ipynb_error,
+            timeout=job.kwargs["timeout"].total_seconds(),
         )
 
 
@@ -171,6 +251,17 @@ class PostNotebookRequest(BaseModel):
     ]
 
     kernel_name: Annotated[str, kernel_name_field]
+
+    timeout: HumanTimedelta = Field(
+        default_factory=lambda: timedelta(seconds=300),
+        title="Timeout for notebook execution.",
+        description=(
+            "The timeout can either be written as a number in seconds or as a "
+            "human-readable duration string. For example, '5m' is 5 minutes, "
+            "'1h' is 1 hour, '1d' is 1 day. If the notebook execution does "
+            "not complete within this time, the job is marked as failed."
+        ),
+    )
 
     enable_retry: Annotated[
         bool,
