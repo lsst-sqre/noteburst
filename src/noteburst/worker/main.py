@@ -73,17 +73,35 @@ async def startup(ctx: dict[Any, Any]) -> None:
         user = User(
             username=identity.username, uid=identity.uid, gid=identity.gid
         )
-        authed_user = await user.login(
-            scopes=config.parsed_worker_token_scopes,
-            http_client=http_client,
-            token_lifetime=config.worker_token_lifetime,
-        )
+        try:
+            authed_user = await user.login(
+                scopes=config.parsed_worker_token_scopes,
+                http_client=http_client,
+                token_lifetime=config.worker_token_lifetime,
+            )
+        except httpx.HTTPStatusError as e:
+            logger.exception(
+                "Error authenticating the worker's user",
+                body=e.response.json(),
+                status_code=e.response.status_code,
+            )
+            raise
         logger.info("Authenticated the worker's user.")
 
         jupyter_client = JupyterClient(
             user=authed_user, logger=logger, config=jupyter_config
         )
-        await jupyter_client.log_into_hub()
+        try:
+            await jupyter_client.log_into_hub()
+        except httpx.HTTPStatusError as e:
+            logger.exception(
+                "Error logging into JupyterHub",
+                body=e.response.json(),
+            )
+            raise
+        except Exception:
+            logger.exception("Generic error logging into JupyterHub")
+            raise
         try:
             image_info = await jupyter_client.spawn_lab()
             logger = logger.bind(image_ref=image_info.reference)
