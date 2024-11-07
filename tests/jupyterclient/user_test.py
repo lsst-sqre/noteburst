@@ -1,4 +1,4 @@
-"""Tests for the noteburst.jupyterclient.user module."""
+"""Tests for the noteburst.user module."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from noteburst.jupyterclient.user import User
+from noteburst.user import User
 from tests.support.gafaelfawr import mock_gafaelfawr
 
 

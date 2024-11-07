@@ -7,17 +7,15 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Annotated, Any
 
+import rubin.nublado.client.models as nc_models
 from arq.jobs import JobStatus
 from fastapi import Request
 from pydantic import AnyHttpUrl, BaseModel, Field
+from rubin.nublado.client.models._extension import NotebookExecutionErrorModel
 from safir.arq import JobMetadata, JobResult
 from safir.pydantic import HumanTimedelta
 
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
-from noteburst.jupyterclient.jupyterlab import (
-    NotebookExecutionErrorModel,
-    NotebookExecutionResult,
-)
 
 kernel_name_field = Field(
     "LSST",
@@ -41,7 +39,7 @@ class NotebookError(BaseModel):
     def from_nbexec_error(
         cls, error: NotebookExecutionErrorModel
     ) -> NotebookError:
-        """Create a NotebookError from a NotebookExecutionErrorModel, which
+        """Create a NotebookError from NotebookExecutionErrorModel, which
         is the result of execution in ``/user/:username/rubin/execute``.
         """
         return cls(
@@ -185,14 +183,12 @@ class NotebookResponse(BaseModel):
         # might have still raised an exception which is part of
         # nbexec_result.error and we want to pass that back to the user.
         if job_result is not None and job_result.success:
-            nbexec_result = NotebookExecutionResult.model_validate_json(
+            res = nc_models.NotebookExecutionResult.model_validate_json(
                 job_result.result
             )
-            ipynb = nbexec_result.notebook
-            if nbexec_result.error:
-                ipynb_error = NotebookError.from_nbexec_error(
-                    nbexec_result.error
-                )
+            ipynb = res.notebook
+            if res.error:
+                ipynb_error = NotebookError.from_nbexec_error(res.error)
             else:
                 ipynb_error = None
         else:
