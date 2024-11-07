@@ -6,7 +6,6 @@ import base64
 import json
 import os
 import time
-from typing import Optional
 from unittest.mock import ANY
 from urllib.parse import urljoin
 
@@ -18,7 +17,7 @@ from noteburst.config import config
 __all__ = ["make_gafaelfawr_token", "mock_gafaelfawr"]
 
 
-def make_gafaelfawr_token(username: Optional[str] = None) -> str:
+def make_gafaelfawr_token(username: str | None = None) -> str:
     """Create a random or user Gafaelfawr token.
 
     If a username is given, embed the username in the key portion of the token
@@ -36,8 +35,9 @@ def make_gafaelfawr_token(username: Optional[str] = None) -> str:
 
 def mock_gafaelfawr(
     respx_mock: respx.Router,
-    username: Optional[str] = None,
-    uid: Optional[str] = None,
+    username: str | None = None,
+    uid: int | None = None,
+    gid: int | None = None,
 ) -> None:
     """Mock out the call to Gafaelfawr ``/auth/api/v1/tokens`` endpoint to
     create a user token.
@@ -51,26 +51,23 @@ def mock_gafaelfawr(
 
     def handler(request: httpx.Request) -> httpx.Response:
         request_json = json.loads(request.content.decode("utf-8"))
-        # Skipping this assert that originally came from
-        # mobu/aiohttp/aioresponses because httpx.Request seems to obfuscate
-        # the authorization header after it's created; we'd need to figure
-        # out how to work around that.
-        # request_headers = request.headers
-        # assert request_headers["authorization"] == f"Bearer {admin_token}"
+        # Note httpx.Request seems to obfuscate the authorization header
+        # so we can't check it here.
         assert request_json == {
             "username": ANY,
-            "token_type": "user",
-            "token_name": ANY,
+            "token_type": "service",
             "scopes": ["exec:notebook"],
             "expires": ANY,
             "name": "Noteburst",
             "uid": ANY,
+            "gid": ANY,
         }
         if username:
             assert request_json["username"] == username
         if uid:
             assert request_json["uid"] == uid
-        assert request_json["token_name"].startswith("noteburst ")
+        if gid:
+            assert request_json["gid"] == gid
         assert request_json["expires"] > time.time()
         response = {"token": make_gafaelfawr_token(request_json["username"])}
         return httpx.Response(200, json=response, request=request)

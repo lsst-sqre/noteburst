@@ -2,12 +2,92 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.13.0'></a>
+
+## 0.13.0 (2024-09-12)
+
+### New features
+
+- Notebook execution jobs can now set _timeouts_. In requests, set a timeout in the `timeout` request field. This can be a number of seconds, or a [human-readable duration string](https://safir.lsst.io/user-guide/datetime.html#parsing-time-intervals) (e.g. "1h30m"). The specified timeout is also repeated in the response body. This timeout applies to the notebook execution, not any time in the queue.
+
+- Errors that prevented a notebook from being executed are now reported in the notebook job response body in the `error` field. The field is an object with a `code` field and a `message` field. The `code` field is a string that can be used to identify the error. Currently the codes are `timeout`, `jupyter_error`, and `unknown`. Note that exceptions raised in the Jupyter notebook aren't considered errors, but are instead reported in the `ipynb_error` field.
+
+<a id='changelog-0.12.1'></a>
+
+## 0.12.1 (2024-08-02)
+
+### Bug fixes
+
+- When logging into JupyterHub, a Noteburst now looks for XRSF tokens from each redirect.
+
+### Other changes
+
+- Adopt `ruff-shared.toml` from https://github.com/lsst/templates
+- Adopt uv for dependency management and resolution.
+- Adopt explicit ASGITransport for setting up test HTTPX client.
+
+<a id='changelog-0.12.0'></a>
+
+## 0.12.0 (2024-05-15)
+
+### New features
+
+- Create Gafaelfawr service tokens instead of user tokens for authenticated calls to JupyterHub and JupyterLab. Gafaelfawr is standardizing on the new service token type for all service-to-service authentication.
+
+- Reduced the frequency of keep alive tasks for the Noteburst workers to once every 15 minutes, from once every 5 minutes. This is intended to clean up the logging output.
+
+### Bug fixes
+
+- Correctly extract cookies from the middle of the redirect chain caused by initial authentication to a Nublado lab. This fixes failures seen with labs containing JupyterHub 4.1.3.
+
+<a id='changelog-0.11.0'></a>
+
+## 0.11.0 (2024-04-24)
+
+### New features
+
+- Add support for `gid` as well as `uid` fields in the worker identity configuration. Both `uid` and `gid` are now validated as integers
+
+<a id='changelog-0.10.0'></a>
+
+## 0.10.0 (2024-03-26)
+
+### New features
+
+- Add a `NOTEBURST_WORKER_MAX_CONCURRENT_JOBS` environment variable configuration to limit the number of concurrent jobs a worker can run. The default is 3. Previously this was 10. This should be set to be equal or less than the number of CPUs available to the JupyterLab pod.
+
+- The notebook execution client now waits as long as possible for the `/execution` endpoint in the JupyterLab pod to return the executed notebook. Previously the client would wait for a fixed amount of time, which could be too short for long-running notebooks. The JupyterLab server may still time-out the request, though.
+
+### Bug fixes
+
+- Improved handling of the XSRF token when authenticated to JupyterHub and JupyterLab pods. This is required in JupyterLab 4.1.
+
+<a id='changelog-0.9.1'></a>
+
+## 0.9.1 (2024-03-21)
+
+### Bug fixes
+
+- Fix Slack error messaging in the `nbexec` worker function.
+- Extract and use the actual XSRF token when communicating with the Hub and Lab.
+
+<a id='changelog-0.9.0'></a>
+
+## 0.9.0 (2024-03-13)
+
+### New features
+
+- Add formatted errors when a job is not found for the `GET /v1/notebooks/:job_id` endpoint.
+
+- Errors and uncaught exceptions are now sent to Slack via a Slack webhook. The webhook URL is set via the `SLACK_WEBHOOK_URL` environment variable.
+
+### Other changes
+
+- The code base now uses Ruff for linting and formatting, replacing black, isort, and flake8. This change is part of the ongoing effort to standardize SQuaRE code bases and improve the developer experience.
+
 <a id='changelog-0.8.0'></a>
+
 ## 0.8.0 (2024-01-04)
-
-### Backwards-incompatible changes
-
--
 
 ### New features
 
@@ -16,10 +96,6 @@
 - The `job_id` is now included in log messages when running the `nbexec` job under arq.
 
 - The user guide includes a new tutorial for using the Noteburst web API.
-
-### Bug fixes
-
--
 
 ### Other changes
 

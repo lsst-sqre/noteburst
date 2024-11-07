@@ -50,8 +50,8 @@ async def test_post_nbexec(
     data2 = response.json()
     assert data == data2
 
-    assert "source" not in data2.keys()
-    assert "ipynb" not in data2.keys()
+    assert "source" not in data2
+    assert "ipynb" not in data2
 
     # Request the job with the source ipynb included
     response = await client.get(job_url, params={"source": "true"})
@@ -81,3 +81,12 @@ async def test_post_nbexec(
     assert data["status"] == "complete"
     assert data["success"] is True
     assert data["ipynb"] == sample_ipynb_executed
+
+    # Request a job that doesn't exist
+    response = await client.get("/noteburst/v1/notebooks/unknown")
+    assert response.status_code == 404
+    data = response.json()
+    print(data)
+    assert data["detail"][0]["type"] == "unknown_job"
+    assert data["detail"][0]["loc"] == ["path", "job_id"]
+    assert data["detail"][0]["msg"] == "Job not found"

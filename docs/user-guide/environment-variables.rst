@@ -21,7 +21,7 @@ See the `Phalanx documentation for Noteburst <https://phalanx.lsst.io/applicatio
    (string enum: "debug", "info" [default], "warning", "error", "critical") The application log level.
 
 .. envvar:: NOTEBURST_PATH_PREFIX
-    
+
    (string, default: "/noteburst") The path prefix for the Noteburst application.
    This is used to configure the application's URL.
 

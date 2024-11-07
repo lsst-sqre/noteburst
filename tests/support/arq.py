@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from noteburst.worker.identity import IdentityClaimError
 
@@ -35,7 +34,7 @@ class MockIdentityManager:
     """
 
     def __init__(self) -> None:
-        self._current_identity: Optional[MockIdentityClaim] = None
+        self._current_identity: MockIdentityClaim | None = None
 
     async def get_identity(self) -> MockIdentityClaim:
         if self._current_identity:

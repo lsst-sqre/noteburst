@@ -1,15 +1,24 @@
 """V1 REST API handlers."""
 
+from typing import Annotated
+
 import structlog
 from arq.jobs import JobStatus
 from fastapi import APIRouter, Depends, Query, Request, Response
-from safir.arq import ArqQueue
+from safir.arq import ArqQueue, JobNotFound
 from safir.dependencies.arq import arq_dependency
-from safir.dependencies.gafaelfawr import auth_logger_dependency
+from safir.dependencies.gafaelfawr import (
+    auth_dependency,
+    auth_logger_dependency,
+)
+from safir.models import ErrorLocation, ErrorModel
+from safir.slack.webhook import SlackRouteErrorHandler
+
+from noteburst.exceptions import JobNotFoundError, NoteburstJobError
 
 from .models import NotebookResponse, PostNotebookRequest
 
-v1_router = APIRouter(tags=["v1"])
+v1_router = APIRouter(tags=["v1"], route_class=SlackRouteErrorHandler)
 """FastAPI router for the /v1/ REST API"""
 
 
@@ -25,8 +34,8 @@ async def post_nbexec(
     *,
     request: Request,
     response: Response,
-    logger: structlog.BoundLogger = Depends(auth_logger_dependency),
-    arq_queue: ArqQueue = Depends(arq_dependency),
+    logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
+    arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
 ) -> NotebookResponse:
     """Submits a notebook for execution. The notebook is executed
     asynchronously via a pool of JupyterLab (Nublado) instances.
@@ -59,6 +68,7 @@ async def post_nbexec(
         ipynb=request_data.get_ipynb_as_str(),
         kernel_name=request_data.kernel_name,
         enable_retry=request_data.enable_retry,
+        timeout=request_data.timeout,
     )
     logger.info("Finished enqueing an nbexec task", job_id=job_metadata.id)
     response_data = await NotebookResponse.from_job_metadata(
@@ -73,6 +83,7 @@ async def post_nbexec(
     summary="Get information about a notebook execution job",
     response_model=NotebookResponse,
     response_model_exclude_none=True,
+    responses={404: {"description": "Not found", "model": ErrorModel}},
 )
 async def get_nbexec_job(
     *,
@@ -94,8 +105,9 @@ async def get_nbexec_job(
             "includes the executed notebook and metadata about the run."
         ),
     ),
-    logger: structlog.BoundLogger = Depends(auth_logger_dependency),
-    arq_queue: ArqQueue = Depends(arq_dependency),
+    logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
+    user: Annotated[str, Depends(auth_dependency)],
+    arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
 ) -> NotebookResponse:
     """Provides information about a notebook execution job, and the result
     (if available).
@@ -121,11 +133,16 @@ async def get_nbexec_job(
     """
     try:
         job_metadata = await arq_queue.get_job_metadata(job_id)
+    except JobNotFound:
+        raise JobNotFoundError(
+            "Job not found", location=ErrorLocation.path, field_path=["job_id"]
+        ) from None
     except Exception as e:
-        logger.error(
-            "Error getting nbexec job metadata", job_id=job_id, exc_info=e
-        )
-        raise
+        raise NoteburstJobError(
+            "Error getting job metadata",
+            user=user,
+            job_id=job_id,
+        ) from e
     logger.debug(
         "Got nbexec job metadata",
         job_id=job_id,
@@ -136,11 +153,18 @@ async def get_nbexec_job(
     if result and job_metadata.status == JobStatus.complete:
         try:
             job_result = await arq_queue.get_job_result(job_id)
+        except JobNotFound:
+            raise JobNotFoundError(
+                "Job not found",
+                location=ErrorLocation.path,
+                field_path=["job_id"],
+            ) from None
         except Exception as e:
-            logger.error(
-                "Error getting nbexec job result", job_id=job_id, exc_info=e
-            )
-            raise
+            raise NoteburstJobError(
+                "Error getting nbexec job result",
+                user=user,
+                job_id=job_id,
+            ) from e
         logger.debug(
             "Got nbexec job result",
             job_id=job_id,

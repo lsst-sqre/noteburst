@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-from noteburst.jupyterclient.jupyterlab import JupyterError
+from rubin.nublado.client.exceptions import JupyterWebSocketError
 
 
 async def keep_alive(ctx: dict[Any, Any]) -> str:
@@ -30,10 +30,10 @@ async def keep_alive(ctx: dict[Any, Any]) -> str:
             kernel_name="LSST"
         ) as session:
             await session.run_python("print('alive')")
-    except JupyterError as e:
-        logger.error("keep_alive error", jupyter_status=e.status)
-        if e.status >= 400 and e.status < 500:
-            logger.error(
+    except JupyterWebSocketError as e:
+        logger.exception("keep_alive error", jupyter_status=e.status)
+        if e.status and e.status >= 400 and e.status < 500:
+            logger.exception(
                 "Authentication error to Jupyter. Forcing worker shutdown",
                 jupyter_status=e.status,
             )

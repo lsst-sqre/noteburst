@@ -1,5 +1,7 @@
 """Handlers for the app's external root, ``/noteburst/``."""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from safir.dependencies.gafaelfawr import auth_logger_dependency
@@ -18,7 +20,7 @@ external_router = APIRouter()
 class Index(BaseModel):
     """Metadata about the application."""
 
-    metadata: SafirMetadata = Field(..., title="Package metadata")
+    metadata: Annotated[SafirMetadata, Field(title="Package metadata")]
 
 
 @external_router.get(
@@ -29,7 +31,7 @@ class Index(BaseModel):
     summary="Application metadata",
 )
 async def get_index(
-    logger: BoundLogger = Depends(auth_logger_dependency),
+    logger: Annotated[BoundLogger, Depends(auth_logger_dependency)],
 ) -> Index:
     """GET ``/noteburst/`` (the app's external root).
 

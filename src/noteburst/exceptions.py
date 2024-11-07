@@ -4,7 +4,17 @@ from __future__ import annotations
 
 from typing import Self
 
-__all__ = ["TaskError", "NbexecTaskError"]
+from fastapi import status
+from safir.fastapi import ClientRequestError
+from safir.slack.blockkit import SlackException, SlackMessage, SlackTextField
+
+__all__ = [
+    "TaskError",
+    "NbexecTaskError",
+    "NbexecTaskTimeoutError",
+    "NoteburstClientRequestError",
+    "NoteburstError",
+]
 
 
 class TaskError(Exception):
@@ -20,10 +30,52 @@ class TaskError(Exception):
 
     @classmethod
     def from_exception(cls, exc: Exception) -> Self:
-        return cls(f"{cls.task_name} task error\n\n{str(exc)}")
+        return cls(f"{cls.task_name} task error\n\n{exc!s}")
 
 
 class NbexecTaskError(TaskError):
     """Error related to a notebook execution task (nbexec)."""
 
     task_name = "nbexec"
+
+
+class NbexecTaskTimeoutError(NbexecTaskError):
+    """Error raised when a notebook execution task times out."""
+
+    @classmethod
+    def from_exception(cls, exc: Exception) -> Self:
+        return cls(f"{cls.task_name} timeout error\n\n{exc!s}")
+
+
+class NoteburstClientRequestError(ClientRequestError):
+    """Error related to the API client."""
+
+
+class JobNotFoundError(NoteburstClientRequestError):
+    """Error raised when a notebook execution job is not found."""
+
+    error = "unknown_job"
+    status_code = status.HTTP_404_NOT_FOUND
+
+
+class NoteburstError(SlackException):
+    """Base class for internal Noteburst exceptions on the FastAPI side.
+
+    This exception derives from SlackException so that uncaught internal
+    exceptions are reported to Slack.
+    """
+
+
+class NoteburstJobError(NoteburstError):
+    """Error related to a notebook execution job."""
+
+    def __init__(self, msg: str, *, user: str | None, job_id: str) -> None:
+        super().__init__(msg, user=user)
+        self.job_id = job_id
+
+    def to_slack(self) -> SlackMessage:
+        message = super().to_slack()
+        message.fields.append(
+            SlackTextField(heading="Job ID", text=self.job_id)
+        )
+        return message

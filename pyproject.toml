@@ -57,31 +57,9 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.black]
-line-length = 79
-target-version = ['py311']
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | build
-  | dist
-)/
-'''
-# Use single-quoted strings so TOML treats the string like a Python r-string
-# Multi-line strings are implicitly treated by black as regular expressions
-
-[tool.isort]
-profile = "black"
-line_length = 79
-known_first_party = ["noteburst", "tests"]
-skip = ["docs/conf.py"]
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "strict"
 python_files = ["tests/*.py", "tests/*/*.py"]
 
@@ -110,3 +88,25 @@ format = "md"
 md_header_level = "2"
 new_fragment_template = "file:changelog.d/_template.md.jinja"
 skip_fragments = "_template.md.jinja"
+
+# The rule used with Ruff configuration is to disable every lint that has
+# legitimate exceptions that are not dodgy code, rather than cluttering code
+# with noqa markers. This is therefore a reiatively relaxed configuration that
+# errs on the side of disabling legitimate lints.
+#
+# Reference for settings: https://beta.ruff.rs/docs/settings/
+# Reference for rules: https://beta.ruff.rs/docs/rules/
+[tool.ruff]
+extend = "ruff-shared.toml"
+
+[tool.ruff.lint.extend-per-file-ignores]
+"src/noteburst/handlers/**" = [
+    "D401",    # FastAPI handler docstrings may be API docs
+]
+"tests/**" = [
+    "T201",    # tests are allowed to use print
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["noteburst", "tests"]
+split-on-trailing-comma = false

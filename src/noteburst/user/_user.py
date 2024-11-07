@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Optional
 from urllib.parse import urljoin
 
 import httpx
@@ -25,10 +24,16 @@ class User:
     username: str
     """The user's username."""
 
-    uid: Optional[str]
+    uid: int | None
     """The user's UID.
 
     This can be set as `None` if the authentication services provides the UID.
+    """
+
+    gid: int | None
+    """The user's GID.
+
+    This can be set as `None` if the authentication services provides the GID.
     """
 
     async def login(
@@ -41,6 +46,7 @@ class User:
         return await AuthenticatedUser.create(
             username=self.username,
             uid=self.uid,
+            gid=self.gid,
             scopes=scopes,
             http_client=http_client,
             lifetime=token_lifetime,
@@ -62,7 +68,8 @@ class AuthenticatedUser(User):
         cls,
         *,
         username: str,
-        uid: Optional[str],
+        uid: int | None,
+        gid: int | None,
         scopes: list[str],
         http_client: httpx.AsyncClient,
         lifetime: int,
@@ -76,6 +83,9 @@ class AuthenticatedUser(User):
         uid
             The user's UID. This can be `None` if the authentication service
             assigns the UID.
+        gid
+            The user's GID. This can be `None` if the authentication service
+            assigns the GID.
         scopes
             The scopes the user's token should possess.
         http_client
@@ -87,13 +97,14 @@ class AuthenticatedUser(User):
         token_request_data = {
             "username": username,
             "name": "Noteburst",
-            "token_type": "user",
-            "token_name": f"noteburst {str(float(time.time()))}",
+            "token_type": "service",
             "scopes": scopes,
             "expires": int(time.time() + lifetime),
         }
         if uid:
             token_request_data["uid"] = uid
+        if gid:
+            token_request_data["gid"] = gid
         r = await http_client.post(
             token_url,
             headers={
@@ -108,6 +119,7 @@ class AuthenticatedUser(User):
         return cls(
             username=username,
             uid=uid,
+            gid=gid,
             token=body["token"],
             scopes=scopes,
         )

@@ -2,30 +2,52 @@
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import UTC, datetime
+from typing import Any, ClassVar
 
 import httpx
+import humanize
+import rubin.nublado.client.models as nc_models
 import structlog
 from arq import cron
+from rubin.nublado.client import NubladoClient
+from rubin.nublado.client.exceptions import JupyterProtocolError
 from safir.logging import configure_logging
+from safir.slack.blockkit import SlackMessage, SlackTextField
+from safir.slack.webhook import SlackWebhookClient
+from structlog.stdlib import BoundLogger
 
 from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
-from noteburst.jupyterclient.jupyterlab import (
-    JupyterClient,
-    JupyterConfig,
-    JupyterError,
-)
-from noteburst.jupyterclient.user import User
+from noteburst.user import User
 
 from .functions import keep_alive, nbexec, ping, run_python
-from .identity import IdentityManager
+from .identity import IdentityClaim, IdentityManager
 
 config = WorkerConfig()
 
 
+async def _get_client_user(
+    identity: IdentityClaim,
+    config: WorkerConfig,
+    http_client: httpx.AsyncClient,
+    logger: BoundLogger,
+) -> nc_models.User:
+    user = User(username=identity.username, uid=identity.uid, gid=identity.gid)
+
+    authed_user = await user.login(
+        scopes=config.parsed_worker_token_scopes,
+        http_client=http_client,
+        token_lifetime=config.worker_token_lifetime,
+    )
+    logger.info("Authenticated the worker's user.")
+
+    return nc_models.User(
+        username=authed_user.username, token=authed_user.token
+    )
+
+
 async def startup(ctx: dict[Any, Any]) -> None:
-    """Runs during working start-up to set up the JupyterLab client and
-    populate the worker context.
+    """Set up worker context on startup.
 
     Notes
     -----
@@ -48,37 +70,53 @@ async def startup(ctx: dict[Any, Any]) -> None:
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
 
-    jupyter_config = JupyterConfig(
-        url_prefix=config.jupyterhub_path_prefix,
-        image_selector=config.image_selector,
-        image_reference=config.image_reference,
-    )
+    if config.slack_webhook_url:
+        slack_client = SlackWebhookClient(
+            str(config.slack_webhook_url),
+            "Noteburst worker",
+            logger=logger,
+        )
+        ctx["slack"] = slack_client
+
+    jupyter_image: nc_models.NubladoImage | None = None
+    if config.image_selector == "reference":
+        jupyter_image = nc_models.NubladoImageByReference(
+            reference=config.image_reference
+        )
+    elif config.image_selector == "weekly":
+        jupyter_image = nc_models.NubladoImageByClass(
+            image_class=nc_models.NubladoImageClass.LATEST_WEEKLY
+        )
+    else:
+        # "Recommended" is default
+        jupyter_image = nc_models.NubladoImageByClass()
 
     identity = await identity_manager.get_identity()
 
     while True:
         logger = logger.bind(worker_username=identity.username)
 
-        user = User(username=identity.username, uid=identity.uid)
-        authed_user = await user.login(
-            scopes=config.parsed_worker_token_scopes,
-            http_client=http_client,
-            token_lifetime=config.worker_token_lifetime,
+        jupyter_client = NubladoClient(
+            user=await _get_client_user(identity, config, http_client, logger),
+            base_url=str(config.environment_url),
+            logger=logger,
+            hub_route=config.jupyterhub_path_prefix,
         )
-        logger.info("Authenticated the worker's user.")
 
-        jupyter_client = JupyterClient(
-            user=authed_user, logger=logger, config=jupyter_config
-        )
-        await jupyter_client.log_into_hub()
+        await jupyter_client.auth_to_hub()
         try:
-            image_info = await jupyter_client.spawn_lab()
-            logger = logger.bind(image_ref=image_info.reference)
-            async for progress in jupyter_client.spawn_progress():
+            await jupyter_client.spawn_lab(config=jupyter_image)
+            if config.image_reference:
+                logger = logger.bind(image_ref=config.image_reference)
+            else:
+                logger = logger.bind(image_ref=config.image_selector)
+            # We don't currently expose the reference of the actually-spawned
+            # image in the client, so put that down as a to-do item.
+            async for _ in jupyter_client.watch_spawn_progress():
                 continue
-            await jupyter_client.log_into_lab()
+            await jupyter_client.auth_to_lab()
             break
-        except JupyterError as e:
+        except JupyterProtocolError as e:
             logger.warning("Error spawning pod, will re-try with new identity")
             logger.debug("Details for error spawning pod", detail=str(e))
             identity = await identity_manager.get_next_identity(identity)
@@ -86,14 +124,51 @@ async def startup(ctx: dict[Any, Any]) -> None:
     ctx["jupyter_client"] = jupyter_client
     ctx["logger"] = logger
 
-    logger.info("Start up complete")
+    logger.info(
+        "Noteburst worker startup complete.",
+        image_selector=config.image_selector,
+        image_reference=config.image_reference,
+    )
+
+    if "slack" in ctx:
+        slack_client = ctx["slack"]
+
+        date_created = datetime.now(tz=UTC)
+
+        def create_message(message: str) -> SlackMessage:
+            now = datetime.now(tz=UTC)
+            age = now - date_created
+
+            return SlackMessage(
+                message=message,
+                fields=[
+                    SlackTextField(
+                        heading="Username",
+                        text=identity.username,
+                    ),
+                    SlackTextField(
+                        heading="Image Selector",
+                        text=config.image_selector,
+                    ),
+                    # Losing Image field here--again, see, "get real running
+                    # image" from client.
+                    SlackTextField(
+                        heading="Age", text=humanize.naturaldelta(age)
+                    ),
+                ],
+            )
+
+        ctx["slack_message_factory"] = create_message
+
+        # Make a start-up message
+        await slack_client.post(
+            ctx["slack_message_factory"]("Noteburst worker started")
+        )
 
 
 async def shutdown(ctx: dict[Any, Any]) -> None:
-    """Runs during worker shut-down to release the JupyterLab resources
-    and identity claim.
-    """
-    if "logger" in ctx.keys():
+    """Clean up the worker context on shutdown."""
+    if "logger" in ctx:
         logger = ctx["logger"]
     else:
         logger = structlog.get_logger(__name__)
@@ -141,17 +216,25 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
 
     logger.info("Worker shutdown complete.")
 
+    if "slack" in ctx and "slack_message_factory" in ctx:
+        slack_client = ctx["slack"]
+        await slack_client.post(
+            ctx["slack_message_factory"](
+                "Noteburst worker shut down complete."
+            )
+        )
+
 
 # For info on ignoring the type checking here, see
 # https://github.com/samuelcolvin/arq/issues/249
-cron_jobs: list[cron] = []  # type: ignore
+cron_jobs: list[cron] = []  # type: ignore [valid-type]
 if config.worker_keepalive == WorkerKeepAliveSetting.fast:
     f = cron(keep_alive, second={0, 30}, unique=False)
     cron_jobs.append(f)
 elif config.worker_keepalive == WorkerKeepAliveSetting.normal:
     f = cron(
         keep_alive,
-        minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
+        minute={0, 15, 30, 45},
         unique=False,
     )
     cron_jobs.append(f)
@@ -163,7 +246,7 @@ class WorkerSettings:
     See `arq.worker.Worker` for details on these attributes.
     """
 
-    functions = [ping, nbexec, run_python]
+    functions: ClassVar = [ping, nbexec, run_python]
 
     cron_jobs = cron_jobs
 
@@ -176,3 +259,5 @@ class WorkerSettings:
     on_shutdown = shutdown
 
     job_timeout = config.job_timeout
+
+    max_jobs = config.max_concurrent_jobs

@@ -17,5 +17,7 @@ safir[arq]
 pydantic
 pydantic_settings
 PyYAML
+rubin-nublado-client
 httpx
 websockets
+humanize
