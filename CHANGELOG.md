@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.14.0'></a>
+## 0.14.0 (2024-11-07)
+
+### New features
+
+- Replace internal Nublado Client with version from rubin-nublado-client.
+
 <a id='changelog-0.13.0'></a>
 
 ## 0.13.0 (2024-09-12)
