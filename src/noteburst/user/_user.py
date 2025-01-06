@@ -10,7 +10,7 @@ import httpx
 
 from noteburst.config import config
 
-__all__ = ["User", "AuthenticatedUser"]
+__all__ = ["AuthenticatedUser", "User"]
 
 
 @dataclass

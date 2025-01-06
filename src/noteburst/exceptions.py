@@ -9,11 +9,11 @@ from safir.fastapi import ClientRequestError
 from safir.slack.blockkit import SlackException, SlackMessage, SlackTextField
 
 __all__ = [
-    "TaskError",
     "NbexecTaskError",
     "NbexecTaskTimeoutError",
     "NoteburstClientRequestError",
     "NoteburstError",
+    "TaskError",
 ]
 
 
