@@ -26,7 +26,6 @@ v1_router = APIRouter(tags=["v1"], route_class=SlackRouteErrorHandler)
     "/notebooks/",
     summary="Submit a notebook for execution",
     status_code=202,
-    response_model=NotebookResponse,
     response_model_exclude_none=True,
 )
 async def post_nbexec(
@@ -81,7 +80,6 @@ async def post_nbexec(
 @v1_router.get(
     "/notebooks/{job_id}",
     summary="Get information about a notebook execution job",
-    response_model=NotebookResponse,
     response_model_exclude_none=True,
     responses={404: {"description": "Not found", "model": ErrorModel}},
 )
@@ -89,22 +87,27 @@ async def get_nbexec_job(
     *,
     job_id: str,
     request: Request,
-    source: bool = Query(
-        False,
-        title="Include source ipynb",
-        description=(
-            "If set to true, the `source` field will include the JSON-encoded "
-            "content of the source ipynb notebook."
+    source: Annotated[
+        bool,
+        Query(
+            title="Include source ipynb",
+            description=(
+                "If set to true, the `source` field will include the "
+                "JSON-encoded content of the source ipynb notebook."
+            ),
         ),
-    ),
-    result: bool = Query(
-        True,
-        title="Include the result",
-        description=(
-            "If set to true and the notebook run is complete, the response "
-            "includes the executed notebook and metadata about the run."
+    ] = False,
+    result: Annotated[
+        bool,
+        Query(
+            title="Include the result",
+            description=(
+                "If set to true and the notebook run is complete, the "
+                "response includes the executed notebook and metadata about "
+                "the run."
+            ),
         ),
-    ),
+    ] = True,
     logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
     user: Annotated[str, Depends(auth_dependency)],
     arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],

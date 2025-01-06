@@ -11,7 +11,7 @@ from structlog.stdlib import BoundLogger
 
 from noteburst.config import config
 
-__all__ = ["get_index", "external_router"]
+__all__ = ["external_router", "get_index"]
 
 external_router = APIRouter()
 """FastAPI router for all external handlers."""
@@ -26,7 +26,6 @@ class Index(BaseModel):
 @external_router.get(
     "/",
     description=("Discover metadata about the application."),
-    response_model=Index,
     response_model_exclude_none=True,
     summary="Application metadata",
 )
