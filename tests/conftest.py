@@ -30,7 +30,7 @@ BASE_URL = "https://example.com"
 
 
 @pytest_asyncio.fixture
-async def app() -> AsyncIterator[FastAPI]:
+async def app(monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[FastAPI]:
     """Return a configured test application.
 
     Wraps the application in a lifespan manager so that startup and shutdown

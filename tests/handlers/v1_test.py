@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 from httpx import AsyncClient
 from safir.arq import MockArqQueue
 from safir.dependencies.arq import arq_dependency
+from safir.metrics import MockEventPublisher
+
+from noteburst.events import events_dependency
 
 
 @pytest.fixture
@@ -28,6 +32,8 @@ async def test_post_nbexec(
     client: AsyncClient, sample_ipynb: str, sample_ipynb_executed: str
 ) -> None:
     """Test ``POST /v1/``, sending a notebook to execute."""
+    events = await events_dependency()
+
     arq_queue = await arq_dependency()
     assert isinstance(arq_queue, MockArqQueue)
 
@@ -44,6 +50,9 @@ async def test_post_nbexec(
     job_url = data["self_url"]
     assert job_url == response.headers["Location"]
     job_id = data["job_id"]
+
+    pub = cast(MockEventPublisher, events.enqueue_nbexec_success).published
+    pub.assert_published_all([{"username": "user"}])
 
     response = await client.get(job_url)
     assert response.status_code == 200

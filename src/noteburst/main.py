@@ -24,6 +24,7 @@ from safir.middleware.x_forwarded import XForwardedMiddleware
 from safir.slack.webhook import SlackRouteErrorHandler
 
 from .config import config
+from .events import events_dependency
 from .handlers.external import external_router
 from .handlers.internal import internal_router
 from .handlers.v1 import v1_router
@@ -47,6 +48,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await arq_dependency.initialize(
         mode=config.arq_mode, redis_settings=config.arq_redis_settings
     )
+
+    event_manager = config.metrics.make_manager()
+    await event_manager.initialize()
+    await events_dependency.initialize(event_manager)
 
     yield
 
