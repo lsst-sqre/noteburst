@@ -2,6 +2,22 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.15.0'></a>
+## 0.15.0 (2025-02-26)
+
+### Backwards-incompatible changes
+
+- Upgrade to Python 3.13
+
+### New features
+
+- Added [Application Metrics](https://safir.lsst.io/user-guide/metrics/index.html) scaffolding, and a single pair of metrics for counting the number of notebook execution tasks that are enqueued.
+
+### Other changes
+
+- Update `make update` to use the `--universal` flag for `uv pip compile`.
+- Use `Annotated` for `Query` dependencies in the path operations.
+
 <a id='changelog-0.14.0'></a>
 ## 0.14.0 (2024-11-07)
 
