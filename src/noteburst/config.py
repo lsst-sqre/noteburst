@@ -11,6 +11,7 @@ from pydantic import Field, HttpUrl, RedisDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings
 from safir.arq import ArqMode
 from safir.logging import LogLevel, Profile
+from safir.metrics import MetricsConfiguration, metrics_configuration_factory
 
 __all__ = [
     "Config",
@@ -77,6 +78,14 @@ class Config(BaseSettings):
             description="The URL path prefix where noteburst is hosted.",
         ),
     ] = "/noteburst"
+
+    metrics: Annotated[
+        MetricsConfiguration,
+        Field(
+            default_factory=metrics_configuration_factory,
+            title="Metrics configuration",
+        ),
+    ]
 
     environment_url: Annotated[
         HttpUrl,

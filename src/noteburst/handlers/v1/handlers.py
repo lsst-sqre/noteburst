@@ -16,6 +16,12 @@ from safir.slack.webhook import SlackRouteErrorHandler
 
 from noteburst.exceptions import JobNotFoundError, NoteburstJobError
 
+from ...events import (
+    EnqueueNotebookExecutionFailure,
+    EnqueueNotebookExecutionSuccess,
+    Events,
+    events_dependency,
+)
 from .models import NotebookResponse, PostNotebookRequest
 
 v1_router = APIRouter(tags=["v1"], route_class=SlackRouteErrorHandler)
@@ -33,8 +39,10 @@ async def post_nbexec(
     *,
     request: Request,
     response: Response,
+    user: Annotated[str, Depends(auth_dependency)],
     logger: Annotated[structlog.BoundLogger, Depends(auth_logger_dependency)],
     arq_queue: Annotated[ArqQueue, Depends(arq_dependency)],
+    events: Annotated[Events, Depends(events_dependency)],
 ) -> NotebookResponse:
     """Submits a notebook for execution. The notebook is executed
     asynchronously via a pool of JupyterLab (Nublado) instances.
@@ -61,14 +69,24 @@ async def post_nbexec(
     and (if available) the notebook (`ipynb`) result. See
     `GET /v1/notebooks/{job_id}` for more information.
     """
-    logger.debug("Enqueing a nbexec task")
-    job_metadata = await arq_queue.enqueue(
-        "nbexec",
-        ipynb=request_data.get_ipynb_as_str(),
-        kernel_name=request_data.kernel_name,
-        enable_retry=request_data.enable_retry,
-        timeout=request_data.timeout,
-    )
+    try:
+        logger.debug("Enqueing a nbexec task")
+        job_metadata = await arq_queue.enqueue(
+            "nbexec",
+            ipynb=request_data.get_ipynb_as_str(),
+            kernel_name=request_data.kernel_name,
+            enable_retry=request_data.enable_retry,
+            timeout=request_data.timeout,
+        )
+        await events.enqueue_nbexec_success.publish(
+            EnqueueNotebookExecutionSuccess(username=user)
+        )
+    except:
+        await events.enqueue_nbexec_failure.publish(
+            EnqueueNotebookExecutionFailure(username=user)
+        )
+        raise
+
     logger.info("Finished enqueing an nbexec task", job_id=job_metadata.id)
     response_data = await NotebookResponse.from_job_metadata(
         job=job_metadata, request=request
