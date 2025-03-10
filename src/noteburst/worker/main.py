@@ -20,7 +20,7 @@ from structlog.stdlib import BoundLogger
 from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
 from noteburst.user import User
 
-from .functions import keep_alive, nbexec, ping, run_python
+from .functions import make_keep_alive, nbexec, ping, run_python
 from .identity import IdentityClaim, IdentityManager
 
 config = WorkerConfig()
@@ -228,6 +228,9 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
 # For info on ignoring the type checking here, see
 # https://github.com/samuelcolvin/arq/issues/249
 cron_jobs: list[cron] = []  # type: ignore [valid-type]
+keep_alive = make_keep_alive(
+    retries=config.worker_keepalive_retries, idle=config.worker_keepalive_idle
+)
 if config.worker_keepalive == WorkerKeepAliveSetting.fast:
     f = cron(keep_alive, second={0, 30}, unique=False)
     cron_jobs.append(f)

@@ -12,6 +12,7 @@ from pydantic_settings import BaseSettings
 from safir.arq import ArqMode
 from safir.logging import LogLevel, Profile
 from safir.metrics import MetricsConfiguration, metrics_configuration_factory
+from safir.pydantic import HumanTimedelta
 
 __all__ = [
     "Config",
@@ -278,6 +279,31 @@ class WorkerConfig(Config):
             ),
         ),
     ] = WorkerKeepAliveSetting.normal
+
+    worker_keepalive_retries: Annotated[
+        int,
+        Field(
+            default=3,
+            alias="NOTEBURST_WORKER_KEEPALIVE_RETRIES",
+            description=(
+                "How many times to retry the worker keepalive check before "
+                "restarting the worker."
+            ),
+            gt=0,
+        ),
+    ]
+
+    worker_keepalive_idle: Annotated[
+        HumanTimedelta,
+        Field(
+            default="5s",
+            alias="NOTEBURST_WORKER_KEEPALIVE_IDLE",
+            description=(
+                "How long to wait in between each attempt of the worker "
+                "healthcheck."
+            ),
+        ),
+    ]
 
     @property
     def aioredlock_redis_config(self) -> list[str]:
