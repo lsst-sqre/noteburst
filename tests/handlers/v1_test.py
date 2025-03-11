@@ -51,7 +51,7 @@ async def test_post_nbexec(
     assert job_url == response.headers["Location"]
     job_id = data["job_id"]
 
-    pub = cast(MockEventPublisher, events.enqueue_nbexec_success).published
+    pub = cast("MockEventPublisher", events.enqueue_nbexec_success).published
     pub.assert_published_all([{"username": "user"}])
 
     response = await client.get(job_url)

@@ -23,7 +23,7 @@ async def nbexec(
     ipynb: str,
     kernel_name: str = "LSST",
     enable_retry: bool = True,
-    timeout: timedelta | None = None,  # noqa: ASYNC109
+    timeout: timedelta | None = None,
 ) -> str:
     """Execute a notebook, as an asynchronous arq worker task.
 
