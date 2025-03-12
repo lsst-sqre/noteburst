@@ -21,3 +21,7 @@ rubin-nublado-client @ git+https://github.com/lsst-sqre/nublado@tickets/DM-49388
 httpx
 websockets
 humanize
+
+# aoiredlock has an undeclared dependency on distutils, which is not installed
+# automatically by uv.
+setuptools
