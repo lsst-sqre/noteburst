@@ -5,7 +5,10 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-from rubin.nublado.client.exceptions import JupyterWebSocketError
+from rubin.nublado.client.exceptions import (
+    JupyterWebError,
+    JupyterWebSocketError,
+)
 
 
 async def keep_alive(ctx: dict[Any, Any]) -> str:
@@ -30,7 +33,7 @@ async def keep_alive(ctx: dict[Any, Any]) -> str:
             kernel_name="LSST"
         ) as session:
             await session.run_python("print('alive')")
-    except JupyterWebSocketError as e:
+    except (JupyterWebSocketError, JupyterWebError) as e:
         logger.exception("keep_alive error", jupyter_status=e.status)
         if e.status and e.status >= 400 and e.status < 500:
             logger.exception(
