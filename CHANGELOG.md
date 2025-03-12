@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.15.1'></a>
+## 0.15.1 (2025-03-12)
+
+### Bug fixes
+
+- Catch more exceptions in the keepalive cron to trigger a worker to restart.
+
 <a id='changelog-0.15.0'></a>
 ## 0.15.0 (2025-02-26)
 
