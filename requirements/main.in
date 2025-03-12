@@ -21,3 +21,7 @@ rubin-nublado-client>=8.7.0
 httpx
 websockets
 humanize
+
+# aoiredlock has an undeclared dependency on distutils, which is not installed
+# automatically by uv.
+setuptools
