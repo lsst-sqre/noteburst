@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.16.0'></a>
+## 0.16.0 (2025-03-17)
+
+### New features
+
+- Add support for per-user subdomains for Nublado-managed JupyterLab instances.
+
 <a id='changelog-0.15.1'></a>
 ## 0.15.1 (2025-03-12)
 
