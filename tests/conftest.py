@@ -58,13 +58,16 @@ def labcontroller(respx_mock: respx.Router) -> MockLabController:
     return mock_labcontroller(respx_mock)
 
 
-@pytest.fixture
+@pytest.fixture(ids=["shared", "subdomain"], params=[False, True])
 async def jupyter(
-    respx_mock: respx.Router, tmp_path: Path
+    respx_mock: respx.Router, tmp_path: Path, request: pytest.FixtureRequest
 ) -> AsyncIterator[MockJupyter]:
     """Mock out JupyterHub/Lab API."""
     jupyter_mock = mock_jupyter(
-        respx_mock, base_url=BASE_URL, user_dir=tmp_path
+        respx_mock,
+        base_url=BASE_URL,
+        user_dir=tmp_path,
+        use_subdomains=request.param,
     )
 
     @contextlib.asynccontextmanager
