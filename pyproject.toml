@@ -18,12 +18,66 @@ classifiers = [
     "Typing :: Typed",
 ]
 requires-python = ">=3.13"
-# Use requirements/main.in for runtime dependencies instead.
-dependencies = []
+dependencies = [
+    # These dependencies are for fastapi including some optional features.
+    "fastapi",
+    "gunicorn",
+    "starlette",
+    "uvicorn[standard]",
+
+    # Other dependencies.
+    "aioredlock",
+    "safir[arq]",
+    "pydantic",
+    "pydantic_settings",
+    "PyYAML",
+    "rubin-nublado-client>=8.7.0",
+    "httpx",
+    "websockets",
+    "humanize",
+    "sentry-sdk",
+
+    # aoiredlock has an undeclared dependency on distutils, which is not installed
+    # automatically by uv.
+    "setuptools",
+]
 dynamic = ["version"]
 
 # [project.scripts]
 # example = "noteburst.cli:main"
+[dependency-groups]
+dev = [
+    "asgi-lifespan",
+    "coverage[toml]",
+    "httpx",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "uvicorn",
+    "respx",
+    "types-PyYAML",
+]
+
+lint = [
+    "pre-commit",
+    "pre-commit-uv",
+    "ruff",
+]
+
+typing = [
+    "mypy",
+]
+
+tox = [
+    "tox",
+    "tox-uv",
+]
+
+docs = [
+    "documenteer[guide]",
+    "scriv"
+]
 
 [project.urls]
 Homepage = "https://noteburst.lsst.io"
