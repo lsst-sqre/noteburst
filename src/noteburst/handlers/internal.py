@@ -19,12 +19,15 @@ internal_router = APIRouter()
 """FastAPI router for all internal handlers."""
 
 
+@internal_router.get("/healthcheck")
 @internal_router.get(
     "/",
     description=(
         "Return metadata about the running application. Can also be used as"
         " a health check. This route is not exposed outside the cluster and"
-        " therefore cannot be used by external clients."
+        " therefore cannot be used by external clients. This route is also"
+        " exposed at /healthcheck so that Sentry tracing will ignore it:"
+        " https://docs.sentry.io/concepts/data-management"
     ),
     response_model_exclude_none=True,
     summary="Internal application metadata",
