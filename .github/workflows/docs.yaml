@@ -1,11 +1,10 @@
 name: Docs
 
 env:
-  # Current supported Python version. For applications, there is generally no
-  # reason to support multiple Python versions, so all actions are run with
-  # this version. Quote the version to avoid interpretation as a floating
-  # point number.
-  PYTHON_VERSION: "3.13"
+  # Current supported uv version. The uv documentation recommends pinning
+  # this. The version should match the version used in .pre-commit-config.yaml
+  # and frozen in uv.lock.
+  UV_VERSION: "0.6.17"
 
 "on":
   push:
@@ -27,20 +26,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ env.UV_VERSION }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version-file: ".python-version"
 
       - name: Install graphviz and ImageMagick
         run: sudo apt-get install graphviz imagemagick
 
       - name: Run tox
-        uses: lsst-sqre/run-tox@v1
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          tox-envs: "docs"
-          tox-requirements: requirements/tox.txt
+        run: uv run --only-group=tox tox run -e docs
 
       - name: Upload documentation
         uses: lsst-sqre/ltd-upload@v1
