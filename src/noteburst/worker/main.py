@@ -8,11 +8,13 @@ from typing import Any, ClassVar
 import httpx
 import humanize
 import rubin.nublado.client.models as nc_models
+import sentry_sdk
 import structlog
 from arq import cron
 from rubin.nublado.client import NubladoClient
 from rubin.nublado.client.exceptions import JupyterProtocolError
 from safir.logging import configure_logging
+from safir.sentry import before_send_handler
 from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
 from structlog.stdlib import BoundLogger
@@ -24,6 +26,12 @@ from .functions import keep_alive, nbexec, ping, run_python
 from .identity import IdentityClaim, IdentityManager
 
 config = WorkerConfig()
+
+# If SENTRY_DSN is not in the environment, this will do nothing
+sentry_sdk.init(
+    traces_sample_rate=config.sentry_traces_sample_rate,
+    before_send=before_send_handler,
+)
 
 
 async def _get_client_user(

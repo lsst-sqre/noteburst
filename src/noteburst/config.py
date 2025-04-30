@@ -157,6 +157,21 @@ class Config(BaseSettings):
         ),
     ] = None
 
+    sentry_traces_sample_rate: Annotated[
+        float,
+        Field(
+            default=0,
+            alias="NOTEBURST_SENTRY_TRACES_SAMPLE_RATE",
+            description=(
+                "If Sentry is enabled (by providing a SENTRY_DSN env var"
+                "value), this is a number between 0 and 1 that is a percentage"
+                "of the number of requests that are traced."
+            ),
+            ge=0,
+            le=1,
+        ),
+    ]
+
     @property
     def arq_redis_settings(self) -> RedisSettings:
         """Create a Redis settings instance for arq."""
