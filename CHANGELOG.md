@@ -2,6 +2,16 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.17.0'></a>
+## 0.17.0 (2025-04-30)
+
+### New features
+
+- [Sentry](https://sentry.io) integration.
+  * Enabled by setting `SENTRY_DSN` in the environment, which is injected in Phalanx.
+  * Sends errors and traces to the [noteburst project](https://rubin-observatory.sentry.io/projects/noteburst/?project=4509170139594752), which was created by [Prodromos](https://prodromos.lsst.io).
+  * The [traces sample rate](https://docs.sentry.io/concepts/key-terms/sample-rates/#tracing) can be configured. It comes from Phalanx values.
+
 <a id='changelog-0.16.0'></a>
 ## 0.16.0 (2025-03-17)
 
