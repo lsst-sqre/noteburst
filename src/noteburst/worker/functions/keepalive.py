@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import sys
-from typing import Any
+from typing import Any, cast
 
+from rubin.nublado.client import NubladoClient
 from rubin.nublado.client.exceptions import (
     JupyterWebError,
     JupyterWebSocketError,
@@ -21,18 +22,23 @@ async def keep_alive(ctx: dict[Any, Any]) -> str:
 
     Returns
     -------
-    result : str
-        The standard-out
+    result
+        The standard-out.
     """
     logger = ctx["logger"].bind(task="keep_alive")
     logger.info("Running keep_alive")
 
-    jupyter_client = ctx["jupyter_client"]
+    nublado_client = ctx["nublado_client"]
+    nublado_client = cast(
+        "NubladoClient",
+        nublado_client,
+    )
+
     try:
-        async with jupyter_client.open_lab_session(
+        async with nublado_client.open_lab_session(
             kernel_name="LSST"
-        ) as session:
-            await session.run_python("print('alive')")
+        ) as lab_session:
+            await lab_session.run_python("print('alive')")
     except (JupyterWebSocketError, JupyterWebError) as e:
         logger.exception("keep_alive error", jupyter_status=e.status)
         if e.status and e.status >= 400 and e.status < 500:

@@ -54,13 +54,13 @@ async def nbexec(
     )
     logger.debug("Running nbexec")
 
-    jupyter_client = ctx["jupyter_client"]
-    jupyter_client = cast(
+    nublado_client = ctx["nublado_client"]
+    nublado_client = cast(
         "NubladoClient",
-        jupyter_client,
+        nublado_client,
     )
 
-    async with jupyter_client.open_lab_session(
+    async with nublado_client.open_lab_session(
         notebook_name=job_id, kernel_name=kernel_name
     ) as lab_session:
         parsed_notebook = json.loads(ipynb)

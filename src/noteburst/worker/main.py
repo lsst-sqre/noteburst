@@ -131,7 +131,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
             },
         )
 
-    ctx["jupyter_client"] = nublado_pod.nublado_client
+    ctx["nublado_client"] = nublado_pod.nublado_client
     ctx["logger"] = nublado_pod.logger
 
     # continue using logger with bound context
@@ -193,7 +193,7 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
     logger.info("Running worker shutdown.")
 
     try:
-        await ctx["jupyter_client"].stop_lab()
+        await ctx["nublado_client"].stop_lab()
     except Exception as e:
         logger.warning(
             "Issue stopping the JupyterLab pod on worker shutdown",
@@ -201,7 +201,7 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
         )
 
     try:
-        is_shutdown = await ctx["jupyter_client"].is_lab_stopped()
+        is_shutdown = await ctx["nublado_client"].is_lab_stopped()
         logger.info(
             f"JupyterLab pod shutdown on worker shutdown {is_shutdown}",
             is_shutdown=is_shutdown,
@@ -228,7 +228,7 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
         )
 
     try:
-        await ctx["jupyter_client"].close()
+        await ctx["nublado_client"].close()
     except Exception as e:
         logger.warning("Issue closing the Jupyter client", detail=str(e))
 

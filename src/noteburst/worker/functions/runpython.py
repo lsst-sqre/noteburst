@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
+
+from rubin.nublado.client import NubladoClient
 
 
 async def run_python(
@@ -14,24 +16,29 @@ async def run_python(
     ----------
     ctx
         Arq worker context.
-    py : str
+    py
         Python code to execute.
-    kernel_name : str
+    kernel_name
         Name of the Python kernel.
 
     Returns
     -------
-    result : str
+    str
         The standard-out
     """
     logger = ctx["logger"].bind(task="run_python")
     logger.info("Running run_python", py=py)
 
-    jupyter_client = ctx["jupyter_client"]
-    async with jupyter_client.open_lab_session(
+    nublado_client = ctx["nublado_client"]
+    nublado_client = cast(
+        "NubladoClient",
+        nublado_client,
+    )
+
+    async with nublado_client.open_lab_session(
         kernel_name=kernel_name
-    ) as session:
-        result = await session.run_python(py)
+    ) as lab_session:
+        result = await lab_session.run_python(py)
     logger.info("Running run_python", result=result)
 
     return result
