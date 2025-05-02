@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from importlib.metadata import version
 from typing import Any, ClassVar
 
 import httpx
@@ -11,18 +12,28 @@ import rubin.nublado.client.models as nc_models
 import sentry_sdk
 import structlog
 from arq import cron
-from rubin.nublado.client import NubladoClient
-from rubin.nublado.client.exceptions import JupyterProtocolError
+from rubin.nublado.client.exceptions import (
+    JupyterProtocolError,
+    JupyterSpawnError,
+    JupyterTimeoutError,
+    JupyterWebError,
+    JupyterWebSocketError,
+)
 from safir.logging import configure_logging
 from safir.sentry import before_send_handler
 from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
 
-from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
+from noteburst.config import (
+    JupyterImageSelector,
+    WorkerConfig,
+    WorkerKeepAliveSetting,
+)
+from noteburst.exceptions import NoteburstWorkerError
 
 from .functions import keep_alive, nbexec, ping, run_python
 from .identity import IdentityManager
-from .user import User
+from .nublado import NubladoPod
 
 config = WorkerConfig()
 
@@ -49,10 +60,12 @@ async def startup(ctx: dict[Any, Any]) -> None:
         name="noteburst",
     )
     logger = structlog.get_logger(__name__)
+    logger.bind(
+        image_selector=str(config.image_selector),
+        image_reference=config.image_reference,
+        version=version("noteburst"),
+    )
     logger.info("Starting up worker")
-
-    identity_manager = IdentityManager.from_config(config)
-    ctx["identity_manager"] = identity_manager
 
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
@@ -78,54 +91,68 @@ async def startup(ctx: dict[Any, Any]) -> None:
         # "Recommended" is default
         jupyter_image = nc_models.NubladoImageByClass()
 
-    # Seed an initially-availabe bot user identity
+    # Seed an initially-available bot user identity. The while loop below
+    # will acquire new identities if spawning with this one fails.
+    identity_manager = IdentityManager.from_config(config)
+    ctx["identity_manager"] = identity_manager
     identity = await identity_manager.get_identity()
 
     # Loop with different identities until we get a successful spawn
+    nublado_pod: NubladoPod | None = None
+    spawn_exception: Exception | None = None
     while True:
-        logger = logger.bind(worker_username=identity.username)
-        user = User(
-            username=identity.username, uid=identity.uid, gid=identity.gid
-        )
-        authed_user = await user.login(
-            scopes=config.parsed_worker_token_scopes,
-            http_client=http_client,
-            token_lifetime=config.worker_token_lifetime,
-        )
-        logger.info("Authenticated the worker's user.")
-
-        jupyter_client = NubladoClient(
-            user=authed_user.create_nublado_client_user(),
-            base_url=str(config.environment_url),
-            logger=logger,
-            hub_route=config.jupyterhub_path_prefix,
-        )
-
-        await jupyter_client.auth_to_hub()
         try:
-            await jupyter_client.spawn_lab(config=jupyter_image)
-            if config.image_reference:
-                logger = logger.bind(image_ref=config.image_reference)
-            else:
-                logger = logger.bind(image_ref=config.image_selector)
-            # We don't currently expose the reference of the actually-spawned
-            # image in the client, so put that down as a to-do item.
-            async for _ in jupyter_client.watch_spawn_progress():
-                continue
-            await jupyter_client.auth_to_lab()
+            nublado_pod = await NubladoPod.spawn(
+                identity=identity,
+                nublado_image=jupyter_image,
+                http_client=http_client,
+                user_token_scopes=config.parsed_worker_token_scopes,
+                user_token_lifetime=config.worker_token_lifetime,
+                logger=logger,
+            )
             break
-        except JupyterProtocolError as e:
+        except (
+            JupyterProtocolError,
+            # Happens when we have orphaned pods and internal jupyterhub errors
+            JupyterWebError,
+            JupyterSpawnError,
+            JupyterTimeoutError,
+            JupyterWebSocketError,
+            # From the User login with Gafaelfawr
+            httpx.HTTPError,
+        ) as e:
             logger.warning("Error spawning pod, will re-try with new identity")
             logger.debug("Details for error spawning pod", detail=str(e))
-            identity = await identity_manager.get_next_identity(identity)
+            spawn_exception = e
 
-    ctx["jupyter_client"] = jupyter_client
-    ctx["logger"] = logger
+        # Acquire a new identity and try again
+        identity = await identity_manager.get_next_identity(identity)
+
+    if nublado_pod is None:
+        raise NoteburstWorkerError(
+            "Failed to start up Noteburst worker. Could not spawn a Nublado "
+            "pod with any identity.",
+            tags={"spawn_exception_type": type(spawn_exception).__name__},
+            contexts={
+                "nublado": {
+                    "username": identity.username,
+                    "user_token_scopes": config.parsed_worker_token_scopes,
+                    "image_selector": config.image_selector,
+                    "image_reference": config.image_reference,
+                    "spawn_exception": str(spawn_exception),
+                    "spawn_exception_type": type(spawn_exception).__name__,
+                }
+            },
+        )
+
+    ctx["jupyter_client"] = nublado_pod.nublado_client
+    ctx["logger"] = nublado_pod.logger
+
+    # continue using logger with bound context
+    logger = ctx["logger"]
 
     logger.info(
-        "Noteburst worker startup complete.",
-        image_selector=config.image_selector,
-        image_reference=config.image_reference,
+        "Noteburst worker startup complete",
     )
 
     if "slack" in ctx:
@@ -148,8 +175,15 @@ async def startup(ctx: dict[Any, Any]) -> None:
                         heading="Image Selector",
                         text=config.image_selector,
                     ),
-                    # Losing Image field here--again, see, "get real running
-                    # image" from client.
+                    SlackTextField(
+                        heading="Image Ref",
+                        text=config.image_reference
+                        if config.image_selector
+                        == JupyterImageSelector.reference
+                        else "N/A",
+                    ),
+                    # TODO(jonathansick): Show the actual image ref always.
+                    # This requires adding functionality to the Nublado client.
                     SlackTextField(
                         heading="Age", text=humanize.naturaldelta(age)
                     ),

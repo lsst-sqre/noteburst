@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import Any, Self
 
 from fastapi import status
 from safir.fastapi import ClientRequestError
+from safir.sentry import SentryException
 from safir.slack.blockkit import SlackException, SlackMessage, SlackTextField
 
 __all__ = [
@@ -13,8 +14,28 @@ __all__ = [
     "NbexecTaskTimeoutError",
     "NoteburstClientRequestError",
     "NoteburstError",
+    "NoteburstWorkerError",
     "TaskError",
 ]
+
+
+class NoteburstWorkerError(SentryException):
+    """Base class for Noteburst worker exceptions.
+
+    Exceptions are reported to Sentry.
+    """
+
+    def __init__(
+        self,
+        msg: str,
+        tags: dict[str, str] | None = None,
+        contexts: dict[str, dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(msg)
+        if tags:
+            self.tags = tags
+        if contexts:
+            self.contexts = contexts
 
 
 class TaskError(Exception):
