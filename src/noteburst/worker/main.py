@@ -17,12 +17,11 @@ from safir.logging import configure_logging
 from safir.sentry import before_send_handler
 from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
-from structlog.stdlib import BoundLogger
 
 from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
 
 from .functions import keep_alive, nbexec, ping, run_python
-from .identity import IdentityClaim, IdentityManager
+from .identity import IdentityManager
 from .user import User
 
 config = WorkerConfig()
@@ -32,23 +31,6 @@ sentry_sdk.init(
     traces_sample_rate=config.sentry_traces_sample_rate,
     before_send=before_send_handler,
 )
-
-
-async def _get_client_user(
-    identity: IdentityClaim,
-    config: WorkerConfig,
-    http_client: httpx.AsyncClient,
-    logger: BoundLogger,
-) -> nc_models.User:
-    user = User(username=identity.username, uid=identity.uid, gid=identity.gid)
-
-    authed_user = await user.login(
-        scopes=config.parsed_worker_token_scopes,
-        http_client=http_client,
-        token_lifetime=config.worker_token_lifetime,
-    )
-    logger.info("Authenticated the worker's user.")
-    return authed_user.create_nublado_client_user()
 
 
 async def startup(ctx: dict[Any, Any]) -> None:
@@ -96,13 +78,24 @@ async def startup(ctx: dict[Any, Any]) -> None:
         # "Recommended" is default
         jupyter_image = nc_models.NubladoImageByClass()
 
+    # Seed an initially-availabe bot user identity
     identity = await identity_manager.get_identity()
 
+    # Loop with different identities until we get a successful spawn
     while True:
         logger = logger.bind(worker_username=identity.username)
+        user = User(
+            username=identity.username, uid=identity.uid, gid=identity.gid
+        )
+        authed_user = await user.login(
+            scopes=config.parsed_worker_token_scopes,
+            http_client=http_client,
+            token_lifetime=config.worker_token_lifetime,
+        )
+        logger.info("Authenticated the worker's user.")
 
         jupyter_client = NubladoClient(
-            user=await _get_client_user(identity, config, http_client, logger),
+            user=authed_user.create_nublado_client_user(),
             base_url=str(config.environment_url),
             logger=logger,
             hub_route=config.jupyterhub_path_prefix,
