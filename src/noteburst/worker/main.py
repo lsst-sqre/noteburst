@@ -48,10 +48,7 @@ async def _get_client_user(
         token_lifetime=config.worker_token_lifetime,
     )
     logger.info("Authenticated the worker's user.")
-
-    return nc_models.User(
-        username=authed_user.username, token=authed_user.token
-    )
+    return authed_user.create_nublado_client_user()
 
 
 async def startup(ctx: dict[Any, Any]) -> None:
