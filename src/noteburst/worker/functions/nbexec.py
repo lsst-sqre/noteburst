@@ -8,9 +8,10 @@ import asyncio
 import json
 import sys
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from arq import Retry
+from rubin.nublado.client import NubladoClient
 from rubin.nublado.client.exceptions import NubladoClientSlackException
 from safir.slack.blockkit import SlackTextField
 
@@ -29,13 +30,13 @@ async def nbexec(
 
     Parameters
     ----------
-    ctx : `dict`
+    ctx
         The arq worker context.
-    ipynb : `str`
+    ipynb
         The input Jupyter notebook as a serialized string.
-    kernel_name : `str`
+    kernel_name
         The Jupyter kernel to execute the notebook in.
-    enable_retry : `bool`
+    enable_retry
         Whether to retry the notebook execution if it failed.
 
     Returns
@@ -54,15 +55,19 @@ async def nbexec(
     logger.debug("Running nbexec")
 
     jupyter_client = ctx["jupyter_client"]
+    jupyter_client = cast(
+        "NubladoClient",
+        jupyter_client,
+    )
 
     async with jupyter_client.open_lab_session(
         notebook_name=job_id, kernel_name=kernel_name
-    ) as sess:
+    ) as lab_session:
         parsed_notebook = json.loads(ipynb)
         logger.debug("Got ipynb", ipynb=parsed_notebook)
         try:
             execution_result = await asyncio.wait_for(
-                sess.run_notebook_via_rsp_extension(path=None, content=ipynb),
+                lab_session.run_notebook_via_rsp_extension(content=ipynb),
                 timeout=timeout.total_seconds() if timeout else None,
             )
             logger.info("nbexec finished", error=execution_result.error)
