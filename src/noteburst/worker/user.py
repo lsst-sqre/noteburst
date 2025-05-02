@@ -1,4 +1,4 @@
-"""Logging a client into the Rubin Science Platform."""
+"""RSP and Nublado users."""
 
 from __future__ import annotations
 

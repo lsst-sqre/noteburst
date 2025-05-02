@@ -20,10 +20,10 @@ from safir.slack.webhook import SlackWebhookClient
 from structlog.stdlib import BoundLogger
 
 from noteburst.config import WorkerConfig, WorkerKeepAliveSetting
-from noteburst.user import User
 
 from .functions import keep_alive, nbexec, ping, run_python
 from .identity import IdentityClaim, IdentityManager
+from .user import User
 
 config = WorkerConfig()
 
