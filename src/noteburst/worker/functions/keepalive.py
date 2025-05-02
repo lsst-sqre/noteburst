@@ -38,14 +38,20 @@ async def keep_alive(ctx: dict[Any, Any]) -> str:
         async with nublado_client.open_lab_session(
             kernel_name="LSST"
         ) as lab_session:
-            await lab_session.run_python("print('alive')")
+            return await lab_session.run_python("print('alive')")
     except (JupyterWebSocketError, JupyterWebError) as e:
-        logger.exception("keep_alive error", jupyter_status=e.status)
         if e.status and e.status >= 400 and e.status < 500:
             logger.exception(
                 "Authentication error to Jupyter. Forcing worker shutdown",
                 jupyter_status=e.status,
             )
-            sys.exit("400 class error from Jupyter")
-
-    return "alive"
+        else:
+            logger.exception(
+                "Jupyter keep_alive error", jupyter_status=e.status
+            )
+        sys.exit("JupyterLab keepalive error.")
+    except Exception as e:
+        logger.exception(
+            "Unknown keep_alive error", detail=str(e), exception_type=type(e)
+        )
+        sys.exit("Unknown keepalive error.")
