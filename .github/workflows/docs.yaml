@@ -36,8 +36,10 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install graphviz and ImageMagick
-        run: sudo apt-get install graphviz imagemagick
+      - name: Install graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz
 
       - name: Run tox
         run: uv run --only-group=tox tox run -e docs
