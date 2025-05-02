@@ -8,7 +8,6 @@ from typing import Any, ClassVar
 
 import httpx
 import humanize
-import rubin.nublado.client.models as nc_models
 import sentry_sdk
 import structlog
 from arq import cron
@@ -78,19 +77,6 @@ async def startup(ctx: dict[Any, Any]) -> None:
         )
         ctx["slack"] = slack_client
 
-    jupyter_image: nc_models.NubladoImage | None = None
-    if config.image_selector == "reference":
-        jupyter_image = nc_models.NubladoImageByReference(
-            reference=config.image_reference
-        )
-    elif config.image_selector == "weekly":
-        jupyter_image = nc_models.NubladoImageByClass(
-            image_class=nc_models.NubladoImageClass.LATEST_WEEKLY
-        )
-    else:
-        # "Recommended" is default
-        jupyter_image = nc_models.NubladoImageByClass()
-
     # Seed an initially-available bot user identity. The while loop below
     # will acquire new identities if spawning with this one fails.
     identity_manager = IdentityManager.from_config(config)
@@ -104,7 +90,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         try:
             nublado_pod = await NubladoPod.spawn(
                 identity=identity,
-                nublado_image=jupyter_image,
+                nublado_image=config.nublado_image,
                 http_client=http_client,
                 user_token_scopes=config.parsed_worker_token_scopes,
                 user_token_lifetime=config.worker_token_lifetime,
