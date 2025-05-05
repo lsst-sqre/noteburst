@@ -26,7 +26,6 @@ async def keep_alive(ctx: dict[Any, Any]) -> str:
         The standard-out.
     """
     logger = ctx["logger"].bind(task="keep_alive")
-    logger.info("Running keep_alive")
 
     nublado_client = ctx["nublado_client"]
     nublado_client = cast(
