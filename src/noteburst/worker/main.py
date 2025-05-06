@@ -28,7 +28,7 @@ from noteburst.config import (
     WorkerConfig,
     WorkerKeepAliveSetting,
 )
-from noteburst.exceptions import NoteburstWorkerError
+from noteburst.exceptions import NoteburstWorkerStartupError
 
 from .functions import keep_alive, nbexec, ping, run_python
 from .identity import IdentityClaimError, IdentityManager
@@ -85,8 +85,10 @@ async def startup(ctx: dict[Any, Any]) -> None:
 
     # Loop with different identities until we get a successful spawn
     spawn_exception: Exception | None = None
+    attempted_usernames: list[str] = []
     while True:
         try:
+            attempted_usernames.append(identity.username)
             nublado_pod = await NubladoPod.spawn(
                 identity=identity,
                 nublado_image=config.nublado_image,
@@ -117,22 +119,14 @@ async def startup(ctx: dict[Any, Any]) -> None:
             identity = await identity_manager.get_next_identity(identity)
         except IdentityClaimError:
             # No more identities available, so we can't spawn a pod
-            raise NoteburstWorkerError(
+            raise NoteburstWorkerStartupError(
                 "Failed to start up Noteburst worker. Could not spawn a "
                 "Nublado pod with any identity.",
-                tags={
-                    "username": identity.username,
-                    "image_selector": config.image_selector,
-                    "image_reference": config.image_reference or "N/A",
-                },
-                contexts={
-                    "nublado": {
-                        "username": identity.username,
-                        "user_token_scopes": config.parsed_worker_token_scopes,
-                        "image_selector": config.image_selector,
-                        "image_reference": config.image_reference,
-                    }
-                },
+                last_username=identity.username,
+                attempted_usernames=attempted_usernames,
+                image_selector=config.image_selector,
+                image_reference=config.image_reference,
+                user_token_scopes=config.parsed_worker_token_scopes,
             ) from spawn_exception
 
     ctx["nublado_client"] = nublado_pod.nublado_client

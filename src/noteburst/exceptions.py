@@ -15,6 +15,7 @@ __all__ = [
     "NoteburstClientRequestError",
     "NoteburstError",
     "NoteburstWorkerError",
+    "NoteburstWorkerStartupError",
     "TaskError",
 ]
 
@@ -36,6 +37,38 @@ class NoteburstWorkerError(SentryException):
             self.tags = tags
         if contexts:
             self.contexts = contexts
+
+
+class NoteburstWorkerStartupError(NoteburstWorkerError):
+    """Error raised when the worker fails to start."""
+
+    def __init__(
+        self,
+        msg: str,
+        *,
+        last_username: str,
+        attempted_usernames: list[str],
+        image_selector: str,
+        image_reference: str | None,
+        user_token_scopes: list[str],
+    ) -> None:
+        super().__init__(
+            msg,
+            tags={
+                "username": last_username,
+                "image_selector": image_selector,
+                "image_reference": image_reference or "N/A",
+            },
+            contexts={
+                "noteburst_worker": {
+                    "username": last_username,
+                    "attempted_usernames": attempted_usernames,
+                    "user_token_scopes": user_token_scopes,
+                    "image_selector": image_selector,
+                    "image_reference": image_reference or "N/A",
+                }
+            },
+        )
 
 
 class TaskError(Exception):
