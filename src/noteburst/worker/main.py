@@ -78,7 +78,9 @@ async def startup(ctx: dict[Any, Any]) -> None:
         ctx["slack"] = slack_client
 
     # Set up identity manager for bot user identities
-    identity_manager = IdentityManager.from_config(config)
+    identity_manager = IdentityManager.from_config(
+        config=config, logger=logger
+    )
     ctx["identity_manager"] = identity_manager
 
     # Loop with different identities until we get a successful spawn
@@ -90,6 +92,9 @@ async def startup(ctx: dict[Any, Any]) -> None:
         try:
             # Get an identity
             identity = await identity_manager.get_next_identity(identity)
+            logger = logger.bind(
+                worker_username=identity.username,
+            )
             attempted_usernames.append(identity.username)
 
             nublado_pod = await NubladoPod.spawn(
