@@ -195,7 +195,7 @@ class IdentityManager:
         )
 
     async def get_next_identity(
-        self, prev_identity: IdentityClaim
+        self, prev_identity: IdentityClaim | None = None
     ) -> IdentityClaim:
         """Get the next available identity if the existing identity claim
         did not result in a successful JupyterLab launch.
@@ -205,8 +205,30 @@ class IdentityManager:
         orphaned JupyterLab pod, its start-up sequence will fail. This method
         provides a way for the worker to try the next available identity in
         that circumstance.
+
+        Parameters
+        ----------
+        prev_identity
+            The previously claimed identity, or None if this is the initial
+            claim.
+
+        Returns
+        -------
+        IdentityClaim
+            The newly claimed identity.
+
+        Raises
+        ------
+        IdentityClaimError
+            When no identity can be claimed.
         """
-        await self._release_identity()
+        if self._current_identity is not None:
+            await self._release_identity()
+
+        # If prev_identity is None, start from the beginning of the identity
+        # list
+        if prev_identity is None:
+            return await self.get_identity()
 
         for i, identity in enumerate(self.identities):
             # Find the same identity as before to then get the next one

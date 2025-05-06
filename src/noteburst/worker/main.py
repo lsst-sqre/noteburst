@@ -77,18 +77,21 @@ async def startup(ctx: dict[Any, Any]) -> None:
         )
         ctx["slack"] = slack_client
 
-    # Seed an initially-available bot user identity. The while loop below
-    # will acquire new identities if spawning with this one fails.
+    # Set up identity manager for bot user identities
     identity_manager = IdentityManager.from_config(config)
     ctx["identity_manager"] = identity_manager
-    identity = await identity_manager.get_identity()
 
     # Loop with different identities until we get a successful spawn
     spawn_exception: Exception | None = None
     attempted_usernames: list[str] = []
+    identity = None
+
     while True:
         try:
+            # Get an identity
+            identity = await identity_manager.get_next_identity(identity)
             attempted_usernames.append(identity.username)
+
             nublado_pod = await NubladoPod.spawn(
                 identity=identity,
                 nublado_image=config.nublado_image,
@@ -113,21 +116,26 @@ async def startup(ctx: dict[Any, Any]) -> None:
             logger.warning("Error spawning pod, will re-try with new identity")
             logger.debug("Details for error spawning pod", detail=str(e))
             spawn_exception = e
-
-        # Acquire a new identity and try again
-        try:
-            identity = await identity_manager.get_next_identity(identity)
-        except IdentityClaimError:
+        except IdentityClaimError as e:
             # No more identities available, so we can't spawn a pod
+
+            if spawn_exception is None:
+                # There won't be a spawn exception if get_next_identity failed
+                # to produce an initial identity.
+                source_exception: Exception = e
+            else:
+                source_exception = spawn_exception
+
+            last_username = identity.username if identity else "none"
             raise NoteburstWorkerStartupError(
                 "Failed to start up Noteburst worker. Could not spawn a "
                 "Nublado pod with any identity.",
-                last_username=identity.username,
+                last_username=last_username,
                 attempted_usernames=attempted_usernames,
                 image_selector=config.image_selector,
                 image_reference=config.image_reference,
                 user_token_scopes=config.parsed_worker_token_scopes,
-            ) from spawn_exception
+            ) from source_exception
 
     ctx["nublado_client"] = nublado_pod.nublado_client
     ctx["logger"] = nublado_pod.logger
