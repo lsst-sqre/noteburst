@@ -94,6 +94,8 @@ async def startup(ctx: dict[Any, Any]) -> None:
                 http_client=http_client,
                 user_token_scopes=config.parsed_worker_token_scopes,
                 user_token_lifetime=config.worker_token_lifetime,
+                base_url=str(config.environment_url),
+                jupyterhub_path_prefix=config.jupyterhub_path_prefix,
                 logger=logger,
             )
             break

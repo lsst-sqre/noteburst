@@ -10,8 +10,6 @@ from rubin.nublado.client import NubladoClient
 from rubin.nublado.client.models import NubladoImage
 from structlog.stdlib import BoundLogger
 
-from noteburst.config import config
-
 from .identity import IdentityClaim
 from .user import User
 
@@ -35,6 +33,8 @@ class NubladoPod:
         http_client: httpx.AsyncClient,
         user_token_scopes: list[str],
         user_token_lifetime: int,
+        base_url: str,
+        jupyterhub_path_prefix: str,
         logger: BoundLogger,
     ) -> Self:
         """Spawn a Nublado JupyterLab pod.
@@ -53,6 +53,12 @@ class NubladoPod:
             The lifetime of the user token (seconds).
         jupyterlab_image
             The JupyterLab image to use for the pod.
+        nublado_image
+            The Nublado image to use for the pod.
+        base_url
+            The base URL of the RSP.
+        jupyterhub_path_prefix
+            The path prefix for the JupyterHub service.
 
         Returns
         -------
@@ -72,9 +78,9 @@ class NubladoPod:
 
         nublado_client = NubladoClient(
             user=authed_user.create_nublado_client_user(),
-            base_url=str(config.environment_url),
+            base_url=base_url,
             logger=logger,
-            hub_route=config.jupyterhub_path_prefix,
+            hub_route=jupyterhub_path_prefix,
         )
 
         await nublado_client.auth_to_hub()
