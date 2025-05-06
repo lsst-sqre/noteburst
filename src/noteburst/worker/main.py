@@ -31,7 +31,7 @@ from noteburst.config import (
 from noteburst.exceptions import NoteburstWorkerError
 
 from .functions import keep_alive, nbexec, ping, run_python
-from .identity import IdentityManager
+from .identity import IdentityClaimError, IdentityManager
 from .nublado import NubladoPod
 
 config = WorkerConfig()
@@ -84,7 +84,6 @@ async def startup(ctx: dict[Any, Any]) -> None:
     identity = await identity_manager.get_identity()
 
     # Loop with different identities until we get a successful spawn
-    nublado_pod: NubladoPod | None = None
     spawn_exception: Exception | None = None
     while True:
         try:
@@ -114,24 +113,27 @@ async def startup(ctx: dict[Any, Any]) -> None:
             spawn_exception = e
 
         # Acquire a new identity and try again
-        identity = await identity_manager.get_next_identity(identity)
-
-    if nublado_pod is None:
-        raise NoteburstWorkerError(
-            "Failed to start up Noteburst worker. Could not spawn a Nublado "
-            "pod with any identity.",
-            tags={"spawn_exception_type": type(spawn_exception).__name__},
-            contexts={
-                "nublado": {
+        try:
+            identity = await identity_manager.get_next_identity(identity)
+        except IdentityClaimError:
+            # No more identities available, so we can't spawn a pod
+            raise NoteburstWorkerError(
+                "Failed to start up Noteburst worker. Could not spawn a "
+                "Nublado pod with any identity.",
+                tags={
                     "username": identity.username,
-                    "user_token_scopes": config.parsed_worker_token_scopes,
                     "image_selector": config.image_selector,
-                    "image_reference": config.image_reference,
-                    "spawn_exception": str(spawn_exception),
-                    "spawn_exception_type": type(spawn_exception).__name__,
-                }
-            },
-        )
+                    "image_reference": config.image_reference or "N/A",
+                },
+                contexts={
+                    "nublado": {
+                        "username": identity.username,
+                        "user_token_scopes": config.parsed_worker_token_scopes,
+                        "image_selector": config.image_selector,
+                        "image_reference": config.image_reference,
+                    }
+                },
+            ) from spawn_exception
 
     ctx["nublado_client"] = nublado_pod.nublado_client
     ctx["logger"] = nublado_pod.logger
