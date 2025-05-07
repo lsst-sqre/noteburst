@@ -2,17 +2,29 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.18.0'></a>
+
+## 0.18.0 (2025-05-07)
+
+### New features
+
+- Improve error handling in the worker startup. We're now catching the JupyterWebError, among others, which is related to orphaned JupyterLab pods already existing. This should allow the workers to gracefully handle the error and try new bot user identities. If the pool of users is exhausted, we now report an enriched error message to Sentry.
+
+- Improve the worker keep alive functionality to cause a worker restart on any type of error.
+
 <a id='changelog-0.17.0'></a>
+
 ## 0.17.0 (2025-04-30)
 
 ### New features
 
 - [Sentry](https://sentry.io) integration.
-  * Enabled by setting `SENTRY_DSN` in the environment, which is injected in Phalanx.
-  * Sends errors and traces to the [noteburst project](https://rubin-observatory.sentry.io/projects/noteburst/?project=4509170139594752), which was created by [Prodromos](https://prodromos.lsst.io).
-  * The [traces sample rate](https://docs.sentry.io/concepts/key-terms/sample-rates/#tracing) can be configured. It comes from Phalanx values.
+  - Enabled by setting `SENTRY_DSN` in the environment, which is injected in Phalanx.
+  - Sends errors and traces to the [noteburst project](https://rubin-observatory.sentry.io/projects/noteburst/?project=4509170139594752), which was created by [Prodromos](https://prodromos.lsst.io).
+  - The [traces sample rate](https://docs.sentry.io/concepts/key-terms/sample-rates/#tracing) can be configured. It comes from Phalanx values.
 
 <a id='changelog-0.16.0'></a>
+
 ## 0.16.0 (2025-03-17)
 
 ### New features
@@ -20,6 +32,7 @@
 - Add support for per-user subdomains for Nublado-managed JupyterLab instances.
 
 <a id='changelog-0.15.1'></a>
+
 ## 0.15.1 (2025-03-12)
 
 ### Bug fixes
@@ -27,6 +40,7 @@
 - Catch more exceptions in the keepalive cron to trigger a worker to restart.
 
 <a id='changelog-0.15.0'></a>
+
 ## 0.15.0 (2025-02-26)
 
 ### Backwards-incompatible changes
@@ -43,6 +57,7 @@
 - Use `Annotated` for `Query` dependencies in the path operations.
 
 <a id='changelog-0.14.0'></a>
+
 ## 0.14.0 (2024-11-07)
 
 ### New features
