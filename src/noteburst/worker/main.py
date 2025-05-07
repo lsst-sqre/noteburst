@@ -140,7 +140,8 @@ async def startup(ctx: dict[Any, Any]) -> None:
                 image_selector=config.image_selector,
                 image_reference=config.image_reference,
                 user_token_scopes=config.parsed_worker_token_scopes,
-            ) from source_exception
+                final_spawn_exception=source_exception,
+            ) from e
 
     ctx["nublado_client"] = nublado_pod.nublado_client
     ctx["logger"] = nublado_pod.logger
