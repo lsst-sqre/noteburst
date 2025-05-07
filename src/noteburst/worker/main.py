@@ -65,6 +65,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         version=version("noteburst"),
     )
     logger.info("Starting up worker")
+    logger.info("context::::", ctx=ctx)
 
     http_client = httpx.AsyncClient()
     ctx["http_client"] = http_client
@@ -255,6 +256,22 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
         )
 
 
+async def job_start(ctx: dict[Any, Any]) -> None:
+    """Emit events when a job starts."""
+    logger = ctx.get("logger")
+    if logger is None:
+        raise RuntimeError("WHOOPS!")
+    logger.info("::::job_start_context", context=ctx)
+
+
+async def job_end(ctx: dict[Any, Any]) -> None:
+    """Emit events when a job ends."""
+    logger = ctx.get("logger")
+    if logger is None:
+        raise RuntimeError("WHOOPS!")
+    logger.info("::::job_end_context", context=ctx)
+
+
 # For info on ignoring the type checking here, see
 # https://github.com/samuelcolvin/arq/issues/249
 cron_jobs: list[cron] = []  # type: ignore [valid-type]
@@ -287,6 +304,10 @@ class WorkerSettings:
     on_startup = startup
 
     on_shutdown = shutdown
+
+    on_job_start = job_start
+
+    after_job_end = job_end
 
     job_timeout = config.job_timeout
 
