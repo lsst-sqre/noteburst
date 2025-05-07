@@ -10,10 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
-import structlog
 import yaml
 from aioredlock import Aioredlock, Lock, LockError
 from pydantic import BaseModel, Field, RootModel
+from structlog.stdlib import BoundLogger
 
 from noteburst.config import WorkerConfig
 
@@ -109,14 +109,17 @@ class IdentityManager:
         *,
         lock_manager: Aioredlock,
         identities: list[IdentityModel],
+        logger: BoundLogger,
     ) -> None:
         self.lock_manager = lock_manager
         self.identities = identities
         self._current_identity: IdentityClaim | None = None
-        self._logger = structlog.get_logger(__name__)
+        self._logger = logger
 
     @classmethod
-    def from_config(cls, config: WorkerConfig) -> IdentityManager:
+    def from_config(
+        cls, *, config: WorkerConfig, logger: BoundLogger
+    ) -> IdentityManager:
         """Create an IdentityManager from a configuration instance.
 
         Parameters
@@ -135,7 +138,9 @@ class IdentityManager:
             IdentityConfigModel.from_yaml(config.identities_path).root
         )
 
-        return cls(lock_manager=lock_manager, identities=identities)
+        return cls(
+            lock_manager=lock_manager, identities=identities, logger=logger
+        )
 
     async def close(self) -> None:
         """Release any claimed identity and connection to Redis."""
@@ -195,7 +200,7 @@ class IdentityManager:
         )
 
     async def get_next_identity(
-        self, prev_identity: IdentityClaim
+        self, prev_identity: IdentityClaim | None = None
     ) -> IdentityClaim:
         """Get the next available identity if the existing identity claim
         did not result in a successful JupyterLab launch.
@@ -205,8 +210,30 @@ class IdentityManager:
         orphaned JupyterLab pod, its start-up sequence will fail. This method
         provides a way for the worker to try the next available identity in
         that circumstance.
+
+        Parameters
+        ----------
+        prev_identity
+            The previously claimed identity, or None if this is the initial
+            claim.
+
+        Returns
+        -------
+        IdentityClaim
+            The newly claimed identity.
+
+        Raises
+        ------
+        IdentityClaimError
+            When no identity can be claimed.
         """
-        await self._release_identity()
+        if self._current_identity is not None:
+            await self._release_identity()
+
+        # If prev_identity is None, start from the beginning of the identity
+        # list
+        if prev_identity is None:
+            return await self.get_identity()
 
         for i, identity in enumerate(self.identities):
             # Find the same identity as before to then get the next one

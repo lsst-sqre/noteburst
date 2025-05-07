@@ -1,12 +1,14 @@
-"""Logging a client into the Rubin Science Platform."""
+"""RSP and Nublado users."""
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from typing import Self
 from urllib.parse import urljoin
 
 import httpx
+from rubin.nublado.client.models import User as NubladoUser
 
 from noteburst.config import config
 
@@ -73,7 +75,7 @@ class AuthenticatedUser(User):
         scopes: list[str],
         http_client: httpx.AsyncClient,
         lifetime: int,
-    ) -> AuthenticatedUser:
+    ) -> Self:
         """Create an authenticated user by logging into the Science Platform.
 
         Parameters
@@ -123,3 +125,13 @@ class AuthenticatedUser(User):
             token=body["token"],
             scopes=scopes,
         )
+
+    def create_nublado_client_user(self) -> NubladoUser:
+        """Create a user comatible with rubin.nublado.client.
+
+        Returns
+        -------
+        NubladoUser
+            A Nublado client user.
+        """
+        return NubladoUser(username=self.username, token=self.token)

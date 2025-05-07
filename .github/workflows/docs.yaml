@@ -4,7 +4,7 @@ env:
   # Current supported uv version. The uv documentation recommends pinning
   # this. The version should match the version used in .pre-commit-config.yaml
   # and frozen in uv.lock.
-  UV_VERSION: "0.6.17"
+  UV_VERSION: "0.7.2"
 
 "on":
   push:
@@ -36,8 +36,10 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install graphviz and ImageMagick
-        run: sudo apt-get install graphviz imagemagick
+      - name: Install graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz
 
       - name: Run tox
         run: uv run --only-group=tox tox run -e docs

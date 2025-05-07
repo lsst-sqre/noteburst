@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import Any, Self
 
 from fastapi import status
 from safir.fastapi import ClientRequestError
+from safir.sentry import SentryException
 from safir.slack.blockkit import SlackException, SlackMessage, SlackTextField
 
 __all__ = [
@@ -13,8 +14,66 @@ __all__ = [
     "NbexecTaskTimeoutError",
     "NoteburstClientRequestError",
     "NoteburstError",
+    "NoteburstWorkerError",
+    "NoteburstWorkerStartupError",
     "TaskError",
 ]
+
+
+class NoteburstWorkerError(SentryException):
+    """Base class for Noteburst worker exceptions.
+
+    Exceptions are reported to Sentry.
+    """
+
+    def __init__(
+        self,
+        msg: str,
+        tags: dict[str, str] | None = None,
+        contexts: dict[str, dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(msg)
+        if tags:
+            self.tags = tags
+        if contexts:
+            self.contexts = contexts
+
+
+class NoteburstWorkerStartupError(NoteburstWorkerError):
+    """Error raised when the worker fails to start."""
+
+    def __init__(
+        self,
+        msg: str,
+        *,
+        last_username: str,
+        attempted_usernames: list[str],
+        image_selector: str,
+        image_reference: str | None,
+        user_token_scopes: list[str],
+        final_spawn_exception: Exception,
+    ) -> None:
+        super().__init__(
+            msg,
+            tags={
+                "username": last_username,
+                "image_selector": image_selector,
+                "image_reference": image_reference or "N/A",
+                "final_spawn_exception_name": (
+                    final_spawn_exception.__class__.__name__
+                ),
+            },
+            contexts={
+                "noteburst_worker": {
+                    "attempted_usernames": attempted_usernames,
+                    "user_token_scopes": user_token_scopes,
+                    "final_spawn_exception": {
+                        "type": final_spawn_exception.__class__.__name__,
+                        "message": str(final_spawn_exception),
+                    },
+                }
+            },
+        )
 
 
 class TaskError(Exception):

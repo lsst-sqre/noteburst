@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Self
+from typing import Annotated, Self, assert_never
 
 from arq.connections import RedisSettings
 from pydantic import Field, HttpUrl, RedisDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings
+from rubin.nublado.client.models import (
+    NubladoImage,
+    NubladoImageByClass,
+    NubladoImageByReference,
+    NubladoImageClass,
+)
 from safir.arq import ArqMode
 from safir.logging import LogLevel, Profile
 from safir.metrics import MetricsConfiguration, metrics_configuration_factory
@@ -321,6 +327,23 @@ class WorkerConfig(Config):
         list in `worker_token_scopes`.
         """
         return [t.strip() for t in self.worker_token_scopes.split(",") if t]
+
+    @property
+    def nublado_image(self) -> NubladoImage:
+        """The JupyterLab image to use for the pod."""
+        match self.image_selector:
+            case JupyterImageSelector.recommended:
+                return NubladoImageByClass(
+                    image_class=NubladoImageClass.RECOMMENDED
+                )
+            case JupyterImageSelector.weekly:
+                return NubladoImageByClass(
+                    image_class=NubladoImageClass.LATEST_WEEKLY
+                )
+            case JupyterImageSelector.reference:
+                return NubladoImageByReference(reference=self.image_reference)
+            case _:
+                assert_never(self.image_selector)
 
 
 config = Config()
