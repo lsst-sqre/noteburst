@@ -52,6 +52,12 @@ class WorkerKeepAliveSetting(str, Enum):
     normal = "normal"
     """Run the keep-alive function at a slower frequency (i.e. 5 minutes)."""
 
+    hourly = "hourly"
+    """Run the keep-alive function every hour."""
+
+    daily = "daily"
+    """Run the keep-alive function at a very slow frequency (i.e. 24 hours)."""
+
 
 class Config(BaseSettings):
     """Noteburst app configuration."""

@@ -271,6 +271,21 @@ elif config.worker_keepalive == WorkerKeepAliveSetting.normal:
         unique=False,
     )
     cron_jobs.append(f)
+elif config.worker_keepalive == WorkerKeepAliveSetting.hourly:
+    f = cron(
+        keep_alive,
+        minute=52,  # avoid the top of the hour
+        unique=False,
+    )
+    cron_jobs.append(f)
+elif config.worker_keepalive == WorkerKeepAliveSetting.daily:
+    f = cron(
+        keep_alive,
+        hour=0,
+        minute=52,
+        unique=False,
+    )
+    cron_jobs.append(f)
 
 
 class WorkerSettings:
