@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Self
 
 import httpx
 from rubin.nublado.client import NubladoClient
-from rubin.nublado.client.models import NubladoImage
+from rubin.nublado.client.exceptions import ExecutionAPIError
+from rubin.nublado.client.models import NotebookExecutionResult, NubladoImage
 from structlog.stdlib import BoundLogger
 
 from .identity import IdentityClaim
@@ -93,3 +95,70 @@ class NubladoPod:
             nublado_client=nublado_client,
             logger=logger,
         )
+
+    async def execute_notebook(
+        self,
+        *,
+        ipynb: str,
+    ) -> NotebookExecutionResult:
+        """Execute a notebook in the spawned pod.
+
+        Parameters
+        ----------
+        ipynb
+            The notebook content as a string.
+
+        Returns
+        -------
+        NotebookExecutionResult
+            The response from the Nublado notebook execution API.
+        """
+        username = self.nublado_client.user.username
+        url = self.nublado_client._url_for_lab(  # noqa: SLF001
+            f"user/{username}/rubin/execution",
+        )
+        self.logger.debug("Created notebook execution URL", url=url)
+
+        headers: dict[str, str] = {}
+        if lab_xsrf := self.nublado_client.lab_xsrf:
+            headers["X-XSRFToken"] = lab_xsrf
+
+        start_time = datetime.now(tz=UTC)
+        try:
+            r = await self.nublado_client.http.post(
+                url,
+                headers=headers,
+                content=ipynb,
+                # Apply a timeout on the connection, but not on reading the
+                # response. This is because the execution can take a long time
+                # to complete, and we don't want to timeout the read.
+                timeout=httpx.Timeout(5.0, read=None),
+            )
+            r.raise_for_status()
+        except httpx.ReadTimeout as e:
+            raise ExecutionAPIError(
+                url=url,
+                username=username,
+                status=500,
+                reason="/rubin/execution endpoint timeout",
+                method="POST",
+                body=str(e),
+                started_at=start_time,
+            ) from e
+        except httpx.HTTPStatusError as e:
+            # This often occurs from timeouts, so we want to convert the
+            # generic HTTPError to an ExecutionAPIError
+            raise ExecutionAPIError(
+                url=url,
+                username=username,
+                status=r.status_code,
+                reason="Internal Server Error",
+                method="POST",
+                body=str(e),
+                started_at=start_time,
+            ) from e
+        if r.status_code != 200:
+            raise ExecutionAPIError.from_response(username, r)
+        self.logger.debug("Got response from /rubin/execution", text=r.text)
+
+        return NotebookExecutionResult.model_validate_json(r.text)
