@@ -5,17 +5,16 @@ execution extension.
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 from datetime import timedelta
 from typing import Any, cast
 
 from arq import Retry
-from rubin.nublado.client import NubladoClient
 from rubin.nublado.client.exceptions import NubladoClientSlackException
 from safir.slack.blockkit import SlackTextField
 
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
+from noteburst.worker.nublado import NubladoPod
 
 
 async def nbexec(
@@ -55,34 +54,53 @@ async def nbexec(
         job_id=job_id,
         kernel_name=kernel_name,
     )
-    logger.debug("Running nbexec")
+    logger.debug("Running nbexec", ipynb=ipynb)
 
-    nublado_client = ctx["nublado_client"]
-    nublado_client = cast(
-        "NubladoClient",
-        nublado_client,
+    nublado_pod = ctx["nublado_pod"]
+    nublado_pod = cast(
+        "NubladoPod",
+        nublado_pod,
     )
 
-    async with nublado_client.open_lab_session(
-        notebook_name=job_id, kernel_name=kernel_name
-    ) as lab_session:
-        parsed_notebook = json.loads(ipynb)
-        logger.debug("Got ipynb", ipynb=parsed_notebook)
-        try:
-            execution_result = await asyncio.wait_for(
-                lab_session.run_notebook_via_rsp_extension(content=ipynb),
-                timeout=timeout.total_seconds() if timeout else None,
+    try:
+        execution_result = await asyncio.wait_for(
+            nublado_pod.execute_notebook(
+                ipynb=ipynb,
+            ),
+            timeout=timeout.total_seconds() if timeout else None,
+        )
+    except TimeoutError as e:
+        raise NbexecTaskTimeoutError.from_exception(e) from e
+    except NubladoClientSlackException as e:
+        logger.exception(
+            "nbexec error", jupyter_status=getattr(e, "status", None)
+        )
+        if "slack" in ctx:
+            slack_client = ctx["slack"]
+            message = e.to_slack()
+            message.fields.append(
+                SlackTextField(heading="Job ID", text=job_id)
             )
-            logger.info("nbexec finished", error=execution_result.error)
-        except TimeoutError as e:
-            raise NbexecTaskTimeoutError.from_exception(e) from e
-        except NubladoClientSlackException as e:
+            message.fields.append(
+                SlackTextField(
+                    heading="Attempt",
+                    text=str(job_try),
+                )
+            )
+            await slack_client.post(message)
+
+        if hasattr(e, "status") and e.status >= 400 and e.status < 500:
             logger.exception(
-                "nbexec error", jupyter_status=getattr(e, "status", None)
+                "Authentication error to Jupyter. Forcing worker shutdown",
+                jupyter_status=e.status,
             )
-            if "slack" in ctx:
+
+            if "slack" in ctx and "slack_message_factory" in ctx:
                 slack_client = ctx["slack"]
-                message = e.to_slack()
+                message = ctx["slack_message_factory"](
+                    "Noteburst worker shutting down due to Jupyter "
+                    "authentication error during nbexec."
+                )
                 message.fields.append(
                     SlackTextField(heading="Job ID", text=job_id)
                 )
@@ -94,36 +112,13 @@ async def nbexec(
                 )
                 await slack_client.post(message)
 
-            if hasattr(e, "status") and e.status >= 400 and e.status < 500:
-                logger.exception(
-                    "Authentication error to Jupyter. Forcing worker shutdown",
-                    jupyter_status=e.status,
-                )
+            sys.exit("400 class error from Jupyter")
 
-                if "slack" in ctx and "slack_message_factory" in ctx:
-                    slack_client = ctx["slack"]
-                    message = ctx["slack_message_factory"](
-                        "Noteburst worker shutting down due to Jupyter "
-                        "authentication error during nbexec."
-                    )
-                    message.fields.append(
-                        SlackTextField(heading="Job ID", text=job_id)
-                    )
-                    message.fields.append(
-                        SlackTextField(
-                            heading="Attempt",
-                            text=str(job_try),
-                        )
-                    )
-                    await slack_client.post(message)
+        elif enable_retry:
+            logger.warning("nbexec triggering retry")
+            raise Retry(defer=job_try * 5) from None
 
-                sys.exit("400 class error from Jupyter")
+        else:
+            raise NbexecTaskError.from_exception(e) from e
 
-            elif enable_retry:
-                logger.warning("nbexec triggering retry")
-                raise Retry(defer=job_try * 5) from None
-
-            else:
-                raise NbexecTaskError.from_exception(e) from e
-
-        return execution_result.model_dump_json()
+    return execution_result.model_dump_json()

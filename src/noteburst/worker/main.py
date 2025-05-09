@@ -143,7 +143,10 @@ async def startup(ctx: dict[Any, Any]) -> None:
                 final_spawn_exception=source_exception,
             ) from e
 
+    # TODO(jonathansick): We can retire the nublado_client context since
+    # NubladoPod has a nublado_client attribute.
     ctx["nublado_client"] = nublado_pod.nublado_client
+    ctx["nublado_pod"] = nublado_pod
     ctx["logger"] = nublado_pod.logger
 
     # continue using logger with bound context
