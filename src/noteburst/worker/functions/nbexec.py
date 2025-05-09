@@ -22,8 +22,8 @@ async def nbexec(
     *,
     ipynb: str,
     kernel_name: str = "LSST",
-    enable_retry: bool = True,
     timeout: timedelta | None = None,
+    enable_retry: bool = True,
 ) -> str:
     """Execute a notebook, as an asynchronous arq worker task.
 
@@ -35,6 +35,9 @@ async def nbexec(
         The input Jupyter notebook as a serialized string.
     kernel_name
         The Jupyter kernel to execute the notebook in.
+    timeout
+        The maximum time to wait for the notebook execution to complete. If
+        `None`, no timeout is applied.
     enable_retry
         Whether to retry the notebook execution if it failed.
 
