@@ -2,6 +2,18 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.19.0'></a>
+
+## 0.19.0 (2025-05-15)
+
+### New features
+
+- Added the `exception_type` field to the `noteburst_error` field in the response model for `GET /noteburst/v1/notebooks/:notebook_id` to provide more detailed information about the error type. This field can be used to identify the specific type of error that occurred during the notebook execution for "unknown" error types.
+
+- Improved reliability of notebook execution by no longer creating a Websocket connection with the JupyterLab pod for each notebook execution (`nbexec`) job. This reverts behavior added in version 0.14.0 (adoption of `rubin-nublado-client`).
+
+- Add "hourly" and "daily" options for the `NOTEBURST_WORKER_KEEPALIVE` environment variable configuration. These are slower keep-alive intervals that are more suitable for more relaxed notebook culler settings.
+
 <a id='changelog-0.18.0'></a>
 
 ## 0.18.0 (2025-05-07)

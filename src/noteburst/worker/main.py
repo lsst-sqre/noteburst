@@ -143,7 +143,10 @@ async def startup(ctx: dict[Any, Any]) -> None:
                 final_spawn_exception=source_exception,
             ) from e
 
+    # TODO(jonathansick): We can retire the nublado_client context since
+    # NubladoPod has a nublado_client attribute.
     ctx["nublado_client"] = nublado_pod.nublado_client
+    ctx["nublado_pod"] = nublado_pod
     ctx["logger"] = nublado_pod.logger
 
     # continue using logger with bound context
@@ -265,6 +268,21 @@ elif config.worker_keepalive == WorkerKeepAliveSetting.normal:
     f = cron(
         keep_alive,
         minute={0, 15, 30, 45},
+        unique=False,
+    )
+    cron_jobs.append(f)
+elif config.worker_keepalive == WorkerKeepAliveSetting.hourly:
+    f = cron(
+        keep_alive,
+        minute=52,  # avoid the top of the hour
+        unique=False,
+    )
+    cron_jobs.append(f)
+elif config.worker_keepalive == WorkerKeepAliveSetting.daily:
+    f = cron(
+        keep_alive,
+        hour=0,
+        minute=52,
         unique=False,
     )
     cron_jobs.append(f)

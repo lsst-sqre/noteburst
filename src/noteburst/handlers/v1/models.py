@@ -75,6 +75,14 @@ class NoteburstExecutionError(BaseModel):
         None, description="Additional information about the exception."
     )
 
+    exception_type: str | None = Field(
+        None,
+        description=(
+            "The type of the exception. This is a string in the form "
+            "`module_name.ClassName`."
+        ),
+    )
+
 
 class NotebookResponse(BaseModel):
     """Information about a notebook execution job, possibly including the
@@ -200,20 +208,23 @@ class NotebookResponse(BaseModel):
         noteburst_error = None
         if job_result and not job_result.success:
             if e := job_result.result:
-                if isinstance(job_result.result, NbexecTaskTimeoutError):
+                if isinstance(e, NbexecTaskTimeoutError):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.timeout,
                         message=str(e).strip(),
                     )
-                elif isinstance(job_result.result, NbexecTaskError):
+                elif isinstance(e, NbexecTaskError):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.jupyter_error,
                         message=str(e).strip(),
                     )
-                elif isinstance(job_result.result, Exception):
+                elif isinstance(e, Exception):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.unknown,
                         message=str(e).strip(),
+                        exception_type=(
+                            f"{e.__class__.__module__}.{e.__class__.__name__}"
+                        ),
                     )
 
         return cls(
