@@ -69,6 +69,7 @@ async def nbexec(
         execution_result = await asyncio.wait_for(
             nublado_pod.execute_notebook(
                 ipynb=ipynb,
+                kernel_name=kernel_name,
             ),
             timeout=timeout.total_seconds() if timeout else None,
         )
