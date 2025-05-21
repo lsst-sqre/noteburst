@@ -2,6 +2,14 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.20.0'></a>
+
+## 0.20.0 (2025-05-21)
+
+### New features
+
+- Noteburst now sets the `X-Kernel-Name` header in the notebook execution request with the `/rubin/execution` endpoint to the JupyterLab server. This fixes a long-standing issue where the kernel name specified by the user in the `POST /noteburst/v1/notebook` request was not being used by the JupyterLab server. This caused the notebook to execute with the default kernel (which may be `python3` rather than `lsst`), or with the kernel named by the `kernelspec` metadata in the notebook.
+
 <a id='changelog-0.19.0'></a>
 
 ## 0.19.0 (2025-05-15)
