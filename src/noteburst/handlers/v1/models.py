@@ -18,11 +18,10 @@ from safir.pydantic import HumanTimedelta
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 
 kernel_name_field = Field(
-    "LSST",
     title="The name of the Jupyter kernel the kernel is executed with",
-    examples=["LSST"],
+    examples=["lsst"],
     description=(
-        "The default kernel, LSST, contains the full Rubin Python "
+        "The default kernel, `lsst`, contains the full Rubin Python "
         "environment, [rubinenv](https://anaconda.org/conda-forge/rubin-env), "
         "which includes the LSST Science Pipelines."
     ),
@@ -257,7 +256,7 @@ class PostNotebookRequest(BaseModel):
         ),
     ]
 
-    kernel_name: Annotated[str, kernel_name_field]
+    kernel_name: Annotated[str, kernel_name_field] = "lsst"
 
     timeout: HumanTimedelta = Field(
         default_factory=lambda: timedelta(seconds=300),
