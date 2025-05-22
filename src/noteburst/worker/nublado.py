@@ -97,9 +97,7 @@ class NubladoPod:
         )
 
     async def execute_notebook(
-        self,
-        *,
-        ipynb: str,
+        self, *, ipynb: str, kernel_name: str | None = None
     ) -> NotebookExecutionResult:
         """Execute a notebook in the spawned pod.
 
@@ -107,6 +105,9 @@ class NubladoPod:
         ----------
         ipynb
             The notebook content as a string.
+        kernel_name
+            The kernel name to use for the notebook execution. If `None`,
+            the default kernel is used.
 
         Returns
         -------
@@ -122,6 +123,8 @@ class NubladoPod:
         headers: dict[str, str] = {}
         if lab_xsrf := self.nublado_client.lab_xsrf:
             headers["X-XSRFToken"] = lab_xsrf
+        if kernel_name:
+            headers["X-Kernel-Name"] = kernel_name
 
         start_time = datetime.now(tz=UTC)
         try:

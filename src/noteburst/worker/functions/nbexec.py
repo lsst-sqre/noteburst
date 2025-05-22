@@ -21,7 +21,7 @@ async def nbexec(
     ctx: dict[Any, Any],
     *,
     ipynb: str,
-    kernel_name: str = "LSST",
+    kernel_name: str = "lsst",
     timeout: timedelta | None = None,
     enable_retry: bool = True,
 ) -> str:
@@ -69,6 +69,7 @@ async def nbexec(
         execution_result = await asyncio.wait_for(
             nublado_pod.execute_notebook(
                 ipynb=ipynb,
+                kernel_name=kernel_name,
             ),
             timeout=timeout.total_seconds() if timeout else None,
         )
