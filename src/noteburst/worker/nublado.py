@@ -12,7 +12,8 @@ from rubin.nublado.client.exceptions import ExecutionAPIError
 from rubin.nublado.client.models import NotebookExecutionResult, NubladoImage
 from structlog.stdlib import BoundLogger
 
-from .identity import IdentityClaim
+from noteburst.config import Identity
+
 from .user import User
 
 
@@ -30,7 +31,7 @@ class NubladoPod:
     async def spawn(
         cls,
         *,
-        identity: IdentityClaim,
+        identity: Identity,
         nublado_image: NubladoImage,
         http_client: httpx.AsyncClient,
         user_token_scopes: list[str],
@@ -86,6 +87,10 @@ class NubladoPod:
         )
 
         await nublado_client.auth_to_hub()
+
+        # If we shutdown uncleanly, our lab could still be running
+        await nublado_client.stop_lab()
+
         await nublado_client.spawn_lab(config=nublado_image)
         async for _ in nublado_client.watch_spawn_progress():
             continue

@@ -6,16 +6,13 @@ from typing import Any
 
 
 async def ping(ctx: dict[Any, Any]) -> str:
-    """Log a ping message and return a string."""
+    """Log a ping message and return the RSP username, or an error string."""
     logger = ctx["logger"].bind(task="ping")
     logger.info("Running ping")
 
     try:
-        identity = await ctx["identity_manager"].get_identity()
+        identity = ctx["identity"]
     except Exception:
         return "Failed to query identity"
-
-    if identity.valid is True:
-        return "valid identity lock"
     else:
-        return "invalid identity lock"
+        return identity.username

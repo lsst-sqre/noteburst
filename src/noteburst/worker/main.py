@@ -31,7 +31,6 @@ from noteburst.config import (
 from noteburst.exceptions import NoteburstWorkerStartupError
 
 from .functions import keep_alive, nbexec, ping, run_python
-from .identity import IdentityClaimError, IdentityManager
 from .nublado import NubladoPod
 
 config = WorkerConfig()
@@ -50,7 +49,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
     -----
     The following context dictionary keys are populated:
 
-    - ``identity_manager`` (an `IdentityManager` instance)
+    - ``identity`` (an `Identity` instance)
     - ``logger`` (a logger instance)
     """
     configure_logging(
@@ -77,71 +76,38 @@ async def startup(ctx: dict[Any, Any]) -> None:
         )
         ctx["slack"] = slack_client
 
-    # Set up identity manager for bot user identities
-    identity_manager = IdentityManager.from_config(
-        config=config, logger=logger
-    )
-    ctx["identity_manager"] = identity_manager
+    identity = config.identity
+    ctx["identity"] = identity
 
-    # Loop with different identities until we get a successful spawn
-    spawn_exception: Exception | None = None
-    attempted_usernames: list[str] = []
-    identity = None
-
-    while True:
-        try:
-            # Get an identity
-            identity = await identity_manager.get_next_identity(identity)
-            logger = logger.bind(
-                worker_username=identity.username,
-            )
-            attempted_usernames.append(identity.username)
-
-            nublado_pod = await NubladoPod.spawn(
-                identity=identity,
-                nublado_image=config.nublado_image,
-                http_client=http_client,
-                user_token_scopes=config.parsed_worker_token_scopes,
-                user_token_lifetime=config.worker_token_lifetime,
-                base_url=str(config.environment_url),
-                jupyterhub_path_prefix=config.jupyterhub_path_prefix,
-                logger=logger,
-            )
-            break
-        except (
-            JupyterProtocolError,
-            # Happens when we have orphaned pods and internal jupyterhub errors
-            JupyterWebError,
-            JupyterSpawnError,
-            JupyterTimeoutError,
-            JupyterWebSocketError,
-            # From the User login with Gafaelfawr
-            httpx.HTTPError,
-        ) as e:
-            logger.warning("Error spawning pod, will re-try with new identity")
-            logger.debug("Details for error spawning pod", detail=str(e))
-            spawn_exception = e
-        except IdentityClaimError as e:
-            # No more identities available, so we can't spawn a pod
-
-            if spawn_exception is None:
-                # There won't be a spawn exception if get_next_identity failed
-                # to produce an initial identity.
-                source_exception: Exception = e
-            else:
-                source_exception = spawn_exception
-
-            last_username = identity.username if identity else "none"
-            raise NoteburstWorkerStartupError(
-                "Failed to start up Noteburst worker. Could not spawn a "
-                "Nublado pod with any identity.",
-                last_username=last_username,
-                attempted_usernames=attempted_usernames,
-                image_selector=config.image_selector,
-                image_reference=config.image_reference,
-                user_token_scopes=config.parsed_worker_token_scopes,
-                final_spawn_exception=source_exception,
-            ) from e
+    try:
+        nublado_pod = await NubladoPod.spawn(
+            identity=identity,
+            nublado_image=config.nublado_image,
+            http_client=http_client,
+            user_token_scopes=config.parsed_worker_token_scopes,
+            user_token_lifetime=config.worker_token_lifetime,
+            base_url=str(config.environment_url),
+            jupyterhub_path_prefix=config.jupyterhub_path_prefix,
+            logger=logger,
+        )
+    except (
+        JupyterProtocolError,
+        # Happens when we have orphaned pods and internal jupyterhub errors
+        JupyterWebError,
+        JupyterSpawnError,
+        JupyterTimeoutError,
+        JupyterWebSocketError,
+        # From the User login with Gafaelfawr
+        httpx.HTTPError,
+    ) as e:
+        raise NoteburstWorkerStartupError(
+            "Failed to start up Noteburst worker. Could not spawn a "
+            "Nublado pod with any identity.",
+            username=identity.username,
+            image_selector=config.image_selector,
+            image_reference=config.image_reference,
+            user_token_scopes=config.parsed_worker_token_scopes,
+        ) from e
 
     # TODO(jonathansick): We can retire the nublado_client context since
     # NubladoPod has a nublado_client attribute.
@@ -224,14 +190,6 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
     except Exception as e:
         logger.warning(
             "Issue getting details on pod shutdown during worker shutdown",
-            detail=str(e),
-        )
-
-    try:
-        await ctx["identity_manager"].close()
-    except Exception as e:
-        logger.warning(
-            "Issue closing the identity manager on worker shutdown",
             detail=str(e),
         )
 

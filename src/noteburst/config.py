@@ -2,13 +2,27 @@
 
 from __future__ import annotations
 
+import os
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Self, assert_never
+from typing import Annotated, Self, assert_never, override
 
 from arq.connections import RedisSettings
-from pydantic import Field, HttpUrl, RedisDsn, SecretStr, model_validator
-from pydantic_settings import BaseSettings
+from pydantic import (
+    BaseModel,
+    Field,
+    HttpUrl,
+    RedisDsn,
+    SecretStr,
+    model_validator,
+)
+from pydantic.alias_generators import to_camel
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    YamlConfigSettingsSource,
+)
 from rubin.nublado.client.models import (
     NubladoImage,
     NubladoImageByClass,
@@ -18,6 +32,8 @@ from rubin.nublado.client.models import (
 from safir.arq import ArqMode
 from safir.logging import LogLevel, Profile
 from safir.metrics import MetricsConfiguration, metrics_configuration_factory
+
+from .constants import CONFIG_PATH_ENV_VAR, DEFAULT_CONFIG_PATH
 
 __all__ = [
     "Config",
@@ -59,18 +75,42 @@ class WorkerKeepAliveSetting(str, Enum):
     """Run the keep-alive function at a very slow frequency (i.e. 24 hours)."""
 
 
+class Identity(BaseModel):
+    """Model for a single user identity."""
+
+    username: Annotated[
+        str, Field(description="The username of the user account.")
+    ]
+
+    uid: Annotated[
+        int | None,
+        Field(
+            description=(
+                "The UID of the user account. This can be `None` if the "
+                "authentication system assigns the UID."
+            )
+        ),
+    ] = None
+
+    gid: Annotated[
+        int | None,
+        Field(
+            description=(
+                "The GID of the user account. This can be `None` if the "
+                "authentication system assigns the GID."
+            )
+        ),
+    ] = None
+
+
 class Config(BaseSettings):
     """Noteburst app configuration."""
 
-    name: Annotated[str, Field(alias="SAFIR_NAME")] = "Noteburst"
+    name: str = "Noteburst"
 
-    profile: Annotated[Profile, Field(alias="SAFIR_PROFILE")] = (
-        Profile.production
-    )
+    profile: Profile = Profile.production
 
-    log_level: Annotated[LogLevel, Field(alias="SAFIR_LOG_LEVEL")] = (
-        LogLevel.INFO
-    )
+    log_level: LogLevel = LogLevel.INFO
 
     logger_name: Annotated[
         str,
@@ -86,7 +126,6 @@ class Config(BaseSettings):
         str,
         Field(
             "/noteburst",
-            alias="NOTEBURST_PATH_PREFIX",
             description="The URL path prefix where noteburst is hosted.",
         ),
     ] = "/noteburst"
@@ -102,7 +141,6 @@ class Config(BaseSettings):
     environment_url: Annotated[
         HttpUrl,
         Field(
-            alias="NOTEBURST_ENVIRONMENT_URL",
             description=(
                 "The base URL of the Rubin Science Platform environment. This "
                 "is used for creating URLs to services, such as JupyterHub."
@@ -112,16 +150,12 @@ class Config(BaseSettings):
 
     jupyterhub_path_prefix: Annotated[
         str,
-        Field(
-            alias="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
-            description="The path prefix for the JupyterHub service.",
-        ),
+        Field(description="The path prefix for the JupyterHub service."),
     ] = "/nb/"
 
     nublado_controller_path_prefix: Annotated[
         str,
         Field(
-            alias="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
             description="The path prefix for the Nublado controller service.",
         ),
     ] = "/nublado"
@@ -129,7 +163,6 @@ class Config(BaseSettings):
     gafaelfawr_token: Annotated[
         SecretStr,
         Field(
-            alias="NOTEBURST_GAFAELFAWR_TOKEN",
             description=(
                 "This token is used to make an admin API call to Gafaelfawr "
                 "to get a token for the user."
@@ -140,11 +173,10 @@ class Config(BaseSettings):
     redis_url: Annotated[
         RedisDsn,
         Field(
-            alias="NOTEBURST_REDIS_URL",
             # Preferred by mypy over a string default
             default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
             description=(
-                "URL for the redis instance, used by the worker queue.",
+                "URL for the redis instance, used by the worker queue."
             ),
         ),
     ]
@@ -152,7 +184,6 @@ class Config(BaseSettings):
     arq_mode: Annotated[
         ArqMode,
         Field(
-            alias="NOTEBURST_ARQ_MODE",
             description=(
                 "The Arq mode. Use 'test' to mock arq/redis for testing."
             ),
@@ -162,7 +193,6 @@ class Config(BaseSettings):
     slack_webhook_url: Annotated[
         HttpUrl | None,
         Field(
-            alias="NOTEBURST_SLACK_WEBHOOK_URL",
             description=(
                 "Webhook URL for sending error messages to a Slack channel."
             ),
@@ -173,7 +203,6 @@ class Config(BaseSettings):
         float,
         Field(
             default=0,
-            alias="NOTEBURST_SENTRY_TRACES_SAMPLE_RATE",
             description=(
                 "If Sentry is enabled (by providing a SENTRY_DSN env var"
                 "value), this is a number between 0 and 1 that is a percentage"
@@ -197,25 +226,57 @@ class Config(BaseSettings):
             ),
         )
 
+    @classmethod
+    @override
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Add a YAML source to the default settings sources."""
+        config_path = Path(
+            os.environ.get(CONFIG_PATH_ENV_VAR, DEFAULT_CONFIG_PATH)
+        )
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+            YamlConfigSettingsSource(settings_cls, yaml_file=config_path),
+        )
+
+    model_config = SettingsConfigDict(
+        env_prefix="NOTEBURST_", alias_generator=to_camel
+    )
+
 
 class WorkerConfig(Config):
     """Configuration superset for arq worker processes."""
 
-    identities_path: Annotated[
-        Path,
+    identities: Annotated[
+        list[Identity],
         Field(
-            alias="NOTEBURST_WORKER_IDENTITIES_PATH",
             description=(
-                "Path to the configuration file with the pool of Science "
-                "Platform identities available to workers."
-            ),
+                "A list of available RSP identities to execute notebooks with."
+            )
+        ),
+    ]
+
+    identity_index: Annotated[
+        int,
+        Field(
+            description=(
+                "The index the identity in the identities list to use."
+            )
         ),
     ]
 
     queue_name: Annotated[
         str,
         Field(
-            alias="NOTEBURST_WORKER_QUEUE_NAME",
             description=(
                 "Name of the arq queue that the worker processes from."
             ),
@@ -225,7 +286,6 @@ class WorkerConfig(Config):
     identity_lock_redis_url: Annotated[
         RedisDsn,
         Field(
-            alias="NOTEBURST_WORKER_LOCK_REDIS_URL",
             # Preferred by mypy over a string default
             default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
             description=(
@@ -238,7 +298,6 @@ class WorkerConfig(Config):
     job_timeout: Annotated[
         int,
         Field(
-            alias="NOTEBURST_WORKER_JOB_TIMEOUT",
             description=(
                 "The timeout, in seconds, for a job until it is timed out."
             ),
@@ -248,7 +307,6 @@ class WorkerConfig(Config):
     max_concurrent_jobs: Annotated[
         int,
         Field(
-            alias="NOTEBURST_WORKER_MAX_CONCURRENT_JOBS",
             description=(
                 "The maximum number of concurrent jobs a worker can handle. "
                 "This should be equal to less than the number of CPUs on the "
@@ -260,7 +318,6 @@ class WorkerConfig(Config):
     worker_token_lifetime: Annotated[
         int,
         Field(
-            alias="NOTEBURST_WORKER_TOKEN_LIFETIME",
             description="Worker auth token lifetime in seconds.",
         ),
     ] = 2419200
@@ -268,7 +325,6 @@ class WorkerConfig(Config):
     worker_token_scopes: Annotated[
         str,
         Field(
-            alias="NOTEBURST_WORKER_TOKEN_SCOPES",
             description=(
                 "Worker (nublado pod) token scopes as a comma-separated "
                 "string."
@@ -279,7 +335,6 @@ class WorkerConfig(Config):
     image_selector: Annotated[
         JupyterImageSelector,
         Field(
-            alias="NOTEBURST_WORKER_IMAGE_SELECTOR",
             description="Method for selecting a Jupyter image to run.",
         ),
     ] = JupyterImageSelector.recommended
@@ -287,7 +342,6 @@ class WorkerConfig(Config):
     image_reference: Annotated[
         str | None,
         Field(
-            alias="NOTEBURST_WORKER_IMAGE_REFERENCE",
             description=(
                 "Docker image reference, if NOTEBURST_WORKER_IMAGE_SELECTOR "
                 "is ``reference``."
@@ -298,7 +352,6 @@ class WorkerConfig(Config):
     worker_keepalive: Annotated[
         WorkerKeepAliveSetting,
         Field(
-            alias="NOTEBURST_WORKER_KEEPALIVE",
             description=(
                 "Keep-alive setting for the worker process. This setting "
                 "must be fast enough to defeat the Nublado pod culler."
@@ -350,6 +403,17 @@ class WorkerConfig(Config):
                 return NubladoImageByReference(reference=self.image_reference)
             case _:
                 assert_never(self.image_selector)
+
+    @property
+    def identity(self) -> Identity:
+        """The RSP identity that this worker should use."""
+        try:
+            return self.identities[self.identity_index]
+        except IndexError as err:
+            raise ValueError(
+                f"No identity configured for index: {self.identity_index}. "
+                f"Identities: {list(enumerate(self.identities))}"
+            ) from err
 
 
 config = Config()
