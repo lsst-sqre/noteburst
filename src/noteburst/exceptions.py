@@ -46,31 +46,21 @@ class NoteburstWorkerStartupError(NoteburstWorkerError):
         self,
         msg: str,
         *,
-        last_username: str,
-        attempted_usernames: list[str],
+        username: str,
         image_selector: str,
         image_reference: str | None,
         user_token_scopes: list[str],
-        final_spawn_exception: Exception,
     ) -> None:
         super().__init__(
             msg,
             tags={
-                "username": last_username,
+                "username": username,
                 "image_selector": image_selector,
                 "image_reference": image_reference or "N/A",
-                "final_spawn_exception_name": (
-                    final_spawn_exception.__class__.__name__
-                ),
             },
             contexts={
                 "noteburst_worker": {
-                    "attempted_usernames": attempted_usernames,
                     "user_token_scopes": user_token_scopes,
-                    "final_spawn_exception": {
-                        "type": final_spawn_exception.__class__.__name__,
-                        "message": str(final_spawn_exception),
-                    },
                 }
             },
         )

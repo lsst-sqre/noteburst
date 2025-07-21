@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Self
@@ -12,7 +13,7 @@ from rubin.nublado.client.exceptions import ExecutionAPIError
 from rubin.nublado.client.models import NotebookExecutionResult, NubladoImage
 from structlog.stdlib import BoundLogger
 
-from .identity import IdentityClaim
+from .identity import IdentityModel
 from .user import User
 
 
@@ -30,7 +31,7 @@ class NubladoPod:
     async def spawn(
         cls,
         *,
-        identity: IdentityClaim,
+        identity: IdentityModel,
         nublado_image: NubladoImage,
         http_client: httpx.AsyncClient,
         user_token_scopes: list[str],
@@ -86,10 +87,35 @@ class NubladoPod:
         )
 
         await nublado_client.auth_to_hub()
-        await nublado_client.spawn_lab(config=nublado_image)
+        logger.info("Authenticated to hub.")
+
+        # If we previously shut down uncleanly, our lab may still be running
+        await nublado_client.stop_lab()
+
+        # If we did need to stop a running lab, it will take some time for it
+        # to actually stop. Try spawing a few times for this case and other
+        # maybe transient error cases.
+        logger.info("Starting lab spawn...")
+        tries = 5
+        while True:
+            try:
+                await nublado_client.spawn_lab(config=nublado_image)
+                break
+            except Exception:
+                if tries > 0:
+                    tries -= 1
+                    msg = f"Error spawning lab, trying {tries} more times."
+                    logger.exception(msg)
+                    await asyncio.sleep(5)
+                    continue
+                raise
+
+        logger.info("Watching lab spawn...")
         async for _ in nublado_client.watch_spawn_progress():
             continue
+        logger.info("Lab spawned.")
         await nublado_client.auth_to_lab()
+        logger.info("Authenticated to lab.")
 
         return cls(
             nublado_client=nublado_client,
