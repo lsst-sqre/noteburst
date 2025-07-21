@@ -4,18 +4,18 @@ from __future__ import annotations
 
 from typing import Any
 
+from structlog.stdlib import get_logger
+
 
 async def ping(ctx: dict[Any, Any]) -> str:
     """Log a ping message and return a string."""
-    logger = ctx["logger"].bind(task="ping")
-    logger.info("Running ping")
-
+    logger = None
     try:
-        identity = await ctx["identity_manager"].get_identity()
+        logger = ctx["logger"].bind(task="ping")
+        logger.info("Running ping")
+        return ctx["identity"].username
     except Exception:
-        return "Failed to query identity"
-
-    if identity.valid is True:
-        return "valid identity lock"
-    else:
-        return "invalid identity lock"
+        msg = "Worker context is not set correctly"
+        logger = logger or get_logger("worker.functions.ping")
+        logger.exception(msg)
+        return msg

@@ -212,6 +212,16 @@ class WorkerConfig(Config):
         ),
     ]
 
+    identity_index: Annotated[
+        int,
+        Field(
+            alias="NOTEBURST_IDENTITY_INDEX",
+            description=(
+                "The index of the identity in the identities list to use."
+            ),
+        ),
+    ]
+
     queue_name: Annotated[
         str,
         Field(

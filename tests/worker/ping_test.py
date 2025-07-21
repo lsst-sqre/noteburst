@@ -12,21 +12,11 @@ from noteburst.worker.functions.ping import ping
 @pytest.mark.asyncio
 async def test_ping_happy_path(worker_context: dict[Any, Any]) -> None:
     result = await ping(worker_context)
-    assert result == "valid identity lock"
+    assert result == "test"
 
 
 @pytest.mark.asyncio
-async def test_ping_identity_failure(worker_context: dict[Any, Any]) -> None:
-    del worker_context["identity_manager"]
+async def test_ping_bad_context(worker_context: dict[Any, Any]) -> None:
+    del worker_context["identity"]
     result = await ping(worker_context)
-    assert result == "Failed to query identity"
-
-
-@pytest.mark.asyncio
-async def test_ping_invalid_lock(worker_context: dict[Any, Any]) -> None:
-    # Prepare the identity manager state
-    identity = await worker_context["identity_manager"].get_identity()
-    identity.valid = False
-
-    result = await ping(worker_context)
-    assert result == "invalid identity lock"
+    assert result == "Worker context is not set correctly"

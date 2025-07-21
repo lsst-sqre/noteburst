@@ -23,7 +23,7 @@ from rubin.nublado.client.testing import (
 )
 
 from noteburst import main
-from tests.support.arq import MockIdentityClaim, MockIdentityManager
+from noteburst.worker.identity import IdentityModel
 from tests.support.labcontroller import MockLabController, mock_labcontroller
 
 BASE_URL = "https://example.com"
@@ -89,14 +89,12 @@ def worker_context() -> dict[Any, Any]:
     """Mock the ctx (context) for arq workers."""
     ctx: dict[Any, Any] = {}
 
-    # Prep identity_manager
-    ctx["identity_manager"] = MockIdentityManager()
-    mock_identity = MockIdentityClaim(username="test", uuid="007", valid=True)
-    ctx["identity_manager"].set_identity_test(mock_identity)
+    identity = IdentityModel(username="test", uuid="007", valid=True)
+    ctx["identity"] = identity
 
     # Prep logger
     logger = structlog.get_logger("noteburst")
-    logger = logger.bind(username=mock_identity.username)
+    logger = logger.bind(username=identity.username)
     ctx["logger"] = logger
 
     return ctx
