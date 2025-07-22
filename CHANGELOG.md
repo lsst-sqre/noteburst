@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.21.0'></a>
+## 0.21.0 (2025-07-22)
+
+### Other changes
+
+- Get the index into the identities list from an env var, which is probably provided as a Kubernetes StatefulSet index. This lets each worker instance have a consistent RSP identity without needing the redis-based locking and tracking system.
+
 <a id='changelog-0.20.0'></a>
 
 ## 0.20.0 (2025-05-21)
