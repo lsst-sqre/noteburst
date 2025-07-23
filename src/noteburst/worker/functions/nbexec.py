@@ -11,12 +11,14 @@ from typing import Any, cast
 
 from arq import Retry
 from rubin.nublado.client.exceptions import NubladoClientSlackException
+from safir.metrics import with_arq_metrics
 from safir.slack.blockkit import SlackTextField
 
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 from noteburst.worker.nublado import NubladoPod
 
 
+@with_arq_metrics
 async def nbexec(
     ctx: dict[Any, Any],
     *,

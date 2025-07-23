@@ -53,7 +53,9 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Start up event
     await arq_dependency.initialize(
-        mode=config.arq_mode, redis_settings=config.arq_redis_settings
+        mode=config.arq_mode,
+        redis_settings=config.arq_redis_settings,
+        enable_metrics_support=True,
     )
 
     event_manager = config.metrics.make_manager()

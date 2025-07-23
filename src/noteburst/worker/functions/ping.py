@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from safir.metrics import with_arq_metrics
 from structlog.stdlib import get_logger
 
 
+@with_arq_metrics
 async def ping(ctx: dict[Any, Any]) -> str:
     """Log a ping message and return a string."""
     logger = None

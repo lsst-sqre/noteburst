@@ -21,6 +21,7 @@ from rubin.nublado.client.testing import (
     mock_jupyter,
     mock_jupyter_websocket,
 )
+from safir.metrics import ArqEvents, MockEventManager
 
 from noteburst import main
 from noteburst.worker.identity import IdentityModel
@@ -84,17 +85,29 @@ async def jupyter(
         yield jupyter_mock
 
 
-@pytest.fixture
-def worker_context() -> dict[Any, Any]:
+@pytest_asyncio.fixture
+async def worker_context() -> dict[Any, Any]:
     """Mock the ctx (context) for arq workers."""
     ctx: dict[Any, Any] = {}
 
     identity = IdentityModel(username="test", uuid="007", valid=True)
     ctx["identity"] = identity
 
+    # Prep app metrics
+    event_manager = MockEventManager(
+        application="noteburst", topic_prefix="whatever"
+    )
+    arq_events = ArqEvents()
+    await event_manager.initialize()
+    await arq_events.initialize(event_manager)
+    ctx["_arq_events"] = arq_events
+
     # Prep logger
     logger = structlog.get_logger("noteburst")
     logger = logger.bind(username=identity.username)
     ctx["logger"] = logger
+
+    # When actually called by arq, this would be different per-job
+    ctx["score"] = 12345
 
     return ctx
