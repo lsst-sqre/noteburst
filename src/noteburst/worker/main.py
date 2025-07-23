@@ -12,6 +12,7 @@ import sentry_sdk
 import structlog
 from arq import cron
 from safir.logging import configure_logging
+from safir.metrics import initialize_arq_metrics, make_on_job_start
 from safir.sentry import before_send_handler
 from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
@@ -106,6 +107,11 @@ async def startup(ctx: dict[Any, Any]) -> None:
     # continue using logger with bound context
     logger = ctx["logger"]
 
+    event_manager = config.metrics.make_manager()
+    await event_manager.initialize()
+    await initialize_arq_metrics(event_manager, ctx)
+    ctx["event_manager"] = event_manager
+
     logger.info(
         "Noteburst worker startup complete",
     )
@@ -193,6 +199,11 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
     except Exception as e:
         logger.warning("Issue closing the Jupyter client", detail=str(e))
 
+    try:
+        await ctx["event_manager"].aclose()
+    except Exception as e:
+        logger.warning("Issue closing the event_manager", detail=str(e))
+
     logger.info("Worker shutdown complete.")
 
     if "slack" in ctx and "slack_message_factory" in ctx:
@@ -251,6 +262,8 @@ class WorkerSettings:
     on_startup = startup
 
     on_shutdown = shutdown
+
+    on_job_start = make_on_job_start(config.queue_name)
 
     job_timeout = config.job_timeout
 

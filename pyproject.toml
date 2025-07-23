@@ -44,8 +44,8 @@ dependencies = [
 ]
 dynamic = ["version"]
 [tool.uv.sources]
-safir = { git = "https://github.com/lsst-sqre/safir", branch = "tickets/DM-51912/arq-metrics", subdirectory = "safir" }
-safir-arq = { git = "https://github.com/lsst-sqre/safir", branch = "tickets/DM-51912/arq-metrics", subdirectory = "safir-arq" }
+safir = { git = "https://github.com/lsst-sqre/safir", branch = "main", subdirectory = "safir" }
+safir-arq = { git = "https://github.com/lsst-sqre/safir", branch = "main", subdirectory = "safir-arq" }
 
 # [project.scripts]
 # example = "noteburst.cli:main"
