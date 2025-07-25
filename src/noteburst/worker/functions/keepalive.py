@@ -10,8 +10,10 @@ from rubin.nublado.client.exceptions import (
     JupyterWebError,
     JupyterWebSocketError,
 )
+from safir.metrics import with_arq_metrics
 
 
+@with_arq_metrics
 async def keep_alive(ctx: dict[Any, Any]) -> str:
     """Execute Python code in a JupyterLab pod with a specific Jupyter kernel.
 

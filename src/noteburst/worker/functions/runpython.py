@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import Any, cast
 
 from rubin.nublado.client import NubladoClient
+from safir.metrics import with_arq_metrics
 
 
+@with_arq_metrics
 async def run_python(
     ctx: dict[Any, Any], py: str, *, kernel_name: str = "LSST"
 ) -> str:
