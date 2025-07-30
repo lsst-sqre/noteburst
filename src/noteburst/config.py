@@ -159,6 +159,16 @@ class Config(BaseSettings):
         ),
     ] = ArqMode.production
 
+    queue_name: Annotated[
+        str,
+        Field(
+            alias="NOTEBURST_WORKER_QUEUE_NAME",
+            description=(
+                "Name of the arq queue that the worker processes from."
+            ),
+        ),
+    ] = "arq:queue"
+
     slack_webhook_url: Annotated[
         HttpUrl | None,
         Field(
@@ -221,16 +231,6 @@ class WorkerConfig(Config):
             ),
         ),
     ]
-
-    queue_name: Annotated[
-        str,
-        Field(
-            alias="NOTEBURST_WORKER_QUEUE_NAME",
-            description=(
-                "Name of the arq queue that the worker processes from."
-            ),
-        ),
-    ] = "arq:queue"
 
     identity_lock_redis_url: Annotated[
         RedisDsn,
