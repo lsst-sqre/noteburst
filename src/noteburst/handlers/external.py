@@ -9,7 +9,7 @@ from safir.metadata import Metadata as SafirMetadata
 from safir.metadata import get_metadata
 from structlog.stdlib import BoundLogger
 
-from noteburst.config import config
+from noteburst.config.frontend import config
 
 __all__ = ["external_router", "get_index"]
 
