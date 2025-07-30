@@ -1,4 +1,4 @@
-"""Configuration definition."""
+"""Config for the Noteburst worker."""
 
 from __future__ import annotations
 
@@ -6,21 +6,17 @@ from enum import Enum
 from pathlib import Path
 from typing import Annotated, Self, assert_never
 
-from arq.connections import RedisSettings
-from pydantic import Field, HttpUrl, RedisDsn, SecretStr, model_validator
-from pydantic_settings import BaseSettings
+from pydantic import Field, RedisDsn, model_validator
 from rubin.nublado.client.models import (
     NubladoImage,
     NubladoImageByClass,
     NubladoImageByReference,
     NubladoImageClass,
 )
-from safir.arq import ArqMode
-from safir.logging import LogLevel, Profile
-from safir.metrics import MetricsConfiguration, metrics_configuration_factory
+
+from .frontend import FrontendConfig
 
 __all__ = [
-    "Config",
     "JupyterImageSelector",
     "WorkerConfig",
     "WorkerKeepAliveSetting",
@@ -59,156 +55,7 @@ class WorkerKeepAliveSetting(str, Enum):
     """Run the keep-alive function at a very slow frequency (i.e. 24 hours)."""
 
 
-class Config(BaseSettings):
-    """Noteburst app configuration."""
-
-    name: Annotated[str, Field(alias="SAFIR_NAME")] = "Noteburst"
-
-    profile: Annotated[Profile, Field(alias="SAFIR_PROFILE")] = (
-        Profile.production
-    )
-
-    log_level: Annotated[LogLevel, Field(alias="SAFIR_LOG_LEVEL")] = (
-        LogLevel.INFO
-    )
-
-    logger_name: Annotated[
-        str,
-        Field(
-            description=(
-                "The root name of the Python logger, which is also the name "
-                "of the root Python module"
-            )
-        ),
-    ] = "noteburst"
-
-    path_prefix: Annotated[
-        str,
-        Field(
-            "/noteburst",
-            alias="NOTEBURST_PATH_PREFIX",
-            description="The URL path prefix where noteburst is hosted.",
-        ),
-    ] = "/noteburst"
-
-    metrics: Annotated[
-        MetricsConfiguration,
-        Field(
-            default_factory=metrics_configuration_factory,
-            title="Metrics configuration",
-        ),
-    ]
-
-    environment_url: Annotated[
-        HttpUrl,
-        Field(
-            alias="NOTEBURST_ENVIRONMENT_URL",
-            description=(
-                "The base URL of the Rubin Science Platform environment. This "
-                "is used for creating URLs to services, such as JupyterHub."
-            ),
-        ),
-    ]
-
-    jupyterhub_path_prefix: Annotated[
-        str,
-        Field(
-            alias="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
-            description="The path prefix for the JupyterHub service.",
-        ),
-    ] = "/nb/"
-
-    nublado_controller_path_prefix: Annotated[
-        str,
-        Field(
-            alias="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
-            description="The path prefix for the Nublado controller service.",
-        ),
-    ] = "/nublado"
-
-    gafaelfawr_token: Annotated[
-        SecretStr,
-        Field(
-            alias="NOTEBURST_GAFAELFAWR_TOKEN",
-            description=(
-                "This token is used to make an admin API call to Gafaelfawr "
-                "to get a token for the user."
-            ),
-        ),
-    ]
-
-    redis_url: Annotated[
-        RedisDsn,
-        Field(
-            alias="NOTEBURST_REDIS_URL",
-            # Preferred by mypy over a string default
-            default_factory=lambda: RedisDsn("redis://localhost:6379/1"),
-            description=(
-                "URL for the redis instance, used by the worker queue.",
-            ),
-        ),
-    ]
-
-    arq_mode: Annotated[
-        ArqMode,
-        Field(
-            alias="NOTEBURST_ARQ_MODE",
-            description=(
-                "The Arq mode. Use 'test' to mock arq/redis for testing."
-            ),
-        ),
-    ] = ArqMode.production
-
-    queue_name: Annotated[
-        str,
-        Field(
-            alias="NOTEBURST_WORKER_QUEUE_NAME",
-            description=(
-                "Name of the arq queue that the worker processes from."
-            ),
-        ),
-    ] = "arq:queue"
-
-    slack_webhook_url: Annotated[
-        HttpUrl | None,
-        Field(
-            alias="NOTEBURST_SLACK_WEBHOOK_URL",
-            description=(
-                "Webhook URL for sending error messages to a Slack channel."
-            ),
-        ),
-    ] = None
-
-    sentry_traces_sample_rate: Annotated[
-        float,
-        Field(
-            default=0,
-            alias="NOTEBURST_SENTRY_TRACES_SAMPLE_RATE",
-            description=(
-                "If Sentry is enabled (by providing a SENTRY_DSN env var"
-                "value), this is a number between 0 and 1 that is a percentage"
-                "of the number of requests that are traced."
-            ),
-            ge=0,
-            le=1,
-        ),
-    ]
-
-    @property
-    def arq_redis_settings(self) -> RedisSettings:
-        """Create a Redis settings instance for arq."""
-        return RedisSettings(
-            host=self.redis_url.host or "localhost",
-            port=self.redis_url.port or 6379,
-            database=(
-                int(self.redis_url.path.lstrip("/"))
-                if self.redis_url.path
-                else 0
-            ),
-        )
-
-
-class WorkerConfig(Config):
+class WorkerConfig(FrontendConfig):
     """Configuration superset for arq worker processes."""
 
     identities_path: Annotated[
@@ -231,6 +78,16 @@ class WorkerConfig(Config):
             ),
         ),
     ]
+
+    queue_name: Annotated[
+        str,
+        Field(
+            alias="NOTEBURST_WORKER_QUEUE_NAME",
+            description=(
+                "Name of the arq queue that the worker processes from."
+            ),
+        ),
+    ] = "arq:queue"
 
     identity_lock_redis_url: Annotated[
         RedisDsn,
@@ -360,7 +217,3 @@ class WorkerConfig(Config):
                 return NubladoImageByReference(reference=self.image_reference)
             case _:
                 assert_never(self.image_selector)
-
-
-config = Config()
-"""Configuration for noteburst."""

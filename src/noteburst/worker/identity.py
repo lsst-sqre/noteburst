@@ -12,7 +12,7 @@ from typing import Annotated
 import yaml
 from pydantic import BaseModel, Field, RootModel
 
-from noteburst.config import WorkerConfig
+from noteburst.config.worker import WorkerConfig
 
 
 class IdentityModel(BaseModel):

@@ -17,7 +17,7 @@ from safir.sentry import before_send_handler
 from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
 
-from noteburst.config import (
+from noteburst.config.worker import (
     JupyterImageSelector,
     WorkerConfig,
     WorkerKeepAliveSetting,

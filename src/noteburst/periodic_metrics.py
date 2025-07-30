@@ -6,7 +6,7 @@ import sentry_sdk
 from safir.metrics import ArqEvents, publish_queue_stats
 from safir.sentry import before_send_handler
 
-from .config import config
+from .config.metrics import config
 
 # If SENTRY_DSN is not in the environment, this will do nothing
 sentry_sdk.init(
@@ -27,11 +27,12 @@ def publish_periodic_metrics() -> None:
             await manager.initialize()
             arq_events = ArqEvents()
             await arq_events.initialize(manager)
-            await publish_queue_stats(
-                queue=config.queue_name,
-                arq_events=arq_events,
-                redis_settings=config.arq_redis_settings,
-            )
+            for queue in config.queue_names:
+                await publish_queue_stats(
+                    queue=queue,
+                    arq_events=arq_events,
+                    redis_settings=config.arq_redis_settings,
+                )
         finally:
             await manager.aclose()
 
