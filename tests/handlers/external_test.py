@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from httpx import AsyncClient
 
-from noteburst.config import config
+from noteburst.config.frontend import config
 
 
 @pytest.mark.asyncio
