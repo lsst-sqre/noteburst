@@ -24,7 +24,6 @@ from rubin.nublado.client.testing import (
 
 from noteburst import main
 from noteburst.worker.identity import IdentityModel
-from tests.support.labcontroller import MockLabController, mock_labcontroller
 
 BASE_URL = "https://example.com"
 
@@ -50,12 +49,6 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         headers=headers,
     ) as client:
         yield client
-
-
-@pytest.fixture
-def labcontroller(respx_mock: respx.Router) -> MockLabController:
-    """Mock the JupyterLab Controller API."""
-    return mock_labcontroller(respx_mock)
 
 
 @pytest.fixture(ids=["shared", "subdomain"], params=[False, True])
