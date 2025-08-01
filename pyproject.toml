@@ -28,6 +28,7 @@ dependencies = [
     # Other dependencies.
     "aioredlock",
     "safir[arq]",
+    "safir-arq",
     "pydantic",
     "pydantic_settings",
     "PyYAML",
@@ -42,6 +43,9 @@ dependencies = [
     "setuptools",
 ]
 dynamic = ["version"]
+[tool.uv.sources]
+safir = { git = "https://github.com/lsst-sqre/safir", branch = "main", subdirectory = "safir" }
+safir-arq = { git = "https://github.com/lsst-sqre/safir", branch = "main", subdirectory = "safir-arq" }
 
 # [project.scripts]
 # example = "noteburst.cli:main"
