@@ -2,6 +2,15 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.22.0'></a>
+## 0.22.0 (2025-08-04)
+
+### New features
+
+- Added a script to publish a metric for the number of messages in the Arq queue. This is meant to be run periodically, probably with a Kubernetes CronJob.
+
+- Enable [Safir generic arq metrics](https://safir.lsst.io/user-guide/arq.html#generic-metrics-for-arq-queues)
+
 <a id='changelog-0.21.0'></a>
 ## 0.21.0 (2025-07-22)
 
