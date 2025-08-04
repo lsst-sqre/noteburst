@@ -43,8 +43,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-# [project.scripts]
-# example = "noteburst.cli:main"
+[project.scripts]
+noteburst_publish_periodic_metrics = "noteburst.periodic_metrics:publish_periodic_metrics"
+
 [dependency-groups]
 dev = [
     "asgi-lifespan",

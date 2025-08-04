@@ -12,7 +12,7 @@ from urllib.parse import urljoin
 import httpx
 import respx
 
-from noteburst.config import config
+from noteburst.config.frontend import config
 
 __all__ = ["make_gafaelfawr_token", "mock_gafaelfawr"]
 

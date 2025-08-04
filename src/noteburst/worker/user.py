@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 import httpx
 from rubin.nublado.client.models import User as NubladoUser
 
-from noteburst.config import config
+from noteburst.config.frontend import config
 
 __all__ = ["AuthenticatedUser", "User"]
 
