@@ -27,7 +27,7 @@ dependencies = [
 
     # Other dependencies.
     "aioredlock",
-    "safir[arq]",
+    "safir[arq]>=11.3.0",
     "pydantic",
     "pydantic_settings",
     "PyYAML",
@@ -69,8 +69,7 @@ typing = [
     "mypy",
 ]
 
-tox = [
-    "tox",
+tox = [ "tox",
     "tox-uv",
 ]
 
