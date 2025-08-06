@@ -12,7 +12,7 @@ import sentry_sdk
 import structlog
 from arq import cron
 from safir.logging import configure_logging
-from safir.metrics import initialize_arq_metrics, make_on_job_start
+from safir.metrics.arq import initialize_arq_metrics, make_on_job_start
 from safir.sentry import before_send_handler
 from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
