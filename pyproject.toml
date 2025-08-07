@@ -27,11 +27,11 @@ dependencies = [
 
     # Other dependencies.
     "aioredlock",
-    "safir[arq]>=11.3.0",
+    "safir[arq]>=12.0.0",
     "pydantic",
     "pydantic_settings",
     "PyYAML",
-    "rubin-nublado-client>=8.7.0",
+    "rubin-nublado-client>=8.12.0",
     "httpx",
     "websockets",
     "humanize",

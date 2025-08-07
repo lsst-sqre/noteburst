@@ -3,7 +3,7 @@
 import asyncio
 
 import sentry_sdk
-from safir.metrics import ArqEvents, publish_queue_stats
+from safir.metrics.arq import ArqEvents, publish_queue_stats
 from safir.sentry import before_send_handler
 
 from .config.metrics import config
