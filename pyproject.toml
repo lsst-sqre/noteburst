@@ -27,7 +27,7 @@ dependencies = [
 
     # Other dependencies.
     "aioredlock",
-    "safir[arq]>=12.0.0",
+    "safir[arq,kafka]>=13.0.0",
     "pydantic",
     "pydantic_settings",
     "PyYAML",

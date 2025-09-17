@@ -8,15 +8,15 @@ from typing import Any, ClassVar
 
 import httpx
 import humanize
-import sentry_sdk
 import structlog
 from arq import cron
 from safir.logging import configure_logging
 from safir.metrics.arq import initialize_arq_metrics, make_on_job_start
-from safir.sentry import before_send_handler
+from safir.sentry import initialize_sentry
 from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
 
+import noteburst
 from noteburst.config.worker import (
     JupyterImageSelector,
     WorkerConfig,
@@ -28,13 +28,9 @@ from .functions import keep_alive, nbexec, ping, run_python
 from .identity import get_identity
 from .nublado import NubladoPod
 
-config = WorkerConfig()
+initialize_sentry(release=noteburst.__version__)
 
-# If SENTRY_DSN is not in the environment, this will do nothing
-sentry_sdk.init(
-    traces_sample_rate=config.sentry_traces_sample_rate,
-    before_send=before_send_handler,
-)
+config = WorkerConfig()
 
 
 async def startup(ctx: dict[Any, Any]) -> None:
@@ -92,7 +88,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         raise NoteburstWorkerStartupError(
             "Failed to start up Noteburst worker. Could not spawn a "
             "Nublado pod.",
-            username=identity.username,
+            user=identity.username,
             image_selector=config.image_selector,
             image_reference=config.image_reference,
             user_token_scopes=config.parsed_worker_token_scopes,

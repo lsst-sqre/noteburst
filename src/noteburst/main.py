@@ -13,7 +13,6 @@ from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
 
-import sentry_sdk
 import structlog
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -22,8 +21,10 @@ from safir.dependencies.http_client import http_client_dependency
 from safir.fastapi import ClientRequestError, client_request_error_handler
 from safir.logging import configure_logging, configure_uvicorn_logging
 from safir.middleware.x_forwarded import XForwardedMiddleware
-from safir.sentry import before_send_handler
+from safir.sentry import initialize_sentry
 from safir.slack.webhook import SlackRouteErrorHandler
+
+import noteburst
 
 from .config.frontend import config
 from .events import events_dependency
@@ -33,11 +34,7 @@ from .handlers.v1 import v1_router
 
 __all__ = ["app", "config"]
 
-# If SENTRY_DSN is not in the environment, this will do nothing
-sentry_sdk.init(
-    traces_sample_rate=config.sentry_traces_sample_rate,
-    before_send=before_send_handler,
-)
+initialize_sentry(release=noteburst.__version__)
 
 configure_logging(
     profile=config.profile,

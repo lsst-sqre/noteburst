@@ -2,41 +2,28 @@
 
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Self, override
 
 from fastapi import status
 from safir.fastapi import ClientRequestError
-from safir.sentry import SentryException
 from safir.slack.blockkit import SlackException, SlackMessage, SlackTextField
+from safir.slack.sentry import SentryEventInfo
 
 __all__ = [
     "NbexecTaskError",
     "NbexecTaskTimeoutError",
     "NoteburstClientRequestError",
     "NoteburstError",
-    "NoteburstWorkerError",
     "NoteburstWorkerStartupError",
     "TaskError",
 ]
 
 
-class NoteburstWorkerError(SentryException):
+class NoteburstWorkerError(SlackException):
     """Base class for Noteburst worker exceptions.
 
-    Exceptions are reported to Sentry.
+    Exceptions are reported to Slack or Sentry depending on configuration.
     """
-
-    def __init__(
-        self,
-        msg: str,
-        tags: dict[str, str] | None = None,
-        contexts: dict[str, dict[str, Any]] | None = None,
-    ) -> None:
-        super().__init__(msg)
-        if tags:
-            self.tags = tags
-        if contexts:
-            self.contexts = contexts
 
 
 class NoteburstWorkerStartupError(NoteburstWorkerError):
@@ -46,24 +33,44 @@ class NoteburstWorkerStartupError(NoteburstWorkerError):
         self,
         msg: str,
         *,
-        username: str,
+        user: str,
         image_selector: str,
         image_reference: str | None,
         user_token_scopes: list[str],
     ) -> None:
-        super().__init__(
-            msg,
-            tags={
-                "username": username,
-                "image_selector": image_selector,
-                "image_reference": image_reference or "N/A",
-            },
-            contexts={
-                "noteburst_worker": {
-                    "user_token_scopes": user_token_scopes,
-                }
-            },
+        super().__init__(msg, user=user)
+        self.username = user
+        self.image_selector = image_selector
+        self.image_reference = image_reference
+        self.user_token_scopes = user_token_scopes
+
+    @override
+    def to_slack(self) -> SlackMessage:
+        message = super().to_slack()
+        message.fields.append(
+            SlackTextField(heading="Image Selector", text=self.image_selector)
         )
+        message.fields.append(
+            SlackTextField(
+                heading="Image Reference", text=self.image_reference or "N/A"
+            )
+        )
+        message.fields.append(
+            SlackTextField(
+                heading="User Token Scopes", text=str(self.user_token_scopes)
+            )
+        )
+        return message
+
+    @override
+    def to_sentry(self) -> SentryEventInfo:
+        info = super().to_sentry()
+        info.tags["image_selector"] = self.image_selector
+        info.tags["image_reference"] = self.image_reference or "N/A"
+        info.contexts["Noteburst Worker"] = {
+            "User Scopes": ", ".join(self.user_token_scopes)
+        }
+        return info
 
 
 class TaskError(Exception):
@@ -122,9 +129,16 @@ class NoteburstJobError(NoteburstError):
         super().__init__(msg, user=user)
         self.job_id = job_id
 
+    @override
     def to_slack(self) -> SlackMessage:
         message = super().to_slack()
         message.fields.append(
             SlackTextField(heading="Job ID", text=self.job_id)
         )
         return message
+
+    @override
+    def to_sentry(self) -> SentryEventInfo:
+        info = super().to_sentry()
+        info.tags["job_id"] = self.job_id
+        return info
