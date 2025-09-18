@@ -9,6 +9,7 @@ import sys
 from datetime import timedelta
 from typing import Any, cast
 
+import sentry_sdk
 from arq import Retry
 from rubin.nublado.client.exceptions import NubladoClientSlackException
 from safir.slack.blockkit import SlackTextField
@@ -79,6 +80,7 @@ async def nbexec(
         logger.exception(
             "nbexec error", jupyter_status=getattr(e, "status", None)
         )
+        sentry_sdk.capture_exception(e)
         if "slack" in ctx:
             slack_client = ctx["slack"]
             message = e.to_slack()

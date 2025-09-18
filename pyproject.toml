@@ -43,6 +43,9 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[tool.uv.sources]
+rubin-nublado-client = { git = "https://github.com/lsst-sqre/nublado.git", branch = "tickets/DM-52391/client-sentry", subdirectory = "client"}
+
 [project.scripts]
 noteburst_publish_periodic_metrics = "noteburst.periodic_metrics:publish_periodic_metrics"
 
