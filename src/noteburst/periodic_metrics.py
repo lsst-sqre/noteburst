@@ -2,17 +2,14 @@
 
 import asyncio
 
-import sentry_sdk
 from safir.metrics.arq import ArqEvents, publish_queue_stats
-from safir.sentry import before_send_handler
+from safir.sentry import initialize_sentry
+
+from noteburst import __version__
 
 from .config.metrics import config
 
-# If SENTRY_DSN is not in the environment, this will do nothing
-sentry_sdk.init(
-    traces_sample_rate=config.sentry_traces_sample_rate,
-    before_send=before_send_handler,
-)
+initialize_sentry(release=__version__)
 
 
 def publish_periodic_metrics() -> None:
