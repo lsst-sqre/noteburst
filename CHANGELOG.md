@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.23.0'></a>
+## 0.23.0 (2025-09-23)
+
+### Other changes
+
+- Update error reporting and Kafka deps to be compatible with [Safir 13.0.0](https://github.com/lsst-sqre/safir/releases/tag/13.0.0)
+
 <a id='changelog-0.22.0'></a>
 ## 0.22.0 (2025-08-04)
 
