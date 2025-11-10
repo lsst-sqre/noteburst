@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Annotated, Self, assert_never
 
 from pydantic import Field, RedisDsn, model_validator
-from rubin.nublado.client.models import (
+from rubin.nublado.client import (
     NubladoImage,
     NubladoImageByClass,
     NubladoImageByReference,

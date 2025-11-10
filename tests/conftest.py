@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import contextlib
 from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -15,12 +13,8 @@ import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from rubin.nublado.client.testing import (
-    MockJupyter,
-    MockJupyterWebSocket,
-    mock_jupyter,
-    mock_jupyter_websocket,
-)
+from rubin.nublado.client import MockJupyter, register_mock_jupyter
+from rubin.repertoire import Discovery, register_mock_discovery
 
 from noteburst import main
 from noteburst.worker.identity import IdentityModel
@@ -51,30 +45,20 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         yield client
 
 
-@pytest.fixture(ids=["shared", "subdomain"], params=[False, True])
-async def jupyter(
-    respx_mock: respx.Router, tmp_path: Path, request: pytest.FixtureRequest
-) -> AsyncIterator[MockJupyter]:
-    """Mock out JupyterHub/Lab API."""
-    jupyter_mock = mock_jupyter(
-        respx_mock,
-        base_url=BASE_URL,
-        user_dir=tmp_path,
-        use_subdomains=request.param,
-    )
+@pytest.fixture
+async def mock_jupyter(
+    respx_mock: respx.Router,
+) -> AsyncGenerator[MockJupyter]:
+    async with register_mock_jupyter(respx_mock) as mock:
+        yield mock
 
-    @contextlib.asynccontextmanager
-    async def mock_connect(
-        url: str,
-        extra_headers: dict[str, str],
-        max_size: int | None,
-        open_timeout: int,
-    ) -> AsyncGenerator[MockJupyterWebSocket]:
-        yield mock_jupyter_websocket(url, extra_headers, jupyter_mock)
 
-    with patch("rubin.nublado.client.nubladoclient.websocket_connect") as mock:
-        mock.side_effect = mock_connect
-        yield jupyter_mock
+def mock_discovery(
+    respx_mock: respx.Router, monkeypatch: pytest.MonkeyPatch
+) -> Discovery:
+    monkeypatch.setenv("REPERTOIRE_BASE_URL", "https://example.com/repertoire")
+    path = Path(__file__).parent / "data" / "discovery.json"
+    return register_mock_discovery(respx_mock, path)
 
 
 @pytest.fixture

@@ -7,11 +7,13 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Annotated, Any
 
-import rubin.nublado.client.models as nc_models
 from arq.jobs import JobStatus
 from fastapi import Request
 from pydantic import AnyHttpUrl, BaseModel, Field
-from rubin.nublado.client.models._extension import NotebookExecutionErrorModel
+from rubin.nublado.client import (
+    NotebookExecutionError,
+    NotebookExecutionResult,
+)
 from safir.arq import JobMetadata, JobResult
 from safir.pydantic import HumanTimedelta
 
@@ -19,9 +21,9 @@ from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 
 kernel_name_field = Field(
     title="The name of the Jupyter kernel the kernel is executed with",
-    examples=["lsst"],
+    examples=["LSST"],
     description=(
-        "The default kernel, `lsst`, contains the full Rubin Python "
+        "The default kernel, `LSST`, contains the full Rubin Python "
         "environment, [rubinenv](https://anaconda.org/conda-forge/rubin-env), "
         "which includes the LSST Science Pipelines."
     ),
@@ -35,16 +37,11 @@ class NotebookError(BaseModel):
     message: Annotated[str, Field(description="The exception's message.")]
 
     @classmethod
-    def from_nbexec_error(
-        cls, error: NotebookExecutionErrorModel
-    ) -> NotebookError:
+    def from_nbexec_error(cls, error: NotebookExecutionError) -> NotebookError:
         """Create a NotebookError from NotebookExecutionErrorModel, which
         is the result of execution in ``/user/:username/rubin/execute``.
         """
-        return cls(
-            name=error.ename,
-            message=error.err_msg,
-        )
+        return cls(name=error.name, message=error.message)
 
 
 class NoteburstErrorCodes(Enum):
@@ -190,7 +187,7 @@ class NotebookResponse(BaseModel):
         # might have still raised an exception which is part of
         # nbexec_result.error and we want to pass that back to the user.
         if job_result is not None and job_result.success:
-            res = nc_models.NotebookExecutionResult.model_validate_json(
+            res = NotebookExecutionResult.model_validate_json(
                 job_result.result
             )
             ipynb = res.notebook
@@ -256,7 +253,7 @@ class PostNotebookRequest(BaseModel):
         ),
     ]
 
-    kernel_name: Annotated[str, kernel_name_field] = "lsst"
+    kernel_name: Annotated[str, kernel_name_field] = "LSST"
 
     timeout: HumanTimedelta = Field(
         default_factory=lambda: timedelta(seconds=300),

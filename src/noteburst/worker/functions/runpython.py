@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 from rubin.nublado.client import NubladoClient
+from structlog.stdlib import BoundLogger
 
 
 async def run_python(
@@ -26,19 +27,12 @@ async def run_python(
     str
         The standard-out
     """
-    logger = ctx["logger"].bind(task="run_python")
+    logger: BoundLogger = ctx["logger"].bind(task="run_python")
+    nublado_client: NubladoClient = ctx["nublado_client"]
+
     logger.info("Running run_python", py=py)
+    async with nublado_client.lab_session(kernel_name=kernel_name) as session:
+        result = await session.run_python(py)
 
-    nublado_client = ctx["nublado_client"]
-    nublado_client = cast(
-        "NubladoClient",
-        nublado_client,
-    )
-
-    async with nublado_client.open_lab_session(
-        kernel_name=kernel_name
-    ) as lab_session:
-        result = await lab_session.run_python(py)
     logger.info("Running run_python", result=result)
-
     return result

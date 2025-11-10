@@ -8,7 +8,6 @@ from typing import Self
 from urllib.parse import urljoin
 
 import httpx
-from rubin.nublado.client.models import User as NubladoUser
 
 from noteburst.config.frontend import config
 
@@ -125,13 +124,3 @@ class AuthenticatedUser(User):
             token=body["token"],
             scopes=scopes,
         )
-
-    def create_nublado_client_user(self) -> NubladoUser:
-        """Create a user comatible with rubin.nublado.client.
-
-        Returns
-        -------
-        NubladoUser
-            A Nublado client user.
-        """
-        return NubladoUser(username=self.username, token=self.token)

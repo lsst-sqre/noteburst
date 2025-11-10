@@ -27,15 +27,16 @@ dependencies = [
 
     # Other dependencies.
     "aioredlock",
-    "safir[arq,kafka]>=13.0.0",
+    "httpx",
+    "humanize",
     "pydantic",
     "pydantic_settings",
     "PyYAML",
-    "rubin-nublado-client>=8.12.0",
-    "httpx",
-    "websockets",
-    "humanize",
+    "rubin-nublado-client>=9",
+    "safir[arq,kafka]>=13.0.0",
+    "structlog",
     "sentry-sdk",
+    "websockets",
 
     # aoiredlock has an undeclared dependency on distutils, which is not installed
     # automatically by uv.
@@ -55,9 +56,10 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
-    "uvicorn",
     "respx",
+    "rubin-repertoire",
     "types-PyYAML",
+    "uvicorn",
 ]
 
 lint = [
