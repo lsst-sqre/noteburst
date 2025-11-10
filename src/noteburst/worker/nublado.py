@@ -15,7 +15,7 @@ from rubin.nublado.client import (
 from structlog.stdlib import BoundLogger
 
 from .identity import IdentityModel
-from .user import User
+from .user import AuthenticatedUser, User
 
 
 @dataclass
@@ -37,6 +37,7 @@ class NubladoPod:
         http_client: httpx.AsyncClient,
         user_token_scopes: list[str],
         user_token_lifetime: int,
+        authed_user: AuthenticatedUser | None = None,
         logger: BoundLogger,
     ) -> Self:
         """Spawn a Nublado JupyterLab pod.
@@ -57,6 +58,8 @@ class NubladoPod:
             The JupyterLab image to use for the pod.
         nublado_image
             The Nublado image to use for the pod.
+        authed_user
+            If given, an already-authenticated user. Used by the test suite.
 
         Returns
         -------
@@ -64,15 +67,16 @@ class NubladoPod:
             The spawned Nublado pod.
         """
         logger = logger.bind(worker_username=identity.username)
-        user = User(
-            username=identity.username, uid=identity.uid, gid=identity.gid
-        )
-        authed_user = await user.login(
-            scopes=user_token_scopes,
-            token_lifetime=user_token_lifetime,
-            http_client=http_client,
-        )
-        logger.info("Authenticated the worker's user.")
+        if not authed_user:
+            user = User(
+                username=identity.username, uid=identity.uid, gid=identity.gid
+            )
+            authed_user = await user.login(
+                scopes=user_token_scopes,
+                token_lifetime=user_token_lifetime,
+                http_client=http_client,
+            )
+            logger.info("Authenticated the worker's user.")
 
         nublado_client = NubladoClient(
             username=authed_user.username,

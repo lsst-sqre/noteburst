@@ -17,7 +17,10 @@ from rubin.nublado.client import MockJupyter, register_mock_jupyter
 from rubin.repertoire import Discovery, register_mock_discovery
 
 from noteburst import main
+from noteburst.config.worker import WorkerConfig
 from noteburst.worker.identity import IdentityModel
+from noteburst.worker.nublado import NubladoPod
+from noteburst.worker.user import AuthenticatedUser
 
 BASE_URL = "https://example.com"
 
@@ -45,14 +48,15 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         yield client
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_jupyter(
-    respx_mock: respx.Router,
+    respx_mock: respx.Router, mock_discovery: Discovery
 ) -> AsyncGenerator[MockJupyter]:
     async with register_mock_jupyter(respx_mock) as mock:
         yield mock
 
 
+@pytest.fixture
 def mock_discovery(
     respx_mock: respx.Router, monkeypatch: pytest.MonkeyPatch
 ) -> Discovery:
@@ -61,8 +65,8 @@ def mock_discovery(
     return register_mock_discovery(respx_mock, path)
 
 
-@pytest.fixture
-def worker_context() -> dict[Any, Any]:
+@pytest_asyncio.fixture
+async def worker_context(mock_jupyter: MockJupyter) -> dict[Any, Any]:
     """Mock the ctx (context) for arq workers."""
     ctx: dict[Any, Any] = {}
 
@@ -73,5 +77,26 @@ def worker_context() -> dict[Any, Any]:
     logger = structlog.get_logger("noteburst")
     logger = logger.bind(username=identity.username)
     ctx["logger"] = logger
+
+    # Create a Nublado client.
+    config = WorkerConfig()
+    authed_user = AuthenticatedUser(
+        username=identity.username,
+        uid=identity.uid,
+        gid=identity.gid,
+        scopes=config.parsed_worker_token_scopes,
+        token=MockJupyter.create_mock_token(identity.username),
+    )
+    nublado_pod = await NubladoPod.spawn(
+        identity=identity,
+        authed_user=authed_user,
+        nublado_image=config.nublado_image,
+        http_client=AsyncClient(),
+        user_token_scopes=config.parsed_worker_token_scopes,
+        user_token_lifetime=config.worker_token_lifetime,
+        logger=logger,
+    )
+    ctx["nublado_client"] = nublado_pod.nublado_client
+    ctx["nublado_pod"] = nublado_pod
 
     return ctx
