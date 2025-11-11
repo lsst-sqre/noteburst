@@ -65,6 +65,18 @@ def mock_discovery(
     return register_mock_discovery(respx_mock, path)
 
 
+@pytest.fixture
+def sample_ipynb() -> str:
+    path = Path(__file__).parent.joinpath("data/test.ipynb")
+    return path.read_text()
+
+
+@pytest.fixture
+def sample_ipynb_executed() -> str:
+    path = Path(__file__).parent.joinpath("data/test.nbexec.ipynb")
+    return path.read_text()
+
+
 @pytest_asyncio.fixture
 async def worker_context(mock_jupyter: MockJupyter) -> dict[Any, Any]:
     """Mock the ctx (context) for arq workers."""
