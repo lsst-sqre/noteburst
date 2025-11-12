@@ -64,7 +64,7 @@ You'll use this URL in the next step.
    {
      "enqueue_time": "2024-01-04T19:53:15.045000Z",
      "job_id": "821bd07de5e645b9b30a4e48a0a38b64",
-     "kernel_name": "LSST",
+     "kernel_name": "lsst",
      "self_url": "https://data-dev.lsst.cloud/noteburst/v1/notebooks/821bd07de5e645b9b30a4e48a0a38b64",
      "status": "queued"
    }
@@ -92,7 +92,7 @@ You can periodically send more ``GET`` requests to check the status until it fin
      "finish_time": "2024-01-04T19:53:22.229000Z",
      "ipynb": "{...}",
      "job_id": "821bd07de5e645b9b30a4e48a0a38b64",
-     "kernel_name": "LSST",
+     "kernel_name": "lsst",
      "self_url": "https://data-dev.lsst.cloud/noteburst/v1/notebooks/821bd07de5e645b9b30a4e48a0a38b64",
      "start_time": "2024-01-04T19:53:15.548000Z",
      "status": "complete",
@@ -123,7 +123,7 @@ However, now there will be an ``ipynb_error`` field with information about the e
        "name": "RuntimeError"
      },
      "job_id": "821bd07de5e645b9b30a4e48a0a38b64",
-     "kernel_name": "LSST",
+     "kernel_name": "lsst",
      "self_url": "https://data-dev.lsst.cloud/noteburst/v1/notebooks/821bd07de5e645b9b30a4e48a0a38b64",
      "start_time": "2024-01-04T19:53:15.548000Z",
      "status": "complete",

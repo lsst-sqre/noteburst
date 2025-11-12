@@ -9,7 +9,7 @@ from structlog.stdlib import BoundLogger
 
 
 async def run_python(
-    ctx: dict[Any, Any], py: str, *, kernel_name: str = "LSST"
+    ctx: dict[Any, Any], py: str, *, kernel_name: str = "lsst"
 ) -> str:
     """Execute Python code in a JupyterLab pod with a specific Jupyter kernel.
 

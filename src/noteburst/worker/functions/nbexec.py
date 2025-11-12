@@ -22,7 +22,7 @@ async def nbexec(
     ctx: dict[Any, Any],
     *,
     ipynb: str,
-    kernel_name: str = "LSST",
+    kernel_name: str = "lsst",
     timeout: timedelta | None = None,
     enable_retry: bool = True,
 ) -> str:

@@ -31,7 +31,7 @@ async def test_nbexec(
     result = await nbexec(worker_context, ipynb=sample_ipynb)
     parsed_result = NotebookExecutionResult.model_validate_json(result)
     assert parsed_result == expected
-    assert mock_jupyter.get_last_notebook_kernel(username) == "LSST"
+    assert mock_jupyter.get_last_notebook_kernel(username) == "lsst"
 
     result = await nbexec(
         worker_context, ipynb=sample_ipynb, kernel_name="Custom"

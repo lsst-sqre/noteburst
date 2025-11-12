@@ -50,7 +50,7 @@ async def post_nbexec(
     ### Configuring how the notebook is run
 
     The JupyterLab kernel can be set via the optional `kernel_name` field.
-    The default kernel is `LSST`, which is a Python 3 kernel that includes
+    The default kernel is `lsst`, which is a Python 3 kernel that includes
     the full Rubin Python environment
     ([rubinenv](https://github.com/conda-forge/rubinenv-feedstock)).
 
