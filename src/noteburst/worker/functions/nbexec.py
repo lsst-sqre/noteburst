@@ -7,11 +7,12 @@ from __future__ import annotations
 import asyncio
 import sys
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any
 
 from arq import Retry
-from rubin.nublado.client.exceptions import NubladoClientSlackException
+from rubin.nublado.client import NubladoError
 from safir.slack.blockkit import SlackTextField
+from structlog.stdlib import BoundLogger
 
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 from noteburst.worker.nublado import NubladoPod
@@ -47,35 +48,26 @@ async def nbexec(
         The notebook execution result, a JSON-serialized
         `NotebookExecutionResult` object.
     """
-    job_id = ctx.get("job_id", "unknown")
-    job_try = ctx.get("job_try", 1)
-    job_try = cast("int", job_try)
-
-    logger = ctx["logger"].bind(
+    job_id: str = ctx.get("job_id", "unknown")
+    job_try: int = ctx.get("job_try", 1)
+    logger: BoundLogger = ctx["logger"].bind(
         task="nbexec",
         job_attempt=job_try,
         job_id=job_id,
         kernel_name=kernel_name,
     )
-    logger.debug("Running nbexec", ipynb=ipynb)
+    nublado_pod: NubladoPod = ctx["nublado_pod"]
 
-    nublado_pod = ctx["nublado_pod"]
-    nublado_pod = cast(
-        "NubladoPod",
-        nublado_pod,
-    )
+    logger.debug("Running nbexec", ipynb=ipynb)
 
     try:
         execution_result = await asyncio.wait_for(
-            nublado_pod.execute_notebook(
-                ipynb=ipynb,
-                kernel_name=kernel_name,
-            ),
+            nublado_pod.execute_notebook(ipynb=ipynb, kernel_name=kernel_name),
             timeout=timeout.total_seconds() if timeout else None,
         )
     except TimeoutError as e:
         raise NbexecTaskTimeoutError.from_exception(e) from e
-    except NubladoClientSlackException as e:
+    except NubladoError as e:
         logger.exception(
             "nbexec error", jupyter_status=getattr(e, "status", None)
         )
@@ -86,10 +78,7 @@ async def nbexec(
                 SlackTextField(heading="Job ID", text=job_id)
             )
             message.fields.append(
-                SlackTextField(
-                    heading="Attempt",
-                    text=str(job_try),
-                )
+                SlackTextField(heading="Attempt", text=str(job_try))
             )
             await slack_client.post(message)
 
@@ -109,10 +98,7 @@ async def nbexec(
                     SlackTextField(heading="Job ID", text=job_id)
                 )
                 message.fields.append(
-                    SlackTextField(
-                        heading="Attempt",
-                        text=str(job_try),
-                    )
+                    SlackTextField(heading="Attempt", text=str(job_try))
                 )
                 await slack_client.post(message)
 

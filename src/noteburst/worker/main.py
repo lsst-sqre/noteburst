@@ -68,9 +68,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         ctx["slack"] = slack_client
 
     identity = get_identity(config)
-    logger = logger.bind(
-        worker_username=identity.username,
-    )
+    logger = logger.bind(worker_username=identity.username)
     ctx["identity"] = identity
 
     try:
@@ -80,8 +78,6 @@ async def startup(ctx: dict[Any, Any]) -> None:
             http_client=http_client,
             user_token_scopes=config.parsed_worker_token_scopes,
             user_token_lifetime=config.worker_token_lifetime,
-            base_url=str(config.environment_url),
-            jupyterhub_path_prefix=config.jupyterhub_path_prefix,
             logger=logger,
         )
     except Exception as e:
@@ -191,7 +187,7 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
         )
 
     try:
-        await ctx["nublado_client"].close()
+        await ctx["nublado_client"].aclose()
     except Exception as e:
         logger.warning("Issue closing the Jupyter client", detail=str(e))
 

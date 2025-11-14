@@ -54,22 +54,6 @@ class FrontendConfig(BaseConfig):
         ),
     ]
 
-    jupyterhub_path_prefix: Annotated[
-        str,
-        Field(
-            alias="NOTEBURST_JUPYTERHUB_PATH_PREFIX",
-            description="The path prefix for the JupyterHub service.",
-        ),
-    ] = "/nb/"
-
-    nublado_controller_path_prefix: Annotated[
-        str,
-        Field(
-            alias="NOTEBURST_NUBLADO_CONTROLLER_PATH_PREFIX",
-            description="The path prefix for the Nublado controller service.",
-        ),
-    ] = "/nublado"
-
     gafaelfawr_token: Annotated[
         SecretStr,
         Field(

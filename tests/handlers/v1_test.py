@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import cast
 
 import pytest
@@ -13,18 +12,6 @@ from safir.dependencies.arq import arq_dependency
 from safir.metrics import MockEventPublisher
 
 from noteburst.events import events_dependency
-
-
-@pytest.fixture
-def sample_ipynb() -> str:
-    path = Path(__file__).parent.joinpath("../data/test.ipynb")
-    return path.read_text()
-
-
-@pytest.fixture
-def sample_ipynb_executed() -> str:
-    path = Path(__file__).parent.joinpath("../data/test.nbexec.ipynb")
-    return path.read_text()
 
 
 @pytest.mark.asyncio

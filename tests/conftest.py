@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import contextlib
 from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -15,15 +13,14 @@ import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from rubin.nublado.client.testing import (
-    MockJupyter,
-    MockJupyterWebSocket,
-    mock_jupyter,
-    mock_jupyter_websocket,
-)
+from rubin.nublado.client import MockJupyter, register_mock_jupyter
+from rubin.repertoire import Discovery, register_mock_discovery
 
 from noteburst import main
+from noteburst.config.worker import WorkerConfig
 from noteburst.worker.identity import IdentityModel
+from noteburst.worker.nublado import NubladoPod
+from noteburst.worker.user import AuthenticatedUser
 
 BASE_URL = "https://example.com"
 
@@ -51,34 +48,37 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         yield client
 
 
-@pytest.fixture(ids=["shared", "subdomain"], params=[False, True])
-async def jupyter(
-    respx_mock: respx.Router, tmp_path: Path, request: pytest.FixtureRequest
-) -> AsyncIterator[MockJupyter]:
-    """Mock out JupyterHub/Lab API."""
-    jupyter_mock = mock_jupyter(
-        respx_mock,
-        base_url=BASE_URL,
-        user_dir=tmp_path,
-        use_subdomains=request.param,
-    )
-
-    @contextlib.asynccontextmanager
-    async def mock_connect(
-        url: str,
-        extra_headers: dict[str, str],
-        max_size: int | None,
-        open_timeout: int,
-    ) -> AsyncGenerator[MockJupyterWebSocket]:
-        yield mock_jupyter_websocket(url, extra_headers, jupyter_mock)
-
-    with patch("rubin.nublado.client.nubladoclient.websocket_connect") as mock:
-        mock.side_effect = mock_connect
-        yield jupyter_mock
+@pytest_asyncio.fixture
+async def mock_jupyter(
+    respx_mock: respx.Router, mock_discovery: Discovery
+) -> AsyncGenerator[MockJupyter]:
+    async with register_mock_jupyter(respx_mock) as mock:
+        yield mock
 
 
 @pytest.fixture
-def worker_context() -> dict[Any, Any]:
+def mock_discovery(
+    respx_mock: respx.Router, monkeypatch: pytest.MonkeyPatch
+) -> Discovery:
+    monkeypatch.setenv("REPERTOIRE_BASE_URL", "https://example.com/repertoire")
+    path = Path(__file__).parent / "data" / "discovery.json"
+    return register_mock_discovery(respx_mock, path)
+
+
+@pytest.fixture
+def sample_ipynb() -> str:
+    path = Path(__file__).parent.joinpath("data/test.ipynb")
+    return path.read_text()
+
+
+@pytest.fixture
+def sample_ipynb_executed() -> str:
+    path = Path(__file__).parent.joinpath("data/test.nbexec.ipynb")
+    return path.read_text()
+
+
+@pytest_asyncio.fixture
+async def worker_context(mock_jupyter: MockJupyter) -> dict[Any, Any]:
     """Mock the ctx (context) for arq workers."""
     ctx: dict[Any, Any] = {}
 
@@ -89,5 +89,26 @@ def worker_context() -> dict[Any, Any]:
     logger = structlog.get_logger("noteburst")
     logger = logger.bind(username=identity.username)
     ctx["logger"] = logger
+
+    # Create a Nublado client.
+    config = WorkerConfig()
+    authed_user = AuthenticatedUser(
+        username=identity.username,
+        uid=identity.uid,
+        gid=identity.gid,
+        scopes=config.parsed_worker_token_scopes,
+        token=MockJupyter.create_mock_token(identity.username),
+    )
+    nublado_pod = await NubladoPod.spawn(
+        identity=identity,
+        authed_user=authed_user,
+        nublado_image=config.nublado_image,
+        http_client=AsyncClient(),
+        user_token_scopes=config.parsed_worker_token_scopes,
+        user_token_lifetime=config.worker_token_lifetime,
+        logger=logger,
+    )
+    ctx["nublado_client"] = nublado_pod.nublado_client
+    ctx["nublado_pod"] = nublado_pod
 
     return ctx
