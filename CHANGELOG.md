@@ -2,6 +2,17 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.25.0'></a>
+## 0.25.0 (2025-11-13)
+
+### New features
+
+- Use service discovery via [Repertoire](https://repertoire.lsst.io/) to locate the Nublado API.
+
+### Bug fixes
+
+- Authenticate to JupyterLab before sending a keep-alive probe, thereby hopefully refreshing the XSRF token first.
+
 <a id='changelog-0.24.0'></a>
 ## 0.24.0 (2025-09-23)
 
