@@ -33,7 +33,7 @@ dependencies = [
     "pydantic_settings",
     "PyYAML",
     "rubin-nublado-client>=9",
-    "safir[arq,kafka]>=13.0.0",
+    "safir[arq,kafka]>=14.1.2",
     "structlog",
     "sentry-sdk",
     "websockets",
