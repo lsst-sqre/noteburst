@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.25.1'></a>
+## 0.25.1 (2025-12-03)
+
+### Bug fixes
+
+- Use updated Safir so that app metrics won't break the app in rare situations if the underlying Kafka infrastructure is down.
+
 <a id='changelog-0.25.0'></a>
 ## 0.25.0 (2025-11-13)
 
