@@ -13,16 +13,34 @@ import structlog
 from asgi_lifespan import LifespanManager
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
+from rubin.gafaelfawr import (
+    GafaelfawrClient,
+    MockGafaelfawr,
+    register_mock_gafaelfawr,
+)
 from rubin.nublado.client import MockJupyter, register_mock_jupyter
 from rubin.repertoire import Discovery, register_mock_discovery
 
 from noteburst import main
+from noteburst.config.frontend import config
 from noteburst.config.worker import WorkerConfig
 from noteburst.worker.identity import IdentityModel
 from noteburst.worker.nublado import NubladoPod
-from noteburst.worker.user import AuthenticatedUser
 
 BASE_URL = "https://example.com"
+
+
+@pytest.fixture(autouse=True)
+def gafaelfawr_token(
+    mock_gafaelfawr: MockGafaelfawr, monkeypatch: pytest.MonkeyPatch
+) -> str:
+    """Replace the Gafaelfawr token with a real one."""
+    token = mock_gafaelfawr.create_token(
+        "bot-noteburst", scopes=["admin:token", "admin:userinfo"]
+    )
+    monkeypatch.setattr(config, "gafaelfawr_token", SecretStr(token))
+    return token
 
 
 @pytest_asyncio.fixture
@@ -48,14 +66,6 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         yield client
 
 
-@pytest_asyncio.fixture
-async def mock_jupyter(
-    respx_mock: respx.Router, mock_discovery: Discovery
-) -> AsyncGenerator[MockJupyter]:
-    async with register_mock_jupyter(respx_mock) as mock:
-        yield mock
-
-
 @pytest.fixture
 def mock_discovery(
     respx_mock: respx.Router, monkeypatch: pytest.MonkeyPatch
@@ -63,6 +73,21 @@ def mock_discovery(
     monkeypatch.setenv("REPERTOIRE_BASE_URL", "https://example.com/repertoire")
     path = Path(__file__).parent / "data" / "discovery.json"
     return register_mock_discovery(respx_mock, path)
+
+
+@pytest_asyncio.fixture
+async def mock_gafaelfawr(
+    respx_mock: respx.Router, mock_discovery: Discovery
+) -> MockGafaelfawr:
+    return await register_mock_gafaelfawr(respx_mock)
+
+
+@pytest_asyncio.fixture
+async def mock_jupyter(
+    respx_mock: respx.Router, mock_discovery: Discovery
+) -> AsyncGenerator[MockJupyter]:
+    async with register_mock_jupyter(respx_mock) as mock:
+        yield mock
 
 
 @pytest.fixture
@@ -78,11 +103,13 @@ def sample_ipynb_executed() -> str:
 
 
 @pytest_asyncio.fixture
-async def worker_context(mock_jupyter: MockJupyter) -> dict[Any, Any]:
+async def worker_context(
+    mock_gafaelfawr: MockGafaelfawr, mock_jupyter: MockJupyter
+) -> dict[Any, Any]:
     """Mock the ctx (context) for arq workers."""
     ctx: dict[Any, Any] = {}
 
-    identity = IdentityModel(username="test", uuid="007", valid=True)
+    identity = IdentityModel(username="bot-test", uuid="007", valid=True)
     ctx["identity"] = identity
 
     # Prep logger
@@ -92,18 +119,10 @@ async def worker_context(mock_jupyter: MockJupyter) -> dict[Any, Any]:
 
     # Create a Nublado client.
     config = WorkerConfig()
-    authed_user = AuthenticatedUser(
-        username=identity.username,
-        uid=identity.uid,
-        gid=identity.gid,
-        scopes=config.parsed_worker_token_scopes,
-        token=MockJupyter.create_mock_token(identity.username),
-    )
     nublado_pod = await NubladoPod.spawn(
         identity=identity,
-        authed_user=authed_user,
         nublado_image=config.nublado_image,
-        http_client=AsyncClient(),
+        gafaelfawr_client=GafaelfawrClient(),
         user_token_scopes=config.parsed_worker_token_scopes,
         user_token_lifetime=config.worker_token_lifetime,
         logger=logger,

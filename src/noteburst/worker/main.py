@@ -6,10 +6,10 @@ from datetime import UTC, datetime
 from importlib.metadata import version
 from typing import Any, ClassVar
 
-import httpx
 import humanize
 import structlog
 from arq import cron
+from rubin.gafaelfawr import GafaelfawrClient
 from safir.logging import configure_logging
 from safir.metrics.arq import initialize_arq_metrics, make_on_job_start
 from safir.sentry import initialize_sentry
@@ -56,8 +56,8 @@ async def startup(ctx: dict[Any, Any]) -> None:
     )
     logger.info("Starting up worker")
 
-    http_client = httpx.AsyncClient()
-    ctx["http_client"] = http_client
+    gafaelfawr_client = GafaelfawrClient()
+    ctx["gafaelfawr_client"] = gafaelfawr_client
 
     if config.slack_webhook_url:
         slack_client = SlackWebhookClient(
@@ -75,7 +75,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         nublado_pod = await NubladoPod.spawn(
             identity=identity,
             nublado_image=config.nublado_image,
-            http_client=http_client,
+            gafaelfawr_client=gafaelfawr_client,
             user_token_scopes=config.parsed_worker_token_scopes,
             user_token_lifetime=config.worker_token_lifetime,
             logger=logger,
@@ -180,11 +180,9 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
         )
 
     try:
-        await ctx["http_client"].aclose()
+        await ctx["gafaelfawr_client"].aclose()
     except Exception as e:
-        logger.warning(
-            "Issue closing the http_client on worker shutdown", detail=str(e)
-        )
+        logger.warning("Issue closing the Gafaelfawr client", detail=str(e))
 
     try:
         await ctx["nublado_client"].aclose()

@@ -6,7 +6,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import Self
 
-import httpx
+from rubin.gafaelfawr import GafaelfawrClient
 from rubin.nublado.client import (
     NotebookExecutionResult,
     NubladoClient,
@@ -34,7 +34,7 @@ class NubladoPod:
         *,
         identity: IdentityModel,
         nublado_image: NubladoImage,
-        http_client: httpx.AsyncClient,
+        gafaelfawr_client: GafaelfawrClient,
         user_token_scopes: list[str],
         user_token_lifetime: int,
         authed_user: AuthenticatedUser | None = None,
@@ -48,8 +48,8 @@ class NubladoPod:
             The identity of the user to spawn the pod for.
         logger
             The logger with bound context about the spawned pod.
-        http_client
-            The HTTP client.
+        gafaelfawr_client
+            Shared Gafaelfawr client.
         user_token_scopes
             The scopes to use for the user token.
         user_token_lifetime
@@ -74,7 +74,7 @@ class NubladoPod:
             authed_user = await user.login(
                 scopes=user_token_scopes,
                 token_lifetime=user_token_lifetime,
-                http_client=http_client,
+                gafaelfawr_client=gafaelfawr_client,
             )
             logger.info("Authenticated the worker's user.")
 

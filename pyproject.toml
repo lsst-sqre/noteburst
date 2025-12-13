@@ -32,7 +32,8 @@ dependencies = [
     "pydantic",
     "pydantic_settings",
     "PyYAML",
-    "rubin-nublado-client>=9",
+    "rubin-gafaelfawr",
+    "rubin-nublado-client>=10",
     "safir[arq,kafka]>=14.1.2",
     "structlog",
     "sentry-sdk",
@@ -166,3 +167,5 @@ extend = "ruff-shared.toml"
 [tool.ruff.lint.isort]
 known-first-party = ["noteburst", "tests"]
 split-on-trailing-comma = false
+
+[tool.uv.sources]
