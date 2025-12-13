@@ -166,3 +166,7 @@ extend = "ruff-shared.toml"
 [tool.ruff.lint.isort]
 known-first-party = ["noteburst", "tests"]
 split-on-trailing-comma = false
+
+[tool.uv.sources]
+rubin-gafaelfawr = { git = "https://github.com/lsst-sqre/gafaelfawr", subdirectory = "client" }
+rubin-nublado-client = { git = "https://github.com/lsst-sqre/nublado", subdirectory = "client", branch = "tickets/DM-53547" }

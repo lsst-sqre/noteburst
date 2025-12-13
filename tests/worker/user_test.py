@@ -2,26 +2,31 @@
 
 from __future__ import annotations
 
-import httpx
 import pytest
 import respx
+from rubin.gafaelfawr import GafaelfawrClient, GafaelfawrUserInfo
 
+from noteburst.config.frontend import config
 from noteburst.worker.user import User
-from tests.support.gafaelfawr import mock_gafaelfawr
 
 
 @pytest.mark.asyncio
 async def test_generate_token(respx_mock: respx.Router) -> None:
-    u = User(username="someuser", uid=1234, gid=5678)
-    mock_gafaelfawr(respx_mock, u.username, u.uid, u.gid)
+    token = config.gafaelfawr_token.get_secret_value()
+    u = User(username="bot-someuser", uid=1234, gid=5678)
     scopes = ["exec:notebook"]
 
-    async with httpx.AsyncClient() as http_client:
-        user = await u.login(
-            scopes=scopes, http_client=http_client, token_lifetime=3600
-        )
-    assert user.username == "someuser"
+    gafaelfawr = GafaelfawrClient()
+    user = await u.login(
+        scopes=scopes, gafaelfawr_client=gafaelfawr, token_lifetime=3600
+    )
+    assert user.username == "bot-someuser"
     assert user.uid == 1234
     assert user.gid == 5678
     assert user.scopes == ["exec:notebook"]
     assert user.token.startswith("gt-")
+
+    userinfo = await gafaelfawr.get_user_info(token, "bot-someuser")
+    assert userinfo == GafaelfawrUserInfo(
+        username="bot-someuser", name="Noteburst", uid=1234, gid=5678
+    )

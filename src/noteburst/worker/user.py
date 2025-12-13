@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Self
-from urllib.parse import urljoin
 
-import httpx
+from rubin.gafaelfawr import GafaelfawrClient
 
 from noteburst.config.frontend import config
 
@@ -41,7 +40,7 @@ class User:
         self,
         *,
         scopes: list[str],
-        http_client: httpx.AsyncClient,
+        gafaelfawr_client: GafaelfawrClient,
         token_lifetime: int,
     ) -> AuthenticatedUser:
         return await AuthenticatedUser.create(
@@ -49,7 +48,7 @@ class User:
             uid=self.uid,
             gid=self.gid,
             scopes=scopes,
-            http_client=http_client,
+            gafaelfawr_client=gafaelfawr_client,
             lifetime=token_lifetime,
         )
 
@@ -72,7 +71,7 @@ class AuthenticatedUser(User):
         uid: int | None,
         gid: int | None,
         scopes: list[str],
-        http_client: httpx.AsyncClient,
+        gafaelfawr_client: GafaelfawrClient,
         lifetime: int,
     ) -> Self:
         """Create an authenticated user by logging into the Science Platform.
@@ -89,38 +88,24 @@ class AuthenticatedUser(User):
             assigns the GID.
         scopes
             The scopes the user's token should possess.
-        http_client
-            The httpx client session.
+        gafaelafwr_client
+            Shared Gafaelfawr client.
         lifetime
             The lifetime of the authentication token, in seconds.
         """
-        token_url = urljoin(str(config.environment_url), "/auth/api/v1/tokens")
-        token_request_data = {
-            "username": username,
-            "name": "Noteburst",
-            "token_type": "service",
-            "scopes": scopes,
-            "expires": int(time.time() + lifetime),
-        }
-        if uid:
-            token_request_data["uid"] = uid
-        if gid:
-            token_request_data["gid"] = gid
-        r = await http_client.post(
-            token_url,
-            headers={
-                "Authorization": (
-                    f"Bearer {config.gafaelfawr_token.get_secret_value()}"
-                )
-            },
-            json=token_request_data,
+        token = await gafaelfawr_client.create_service_token(
+            config.gafaelfawr_token.get_secret_value(),
+            username=username,
+            name="Noteburst",
+            uid=uid,
+            gid=gid,
+            scopes=scopes,
+            expires=datetime.now(tz=UTC) + timedelta(seconds=lifetime),
         )
-        r.raise_for_status()
-        body = r.json()
         return cls(
             username=username,
             uid=uid,
             gid=gid,
-            token=body["token"],
+            token=token,
             scopes=scopes,
         )
