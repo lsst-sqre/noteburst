@@ -17,11 +17,7 @@ from safir.slack.blockkit import SlackMessage, SlackTextField
 from safir.slack.webhook import SlackWebhookClient
 
 from noteburst import __version__
-from noteburst.config.worker import (
-    JupyterImageSelector,
-    WorkerConfig,
-    WorkerKeepAliveSetting,
-)
+from noteburst.config.worker import WorkerConfig, WorkerKeepAliveSetting
 from noteburst.exceptions import NoteburstWorkerStartupError
 
 from .functions import keep_alive, nbexec, ping, run_python
@@ -116,6 +112,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
         def create_message(message: str) -> SlackMessage:
             now = datetime.now(tz=UTC)
             age = now - date_created
+            reference = config.image_reference or "N/A"
 
             return SlackMessage(
                 message=message,
@@ -130,10 +127,7 @@ async def startup(ctx: dict[Any, Any]) -> None:
                     ),
                     SlackTextField(
                         heading="Image Ref",
-                        text=config.image_reference
-                        if config.image_selector
-                        == JupyterImageSelector.reference
-                        else "N/A",
+                        text=reference,
                     ),
                     # TODO(jonathansick): Show the actual image ref always.
                     # This requires adding functionality to the Nublado client.

@@ -97,6 +97,7 @@ class NbexecTaskError(TaskError):
 class NbexecTaskTimeoutError(NbexecTaskError):
     """Error raised when a notebook execution task times out."""
 
+    @override
     @classmethod
     def from_exception(cls, exc: Exception) -> Self:
         return cls(f"{cls.task_name} timeout error\n\n{exc!s}")
