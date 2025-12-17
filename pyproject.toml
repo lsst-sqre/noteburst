@@ -21,7 +21,6 @@ requires-python = ">=3.13"
 dependencies = [
     # These dependencies are for fastapi including some optional features.
     "fastapi",
-    "gunicorn",
     "starlette",
     "uvicorn[standard]",
 
@@ -36,8 +35,6 @@ dependencies = [
     "rubin-nublado-client>=10",
     "safir[arq,kafka]>=14.1.2",
     "structlog",
-    "sentry-sdk",
-    "websockets",
 
     # aoiredlock has an undeclared dependency on distutils, which is not installed
     # automatically by uv.
@@ -53,14 +50,11 @@ dev = [
     "asgi-lifespan",
     "coverage[toml]",
     "httpx",
-    "mypy",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
     "respx",
     "rubin-repertoire",
-    "types-PyYAML",
-    "uvicorn",
 ]
 
 lint = [
@@ -71,9 +65,11 @@ lint = [
 
 typing = [
     "mypy",
+    "types-PyYAML",
 ]
 
-tox = [ "tox",
+tox = [
+    "tox",
     "tox-uv",
 ]
 
@@ -87,7 +83,7 @@ Homepage = "https://noteburst.lsst.io"
 Source = "https://github.com/lsst-sqre/noteburst"
 
 [build-system]
-requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]

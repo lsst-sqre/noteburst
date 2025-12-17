@@ -750,18 +750,6 @@ wheels = [
 ]
 
 [[package]]
-name = "gunicorn"
-version = "23.0.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/34/72/9614c465dc206155d93eff0ca20d42e1e35afc533971379482de953521a4/gunicorn-23.0.0.tar.gz", hash = "sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec", size = 375031, upload-time = "2024-08-10T20:25:27.378Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/7d/6dac2a6e1eba33ee43f318edbed4ff29151a49b5d37f080aad1e6469bca4/gunicorn-23.0.0-py3-none-any.whl", hash = "sha256:ec400d38950de4dfd418cff8328b2c8faed0edb0d517d3394e457c317908ca4d", size = 85029, upload-time = "2024-08-10T20:25:24.996Z" },
-]
-
-[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1390,7 +1378,6 @@ source = { editable = "." }
 dependencies = [
     { name = "aioredlock" },
     { name = "fastapi" },
-    { name = "gunicorn" },
     { name = "httpx" },
     { name = "humanize" },
     { name = "pydantic" },
@@ -1399,12 +1386,10 @@ dependencies = [
     { name = "rubin-gafaelfawr" },
     { name = "rubin-nublado-client" },
     { name = "safir", extra = ["arq", "kafka"] },
-    { name = "sentry-sdk" },
     { name = "setuptools" },
     { name = "starlette" },
     { name = "structlog" },
     { name = "uvicorn", extra = ["standard"] },
-    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -1412,14 +1397,11 @@ dev = [
     { name = "asgi-lifespan" },
     { name = "coverage" },
     { name = "httpx" },
-    { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "respx" },
     { name = "rubin-repertoire" },
-    { name = "types-pyyaml" },
-    { name = "uvicorn" },
 ]
 docs = [
     { name = "documenteer", extra = ["guide"] },
@@ -1436,13 +1418,13 @@ tox = [
 ]
 typing = [
     { name = "mypy" },
+    { name = "types-pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aioredlock" },
     { name = "fastapi" },
-    { name = "gunicorn" },
     { name = "httpx" },
     { name = "humanize" },
     { name = "pydantic" },
@@ -1451,12 +1433,10 @@ requires-dist = [
     { name = "rubin-gafaelfawr" },
     { name = "rubin-nublado-client", specifier = ">=10" },
     { name = "safir", extras = ["arq", "kafka"], specifier = ">=14.1.2" },
-    { name = "sentry-sdk" },
     { name = "setuptools" },
     { name = "starlette" },
     { name = "structlog" },
     { name = "uvicorn", extras = ["standard"] },
-    { name = "websockets" },
 ]
 
 [package.metadata.requires-dev]
@@ -1464,14 +1444,11 @@ dev = [
     { name = "asgi-lifespan" },
     { name = "coverage", extras = ["toml"] },
     { name = "httpx" },
-    { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "respx" },
     { name = "rubin-repertoire" },
-    { name = "types-pyyaml" },
-    { name = "uvicorn" },
 ]
 docs = [
     { name = "documenteer", extras = ["guide"] },
@@ -1486,7 +1463,10 @@ tox = [
     { name = "tox" },
     { name = "tox-uv" },
 ]
-typing = [{ name = "mypy" }]
+typing = [
+    { name = "mypy" },
+    { name = "types-pyyaml" },
+]
 
 [[package]]
 name = "packaging"
