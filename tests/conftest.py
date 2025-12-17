@@ -109,7 +109,7 @@ async def worker_context(
     """Mock the ctx (context) for arq workers."""
     ctx: dict[Any, Any] = {}
 
-    identity = IdentityModel(username="bot-test", uuid="007", valid=True)
+    identity = IdentityModel(username="bot-test", uid=7777)
     ctx["identity"] = identity
 
     # Prep logger

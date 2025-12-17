@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Self, assert_never
+from typing import Annotated, Self
 
 from pydantic import Field, RedisDsn, model_validator
 from rubin.nublado.client import (
@@ -214,6 +214,7 @@ class WorkerConfig(FrontendConfig):
                     image_class=NubladoImageClass.LATEST_WEEKLY
                 )
             case JupyterImageSelector.reference:
+                # This case is forbidden by validators, but mypy doesn't know.
+                if not self.image_reference:
+                    raise RuntimeError("image_reference not set")
                 return NubladoImageByReference(reference=self.image_reference)
-            case _:
-                assert_never(self.image_selector)

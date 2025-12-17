@@ -2,6 +2,14 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.26.0'></a>
+## 0.26.0 (2025-12-16)
+
+### New features
+
+- Use [Repertoire](https://repertoire.lsst.io/) service discovery to locate the Gafaelfawr API for managing service tokens for workers.
+- Publish multi-platform images that support both linux/amd64 and linux/arm64.
+
 <a id='changelog-0.25.1'></a>
 ## 0.25.1 (2025-12-03)
 
