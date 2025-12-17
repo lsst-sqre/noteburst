@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 FROM base-image AS install-image
 
 # Install uv.
-COPY --from=ghcr.io/astral-sh/uv:0.7.6 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.18 /uv /bin/uv
 
 # Install system packages only needed for building dependencies.
 COPY scripts/install-dependency-packages.sh .
@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Install the Noteburst Python application.
 ADD . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --no-deps --compile-bytecode .
+    uv sync --frozen --no-default-groups --compile-bytecode --no-editable
 
 FROM base-image AS runtime-image
 
@@ -53,7 +53,7 @@ FROM base-image AS runtime-image
 RUN useradd --create-home appuser
 
 # Copy the virtualenv
-COPY --from=install-image /app /app
+COPY --from=install-image /app/.venv /app/.venv
 
 WORKDIR /app
 
