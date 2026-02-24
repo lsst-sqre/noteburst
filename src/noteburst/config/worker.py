@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Self
 
@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 
-class JupyterImageSelector(str, Enum):
+class JupyterImageSelector(StrEnum):
     """Possible ways of selecting a JupyterLab image."""
 
     recommended = "recommended"
@@ -36,7 +36,7 @@ class JupyterImageSelector(str, Enum):
     """Select a specific image by reference."""
 
 
-class WorkerKeepAliveSetting(str, Enum):
+class WorkerKeepAliveSetting(StrEnum):
     """Modes for the worker keep-alive function."""
 
     disabled = "disabled"
