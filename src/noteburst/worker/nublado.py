@@ -1,7 +1,5 @@
 """Nublado interface."""
 
-from __future__ import annotations
-
 import asyncio
 from dataclasses import dataclass
 from typing import Self

@@ -1,7 +1,5 @@
 """Noteburst worker lifecycle configuration."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from importlib.metadata import version
 from typing import Any, ClassVar

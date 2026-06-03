@@ -1,7 +1,5 @@
 """Tests for the noteburst.worker.user module."""
 
-from __future__ import annotations
-
 import pytest
 import respx
 from rubin.gafaelfawr import GafaelfawrClient, GafaelfawrUserInfo

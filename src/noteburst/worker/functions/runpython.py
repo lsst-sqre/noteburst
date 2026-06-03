@@ -1,7 +1,5 @@
 """An Arq worker function to execute Python code in a JupyterLab pod."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from rubin.nublado.client import NubladoClient

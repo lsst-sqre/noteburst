@@ -1,6 +1,6 @@
 [project]
 title = "Noteburst"
-copyright = "2021-2024 Association of Universities for Research in Astronomy, Inc. (AURA)"
+copyright = "2021-2026 Association of Universities for Research in Astronomy, Inc. (AURA)"
 
 [project.python]
 package = "noteburst"
@@ -16,4 +16,4 @@ function = "noteburst.main:create_openapi"
 rst_epilog_file = "_rst_epilog.rst"
 
 [sphinx.intersphinx.projects]
-python = "https://docs.python.org/3/"
+python = "https://docs.python.org/3"

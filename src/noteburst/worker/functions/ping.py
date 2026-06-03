@@ -1,7 +1,5 @@
 """A proof-of-concept worker function."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from structlog.stdlib import get_logger
