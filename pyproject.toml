@@ -11,13 +11,13 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: POSIX",
     "Typing :: Typed",
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     # These dependencies are for fastapi including some optional features.
     "fastapi",
@@ -32,7 +32,7 @@ dependencies = [
     "pydantic_settings",
     "PyYAML",
     "rubin-gafaelfawr",
-    "rubin-nublado-client>=10",
+    "rubin-nublado-client>=15",
     "safir[arq,kafka]>=14.1.2",
     "structlog",
 
@@ -53,14 +53,15 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
+    "pytest-sugar",
     "respx",
     "rubin-repertoire",
 ]
 
 lint = [
-    "pre-commit",
-    "pre-commit-uv",
+    "prek",
     "ruff",
+    "uv",
 ]
 
 typing = [
@@ -70,7 +71,7 @@ typing = [
 
 tox = [
     "tox",
-    "tox-uv",
+    "tox-uv-bare",
 ]
 
 docs = [
@@ -178,6 +179,5 @@ extend = "ruff-shared.toml"
 
 [tool.ruff.lint.isort]
 known-first-party = ["noteburst", "tests"]
-split-on-trailing-comma = false
 
 [tool.uv.sources]

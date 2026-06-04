@@ -2,6 +2,13 @@
 
 <!-- scriv-insert-here -->
 
+<a id='changelog-0.25.2'></a>
+## 0.27.0 (2026-06-03)
+
+### New features
+
+- Update the Nublado client to correctly send and parse the new JupyterLab WebSocket protocol.
+
 <a id='changelog-0.26.0'></a>
 ## 0.26.0 (2025-12-16)
 

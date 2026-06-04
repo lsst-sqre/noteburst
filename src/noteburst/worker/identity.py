@@ -4,8 +4,6 @@ Each noteburst worker runs under a unique Science Platform user account. The
 account is acquired through a redis-based lock.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Annotated
 

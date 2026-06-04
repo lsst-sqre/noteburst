@@ -1,7 +1,5 @@
 """Config for the Noteburst worker."""
 
-from __future__ import annotations
-
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Self

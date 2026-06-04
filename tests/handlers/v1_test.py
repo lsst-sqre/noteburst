@@ -1,7 +1,5 @@
 """Tests for handlers of the v1 API."""
 
-from __future__ import annotations
-
 import json
 from typing import cast
 

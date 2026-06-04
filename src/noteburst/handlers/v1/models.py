@@ -1,7 +1,5 @@
 """JSON message models for the /v1/ API endpoints."""
 
-from __future__ import annotations
-
 import json
 from datetime import datetime, timedelta
 from enum import Enum

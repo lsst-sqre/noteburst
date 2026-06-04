@@ -1,7 +1,5 @@
 """Exceptions for the Noteburst application."""
 
-from __future__ import annotations
-
 from typing import Self, override
 
 from fastapi import status

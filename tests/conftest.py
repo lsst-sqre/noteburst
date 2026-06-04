@@ -1,7 +1,5 @@
 """Test fixtures for noteburst tests."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
 from typing import Any
