@@ -59,12 +59,12 @@ dev = [
     "pytest-sugar",
     "respx",
     "rubin-repertoire",
+    "uv",
 ]
 
 lint = [
     "prek",
     "ruff",
-    "uv",
 ]
 
 typing = [
