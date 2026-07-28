@@ -1355,6 +1355,7 @@ dev = [
     { name = "pytest-sugar" },
     { name = "respx" },
     { name = "rubin-repertoire" },
+    { name = "uv" },
 ]
 docs = [
     { name = "documenteer", extra = ["guide"] },
@@ -1363,7 +1364,6 @@ docs = [
 lint = [
     { name = "prek" },
     { name = "ruff" },
-    { name = "uv" },
 ]
 tox = [
     { name = "tox" },
@@ -1403,6 +1403,7 @@ dev = [
     { name = "pytest-sugar" },
     { name = "respx" },
     { name = "rubin-repertoire" },
+    { name = "uv" },
 ]
 docs = [
     { name = "documenteer", extras = ["guide"] },
@@ -1411,7 +1412,6 @@ docs = [
 lint = [
     { name = "prek" },
     { name = "ruff" },
-    { name = "uv" },
 ]
 tox = [
     { name = "tox" },
