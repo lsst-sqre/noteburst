@@ -87,7 +87,7 @@ Homepage = "https://noteburst.lsst.io"
 Source = "https://github.com/lsst-sqre/noteburst"
 
 [build-system]
-requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=83.0.0", "setuptools_scm[toml]>=6.2"]
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools_scm]
