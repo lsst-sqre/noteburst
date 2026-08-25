@@ -6,7 +6,7 @@ from typing import Any, ClassVar
 
 import humanize
 import structlog
-from arq import cron
+from arq import cron, func
 from rubin.gafaelfawr import GafaelfawrClient
 from safir.logging import configure_logging
 from safir.metrics.arq import initialize_arq_metrics, make_on_job_start
@@ -233,7 +233,16 @@ class WorkerSettings:
     See `arq.worker.Worker` for details on these attributes.
     """
 
-    functions: ClassVar = [ping, nbexec, run_python]
+    # nbexec runs with a longer arq timeout than the worker-wide job_timeout
+    # so that a notebook's own execution timeout expires first. arq's timeout
+    # cancels the task and records a bare TimeoutError with no message, while
+    # nbexec's own timeout raises a NbexecTaskTimeoutError that the v1 API
+    # reports as a `timeout` error.
+    functions: ClassVar = [
+        ping,
+        func(nbexec, name="nbexec", timeout=config.nbexec_job_timeout),
+        run_python,
+    ]
 
     cron_jobs = cron_jobs
 

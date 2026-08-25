@@ -68,6 +68,12 @@ See the `Phalanx documentation for Noteburst <https://phalanx.lsst.io/applicatio
 
    (integer, default: 3000) The timeout for a worker job, in seconds.
 
+.. envvar:: NOTEBURST_JOB_TIMEOUT_GRACE
+
+   (integer, default: 60) The margin, in seconds, added to :envvar:`NOTEBURST_WORKER_JOB_TIMEOUT` to form the arq timeout for notebook execution (``nbexec``) jobs.
+   A notebook execution request carries its own timeout, and the grace margin keeps arq's timeout later than that one so that an over-running notebook is reported as a ``timeout`` error rather than an unknown error.
+   arq's timeout is a backstop: it only fires for a request whose timeout is longer than :envvar:`NOTEBURST_WORKER_JOB_TIMEOUT`.
+
 .. envvar:: NOTEBURST_WORKER_TOKEN_LIFETIME
 
    (integrer, default: 2419200) The worker auth token lifetime in seconds.

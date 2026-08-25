@@ -110,6 +110,20 @@ class WorkerConfig(FrontendConfig):
         ),
     ] = 300
 
+    job_timeout_grace: Annotated[
+        int,
+        Field(
+            alias="NOTEBURST_JOB_TIMEOUT_GRACE",
+            description=(
+                "The margin, in seconds, added to `job_timeout` to form the "
+                "arq backstop for notebook execution jobs. The margin ensures "
+                "that a notebook's own execution timeout expires before arq "
+                "cancels the job, so that timeouts are reported as timeouts "
+                "rather than as unknown errors."
+            ),
+        ),
+    ] = 60
+
     max_concurrent_jobs: Annotated[
         int,
         Field(
@@ -170,6 +184,19 @@ class WorkerConfig(FrontendConfig):
             ),
         ),
     ] = WorkerKeepAliveSetting.normal
+
+    @property
+    def nbexec_job_timeout(self) -> int:
+        """The arq job timeout, in seconds, for ``nbexec`` tasks.
+
+        arq wraps each job in its own timeout, which cancels the task and
+        records a bare `TimeoutError` that carries no diagnostic message.
+        The ``nbexec`` task applies its own per-notebook timeout, which
+        produces a properly-labelled timeout error. Giving ``nbexec`` a
+        longer arq timeout than `job_timeout` keeps arq's timeout a
+        backstop rather than the timeout that usually fires.
+        """
+        return self.job_timeout + self.job_timeout_grace
 
     @property
     def aioredlock_redis_config(self) -> list[str]:
