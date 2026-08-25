@@ -46,3 +46,18 @@ def test_worker_registers_nbexec_with_its_own_timeout() -> None:
 
     assert nbexec_function.timeout_s == worker_config.nbexec_job_timeout
     assert nbexec_function.timeout_s > worker_config.job_timeout
+
+
+def test_job_timeout_defaults_to_backstop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``job_timeout`` defaults to an hour: it is a worker backstop, not the
+    notebook execution limit, which the client supplies per request.
+    """
+    monkeypatch.delenv("NOTEBURST_WORKER_JOB_TIMEOUT", raising=False)
+    monkeypatch.delenv("NOTEBURST_JOB_TIMEOUT_GRACE", raising=False)
+
+    config = WorkerConfig()
+
+    assert config.job_timeout == 3600
+    assert config.nbexec_job_timeout == 3660

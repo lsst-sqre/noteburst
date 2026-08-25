@@ -66,7 +66,9 @@ See the `Phalanx documentation for Noteburst <https://phalanx.lsst.io/applicatio
 
 .. envvar:: NOTEBURST_WORKER_JOB_TIMEOUT
 
-   (integer, default: 3000) The timeout for a worker job, in seconds.
+   (integer, default: 3600) The backstop timeout for a worker job, in seconds.
+   This is not the notebook execution limit: clients (such as Times Square) supply that per request, and the request's own timeout is what normally ends an over-running notebook.
+   Set this high enough to accommodate the longest request timeout that clients use.
 
 .. envvar:: NOTEBURST_JOB_TIMEOUT_GRACE
 

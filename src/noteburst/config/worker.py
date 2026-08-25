@@ -105,10 +105,15 @@ class WorkerConfig(FrontendConfig):
         Field(
             alias="NOTEBURST_WORKER_JOB_TIMEOUT",
             description=(
-                "The timeout, in seconds, for a job until it is timed out."
+                "The timeout, in seconds, that the worker applies to a job as "
+                "a backstop. This is not the notebook execution limit: "
+                "clients supply that per request, and the request's own "
+                "timeout is what normally ends an over-running notebook. "
+                "Set this high enough to accommodate the longest request "
+                "timeout that clients use."
             ),
         ),
-    ] = 300
+    ] = 3600
 
     job_timeout_grace: Annotated[
         int,
