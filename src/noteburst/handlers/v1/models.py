@@ -28,6 +28,12 @@ kernel_name_field = Field(
 )
 
 
+def _format_exception_type(exception: BaseException) -> str:
+    """Format an exception's type as a ``module_name.ClassName`` string."""
+    exception_class = exception.__class__
+    return f"{exception_class.__module__}.{exception_class.__name__}"
+
+
 class NotebookError(BaseModel):
     """Information about an exception that occurred during notebook exec."""
 
@@ -212,13 +218,27 @@ class NotebookResponse(BaseModel):
                         code=NoteburstErrorCodes.jupyter_error,
                         message=str(e).strip(),
                     )
+                elif isinstance(e, TimeoutError):
+                    # arq's worker-wide job_timeout backstop cancels the
+                    # nbexec task and records a bare TimeoutError
+                    # (asyncio.TimeoutError is an alias of it since Python
+                    # 3.11), which usually carries no message of its own.
+                    noteburst_error = NoteburstExecutionError(
+                        code=NoteburstErrorCodes.timeout,
+                        message=(
+                            str(e).strip()
+                            or "Notebook execution exceeded the worker job "
+                            "timeout"
+                        ),
+                        exception_type=_format_exception_type(e),
+                    )
                 elif isinstance(e, Exception):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.unknown,
-                        message=str(e).strip(),
-                        exception_type=(
-                            f"{e.__class__.__module__}.{e.__class__.__name__}"
-                        ),
+                        # Fall back to the type name so that clients never
+                        # receive an error without any diagnostic content.
+                        message=str(e).strip() or _format_exception_type(e),
+                        exception_type=_format_exception_type(e),
                     )
 
         return cls(
