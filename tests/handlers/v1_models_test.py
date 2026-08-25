@@ -1,5 +1,6 @@
 """Tests for the v1 API response models."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -35,7 +36,17 @@ def build_request() -> Request:
     return Request(scope)
 
 
-def build_failed_job(exception: Exception) -> tuple[JobMetadata, JobResult]:
+class CustomBaseError(BaseException):
+    """A `BaseException` subclass that is not an `Exception`.
+
+    This stands in for any non-`Exception` result that arq might store for a
+    failed job, and guards the fallback branch of the failed-job chain.
+    """
+
+
+def build_failed_job(
+    exception: BaseException,
+) -> tuple[JobMetadata, JobResult]:
     """Build the metadata and result of an nbexec job that failed with the
     given exception.
     """
@@ -85,6 +96,7 @@ async def test_bare_timeout_error() -> None:
     assert response.error is not None
     assert response.error.code == NoteburstErrorCodes.timeout
     assert response.error.message
+    assert "worker job timeout" not in response.error.message
     assert response.error.exception_type == "builtins.TimeoutError"
 
 
@@ -143,6 +155,10 @@ async def test_nbexec_timeout_error() -> None:
     assert response.error.code == NoteburstErrorCodes.timeout
     assert response.error.message
     assert response.error.message.startswith("nbexec timeout error")
+    assert (
+        response.error.exception_type
+        == "noteburst.exceptions.NbexecTaskTimeoutError"
+    )
 
 
 @pytest.mark.asyncio
@@ -158,3 +174,53 @@ async def test_nbexec_task_error() -> None:
     assert response.error.code == NoteburstErrorCodes.jupyter_error
     assert response.error.message
     assert "Jupyter is down" in response.error.message
+    assert (
+        response.error.exception_type == "noteburst.exceptions.NbexecTaskError"
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancelled_error() -> None:
+    """Test that an aborted job, for which arq stores an
+    `asyncio.CancelledError`, is reported with a populated error that does not
+    claim the job timed out.
+    """
+    job, job_result = build_failed_job(asyncio.CancelledError())
+    response = await NotebookResponse.from_job_metadata(
+        job=job, request=build_request(), job_result=job_result
+    )
+    assert response.error is not None
+    assert response.error.code != NoteburstErrorCodes.timeout
+    assert response.error.code == NoteburstErrorCodes.unknown
+    assert response.error.message
+    assert "cancelled" in response.error.message.lower()
+    assert response.error.exception_type == "asyncio.exceptions.CancelledError"
+
+
+@pytest.mark.asyncio
+async def test_base_exception_is_reported() -> None:
+    """Test that a failed job whose result is a `BaseException` that is not an
+    `Exception` still yields a populated error, rather than ``error: null``.
+    """
+    job, job_result = build_failed_job(CustomBaseError())
+    response = await NotebookResponse.from_job_metadata(
+        job=job, request=build_request(), job_result=job_result
+    )
+    assert response.success is False
+    assert response.error is not None
+    assert response.error.code == NoteburstErrorCodes.unknown
+    assert response.error.message
+    assert response.error.exception_type == (
+        "tests.handlers.v1_models_test.CustomBaseError"
+    )
+
+
+@pytest.mark.asyncio
+async def test_base_exception_with_message() -> None:
+    """Test that a non-`Exception` `BaseException` keeps its own message."""
+    job, job_result = build_failed_job(CustomBaseError("Worker shut down"))
+    response = await NotebookResponse.from_job_metadata(
+        job=job, request=build_request(), job_result=job_result
+    )
+    assert response.error is not None
+    assert response.error.message == "Worker shut down"

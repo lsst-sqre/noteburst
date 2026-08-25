@@ -1,5 +1,6 @@
 """JSON message models for the /v1/ API endpoints."""
 
+import asyncio
 import json
 from datetime import datetime, timedelta
 from enum import Enum
@@ -212,27 +213,46 @@ class NotebookResponse(BaseModel):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.timeout,
                         message=str(e).strip(),
+                        exception_type=_format_exception_type(e),
                     )
                 elif isinstance(e, NbexecTaskError):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.jupyter_error,
                         message=str(e).strip(),
+                        exception_type=_format_exception_type(e),
                     )
                 elif isinstance(e, TimeoutError):
-                    # arq's worker-wide job_timeout backstop cancels the
-                    # nbexec task and records a bare TimeoutError
-                    # (asyncio.TimeoutError is an alias of it since Python
-                    # 3.11), which usually carries no message of its own.
+                    # arq's job_timeout backstop for nbexec cancels the task
+                    # and records a bare TimeoutError (asyncio.TimeoutError is
+                    # an alias of it since Python 3.11), which usually carries
+                    # no message of its own.
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.timeout,
                         message=(
                             str(e).strip()
-                            or "Notebook execution exceeded the worker job "
-                            "timeout"
+                            or "Notebook execution exceeded its job timeout"
                         ),
                         exception_type=_format_exception_type(e),
                     )
-                elif isinstance(e, Exception):
+                elif isinstance(e, asyncio.CancelledError):
+                    # arq stores a CancelledError as the result of an aborted
+                    # job, and also when the worker is shut down mid-job. That
+                    # is not a timeout, so report it as unknown but say what
+                    # happened.
+                    noteburst_error = NoteburstExecutionError(
+                        code=NoteburstErrorCodes.unknown,
+                        message=(
+                            str(e).strip()
+                            or "Notebook execution was cancelled before it "
+                            "finished; the job was aborted or its worker "
+                            "shut down"
+                        ),
+                        exception_type=_format_exception_type(e),
+                    )
+                else:
+                    # Catch-all for any other result, including BaseException
+                    # subclasses that are not Exceptions, so that a failed job
+                    # never reports a null error.
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.unknown,
                         # Fall back to the type name so that clients never
