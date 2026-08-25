@@ -66,15 +66,19 @@ See the `Phalanx documentation for Noteburst <https://phalanx.lsst.io/applicatio
 
 .. envvar:: NOTEBURST_WORKER_JOB_TIMEOUT
 
-   (integer, default: 3600) The backstop timeout for a worker job, in seconds.
-   This is not the notebook execution limit: clients (such as Times Square) supply that per request, and the request's own timeout is what normally ends an over-running notebook.
-   Set this high enough to accommodate the longest request timeout that clients use.
+   (integer, default: 300) The backstop timeout, in seconds, for the short worker tasks: ``ping``, ``run_python``, and the ``keep_alive`` cron.
+   Notebook execution is not covered by this timeout; it has its own, much longer :envvar:`NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT`.
 
-.. envvar:: NOTEBURST_JOB_TIMEOUT_GRACE
+.. envvar:: NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT
 
-   (integer, default: 60) The margin, in seconds, added to :envvar:`NOTEBURST_WORKER_JOB_TIMEOUT` to form the arq timeout for notebook execution (``nbexec``) jobs.
-   A notebook execution request carries its own timeout, and the grace margin keeps arq's timeout later than that one so that an over-running notebook is reported as a ``timeout`` error rather than an unknown error.
-   arq's timeout is a backstop: it only fires for a request whose timeout is longer than :envvar:`NOTEBURST_WORKER_JOB_TIMEOUT`.
+   (integer, default: 3660) The arq backstop timeout, in seconds, for notebook execution (``nbexec``) jobs.
+   Clients (such as Times Square) supply the notebook execution limit with each request, and the request's own timeout is what normally ends an over-running notebook, reporting it as a ``timeout`` error.
+   Keep this setting comfortably longer than the longest per-request timeout that clients send, so that arq's timeout stays a backstop: when arq's timeout fires instead, it cancels the job and records a bare ``TimeoutError``.
+
+   Note that a long ``nbexec`` timeout lengthens how long a lost job stays unclaimable.
+   arq derives the TTL of its in-progress key from the longest registered function timeout plus 10 seconds (``arq/worker.py:276-277``, applied at ``arq/worker.py:465``).
+   If a worker pod is killed mid-``nbexec``, no other worker can pick that job up until the key expires: roughly :envvar:`NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT` + 10 seconds, or about 61 minutes at the default, compared to about 5 minutes when the worker-wide timeout was the only one in play.
+   Weigh that recovery latency when raising this setting.
 
 .. envvar:: NOTEBURST_WORKER_TOKEN_LIFETIME
 

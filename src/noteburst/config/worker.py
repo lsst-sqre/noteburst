@@ -104,30 +104,34 @@ class WorkerConfig(FrontendConfig):
         int,
         Field(
             alias="NOTEBURST_WORKER_JOB_TIMEOUT",
+            ge=1,
             description=(
-                "The timeout, in seconds, that the worker applies to a job as "
-                "a backstop. This is not the notebook execution limit: "
-                "clients supply that per request, and the request's own "
-                "timeout is what normally ends an over-running notebook. "
-                "Set this high enough to accommodate the longest request "
-                "timeout that clients use."
+                "The timeout, in seconds, that the worker applies as a "
+                "backstop to the short worker tasks: `ping`, `run_python`, "
+                "and the `keep_alive` cron. Notebook execution is not "
+                "covered by this timeout; it has its own, much longer "
+                "`nbexec_job_timeout`."
             ),
         ),
-    ] = 3600
+    ] = 300
 
-    job_timeout_grace: Annotated[
+    nbexec_job_timeout: Annotated[
         int,
         Field(
-            alias="NOTEBURST_JOB_TIMEOUT_GRACE",
+            alias="NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT",
+            ge=1,
             description=(
-                "The margin, in seconds, added to `job_timeout` to form the "
-                "arq backstop for notebook execution jobs. The margin ensures "
-                "that a notebook's own execution timeout expires before arq "
-                "cancels the job, so that timeouts are reported as timeouts "
-                "rather than as unknown errors."
+                "The absolute timeout, in seconds, that arq applies to "
+                "`nbexec` (notebook execution) jobs. Keep this comfortably "
+                "longer than the longest per-request notebook `timeout` that "
+                "clients send, so that the notebook's own `asyncio.wait_for` "
+                "is what fires. arq's timeout cancels the task and records a "
+                "bare `TimeoutError` that carries no diagnostic message, "
+                "while the notebook's own timeout is reported as a `timeout` "
+                "error."
             ),
         ),
-    ] = 60
+    ] = 3660
 
     max_concurrent_jobs: Annotated[
         int,
@@ -189,19 +193,6 @@ class WorkerConfig(FrontendConfig):
             ),
         ),
     ] = WorkerKeepAliveSetting.normal
-
-    @property
-    def nbexec_job_timeout(self) -> int:
-        """The arq job timeout, in seconds, for ``nbexec`` tasks.
-
-        arq wraps each job in its own timeout, which cancels the task and
-        records a bare `TimeoutError` that carries no diagnostic message.
-        The ``nbexec`` task applies its own per-notebook timeout, which
-        produces a properly-labelled timeout error. Giving ``nbexec`` a
-        longer arq timeout than `job_timeout` keeps arq's timeout a
-        backstop rather than the timeout that usually fires.
-        """
-        return self.job_timeout + self.job_timeout_grace
 
     @property
     def aioredlock_redis_config(self) -> list[str]:

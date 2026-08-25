@@ -7,6 +7,7 @@ from typing import Any, ClassVar
 import humanize
 import structlog
 from arq import cron, func
+from arq.cron import CronJob
 from rubin.gafaelfawr import GafaelfawrClient
 from safir.logging import configure_logging
 from safir.metrics.arq import initialize_arq_metrics, make_on_job_start
@@ -197,9 +198,7 @@ async def shutdown(ctx: dict[Any, Any]) -> None:
         )
 
 
-# For info on ignoring the type checking here, see
-# https://github.com/samuelcolvin/arq/issues/249
-cron_jobs: list[cron] = []  # type: ignore [valid-type]
+cron_jobs: list[CronJob] = []
 if config.worker_keepalive == WorkerKeepAliveSetting.fast:
     f = cron(keep_alive, second={0, 30}, unique=False)
     cron_jobs.append(f)
@@ -233,11 +232,13 @@ class WorkerSettings:
     See `arq.worker.Worker` for details on these attributes.
     """
 
-    # nbexec runs with a longer arq timeout than the worker-wide job_timeout
-    # so that a notebook's own execution timeout expires first. arq's timeout
-    # cancels the task and records a bare TimeoutError with no message, while
-    # nbexec's own timeout raises a NbexecTaskTimeoutError that the v1 API
-    # reports as a `timeout` error.
+    # nbexec has its own arq timeout, set well above the per-request notebook
+    # timeouts clients send, so that a notebook's own execution timeout
+    # expires first. arq's timeout cancels the task and records a bare
+    # TimeoutError with no message, while nbexec's own timeout raises a
+    # NbexecTaskTimeoutError that the v1 API reports as a `timeout` error.
+    # The worker-wide job_timeout stays short: it covers only ping,
+    # run_python, and the keep_alive cron.
     functions: ClassVar = [
         ping,
         func(nbexec, name="nbexec", timeout=config.nbexec_job_timeout),
