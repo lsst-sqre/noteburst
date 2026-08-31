@@ -1,5 +1,6 @@
 """JSON message models for the /v1/ API endpoints."""
 
+import asyncio
 import json
 from datetime import datetime, timedelta
 from enum import Enum
@@ -7,7 +8,7 @@ from typing import Annotated, Any
 
 from arq.jobs import JobStatus
 from fastapi import Request
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 from rubin.nublado.client import (
     NotebookExecutionError,
     NotebookExecutionResult,
@@ -15,6 +16,7 @@ from rubin.nublado.client import (
 from safir.arq import JobMetadata, JobResult
 from safir.pydantic import HumanTimedelta
 
+from noteburst.config.frontend import config
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 
 kernel_name_field = Field(
@@ -26,6 +28,17 @@ kernel_name_field = Field(
         "which includes the LSST Science Pipelines."
     ),
 )
+
+
+def _format_type_name(value: object) -> str:
+    """Format any value's type as a ``module_name.ClassName`` string."""
+    value_class = value.__class__
+    return f"{value_class.__module__}.{value_class.__name__}"
+
+
+def _format_exception_type(exception: BaseException) -> str:
+    """Format an exception's type as a ``module_name.ClassName`` string."""
+    return _format_type_name(exception)
 
 
 class NotebookError(BaseModel):
@@ -201,25 +214,78 @@ class NotebookResponse(BaseModel):
         # so we want to pass the exception back to the user.
         noteburst_error = None
         if job_result and not job_result.success:
-            if e := job_result.result:
+            # Test for None explicitly: a falsy-but-present result (such as an
+            # empty string) is still a recorded result and must reach the
+            # catch-all below rather than fall through to a null error.
+            if (e := job_result.result) is not None:
                 if isinstance(e, NbexecTaskTimeoutError):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.timeout,
                         message=str(e).strip(),
+                        exception_type=_format_exception_type(e),
                     )
                 elif isinstance(e, NbexecTaskError):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.jupyter_error,
                         message=str(e).strip(),
+                        exception_type=_format_exception_type(e),
                     )
-                elif isinstance(e, Exception):
+                elif isinstance(e, TimeoutError):
+                    # arq's job_timeout backstop for nbexec cancels the task
+                    # and records a bare TimeoutError (asyncio.TimeoutError is
+                    # an alias of it since Python 3.11), which usually carries
+                    # no message of its own.
+                    noteburst_error = NoteburstExecutionError(
+                        code=NoteburstErrorCodes.timeout,
+                        message=(
+                            str(e).strip()
+                            or "Notebook execution exceeded its job timeout"
+                        ),
+                        exception_type=_format_exception_type(e),
+                    )
+                elif isinstance(e, asyncio.CancelledError):
+                    # arq stores a CancelledError as the result of an aborted
+                    # job, and also when the worker is shut down mid-job. That
+                    # is not a timeout, so report it as unknown but say what
+                    # happened.
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.unknown,
-                        message=str(e).strip(),
+                        message=(
+                            str(e).strip()
+                            or "Notebook execution was cancelled before it "
+                            "finished; the job was aborted or its worker "
+                            "shut down"
+                        ),
+                        exception_type=_format_exception_type(e),
+                    )
+                else:
+                    # Catch-all for any other result, including BaseException
+                    # subclasses that are not Exceptions, so that a failed job
+                    # never reports a null error.
+                    noteburst_error = NoteburstExecutionError(
+                        code=NoteburstErrorCodes.unknown,
+                        # Fall back to the type name so that clients never
+                        # receive an error without any diagnostic content.
+                        message=str(e).strip() or _format_type_name(e),
+                        # arq's stored result is untyped, so only report an
+                        # exception type when the result really is one.
                         exception_type=(
-                            f"{e.__class__.__module__}.{e.__class__.__name__}"
+                            _format_exception_type(e)
+                            if isinstance(e, BaseException)
+                            else None
                         ),
                     )
+            else:
+                # arq recorded a failure but no result to explain it. Report a
+                # populated error anyway; do not invent an exception type,
+                # since there is no exception here to name.
+                noteburst_error = NoteburstExecutionError(
+                    code=NoteburstErrorCodes.unknown,
+                    message=(
+                        "The notebook execution job failed without recording "
+                        "an exception."
+                    ),
+                )
 
         return cls(
             job_id=job.id,
@@ -262,9 +328,39 @@ class PostNotebookRequest(BaseModel):
             "The timeout can either be written as a number in seconds or as a "
             "human-readable duration string. For example, '5m' is 5 minutes, "
             "'1h' is 1 hour, '1d' is 1 day. If the notebook execution does "
-            "not complete within this time, the job is marked as failed."
+            "not complete within this time, the job is marked as failed with "
+            "a `timeout` error code.\n\n"
+            "This timeout is what ends an over-running notebook. The worker "
+            "also registers an absolute arq timeout for notebook execution, "
+            "`NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT`, as a backstop. Requests "
+            "whose timeout is not comfortably under that backstop are "
+            "rejected with a 422 error, so the backstop can fire only if "
+            "this timeout somehow does not. With the default configuration "
+            "the longest accepted timeout is one hour."
         ),
     )
+
+    @field_validator("timeout")
+    @classmethod
+    def _check_timeout_under_nbexec_backstop(
+        cls, value: timedelta
+    ) -> timedelta:
+        """Reject timeouts that arq's nbexec backstop would cancel first.
+
+        If a request timeout could outlive the worker's absolute nbexec
+        timeout, arq would cancel the job and the response would misreport
+        the run as exhausting the requested timeout.
+        """
+        limit = config.max_notebook_timeout
+        if value > limit:
+            raise ValueError(
+                f"timeout must be {limit.total_seconds():.0f} seconds or "
+                "less, so that it fires before the worker's absolute "
+                "notebook execution timeout "
+                f"(NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT, currently "
+                f"{config.nbexec_job_timeout} seconds)"
+            )
+        return value
 
     enable_retry: Annotated[
         bool,

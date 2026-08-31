@@ -104,11 +104,19 @@ class WorkerConfig(FrontendConfig):
         int,
         Field(
             alias="NOTEBURST_WORKER_JOB_TIMEOUT",
+            ge=1,
             description=(
-                "The timeout, in seconds, for a job until it is timed out."
+                "The timeout, in seconds, that the worker applies as a "
+                "backstop to the short worker tasks: `ping`, `run_python`, "
+                "and the `keep_alive` cron. Notebook execution is not "
+                "covered by this timeout; it has its own, much longer "
+                "`nbexec_job_timeout`."
             ),
         ),
     ] = 300
+
+    # nbexec_job_timeout is inherited from FrontendConfig: the frontend needs
+    # it to reject request timeouts that would outlive the arq backstop.
 
     max_concurrent_jobs: Annotated[
         int,
