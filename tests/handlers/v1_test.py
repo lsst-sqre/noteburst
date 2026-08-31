@@ -84,3 +84,20 @@ async def test_post_nbexec(
     assert data["detail"][0]["type"] == "unknown_job"
     assert data["detail"][0]["loc"] == ["path", "job_id"]
     assert data["detail"][0]["msg"] == "Job not found"
+
+
+@pytest.mark.asyncio
+async def test_post_nbexec_timeout_too_long(
+    client: AsyncClient, sample_ipynb: str
+) -> None:
+    """Test that a request timeout that could outlive the worker's absolute
+    nbexec timeout is rejected rather than enqueued.
+    """
+    response = await client.post(
+        "/noteburst/v1/notebooks/",
+        json={"ipynb": sample_ipynb, "timeout": "2h"},
+    )
+    assert response.status_code == 422
+    data = response.json()
+    assert data["detail"][0]["loc"] == ["body", "timeout"]
+    assert "NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT" in data["detail"][0]["msg"]

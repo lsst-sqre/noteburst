@@ -72,12 +72,17 @@ See the `Phalanx documentation for Noteburst <https://phalanx.lsst.io/applicatio
 .. envvar:: NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT
 
    (integer, default: 3660) The arq backstop timeout, in seconds, for notebook execution (``nbexec``) jobs.
-   Clients (such as Times Square) supply the notebook execution limit with each request, and the request's own timeout is what normally ends an over-running notebook, reporting it as a ``timeout`` error.
-   Keep this setting comfortably longer than the longest per-request timeout that clients send, so that arq's timeout stays a backstop: when arq's timeout fires instead, it cancels the job and records a bare ``TimeoutError``.
+   Clients (such as Times Square) supply the notebook execution limit with each request, and the request's own timeout is what ends an over-running notebook, reporting it as a ``timeout`` error.
+   The frontend rejects (with a 422 error) any request whose timeout is not at least 60 seconds shorter than this backstop, so arq's timeout stays a backstop: if it ever fires, it cancels the job and records a bare ``TimeoutError``.
+   With the default of 3660 seconds, the longest accepted per-request timeout is one hour.
 
-   Note that a long ``nbexec`` timeout lengthens how long a lost job stays unclaimable.
-   arq derives the TTL of its in-progress key from the longest timeout registered across all of the worker's functions, plus 10 seconds.
-   If a worker pod is killed mid-``nbexec``, no other worker can pick that job up until the key expires: roughly :envvar:`NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT` + 10 seconds, or about 61 minutes at the default, compared to about 5 minutes when the worker-wide timeout was the only one in play.
+   Both the frontend and the worker read this variable, so it must be set identically for both deployments.
+   (The Phalanx chart sets it in both config maps from a single Helm value.)
+
+   Note that a long ``nbexec`` timeout lengthens how long *any* lost job stays unclaimable, not just a notebook execution.
+   arq derives the TTL of its in-progress key from the longest timeout registered across all of the worker's functions, plus 10 seconds, and applies that single TTL to every job it starts.
+   If a worker pod is killed mid-job — whether the job is ``nbexec``, ``ping``, or ``run_python`` — no other worker can pick that job up until the key expires: roughly :envvar:`NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT` + 10 seconds, or about 61 minutes at the default, compared to about 5 minutes when the worker-wide timeout was the only one in play.
+   The short tasks' own execution timeout (:envvar:`NOTEBURST_WORKER_JOB_TIMEOUT`) is unaffected; only their lost-job recovery latency widens.
    Weigh that recovery latency when raising this setting.
 
 .. envvar:: NOTEBURST_WORKER_TOKEN_LIFETIME

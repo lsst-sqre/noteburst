@@ -115,23 +115,8 @@ class WorkerConfig(FrontendConfig):
         ),
     ] = 300
 
-    nbexec_job_timeout: Annotated[
-        int,
-        Field(
-            alias="NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT",
-            ge=1,
-            description=(
-                "The absolute timeout, in seconds, that arq applies to "
-                "`nbexec` (notebook execution) jobs. Keep this comfortably "
-                "longer than the longest per-request notebook `timeout` that "
-                "clients send, so that the notebook's own `asyncio.wait_for` "
-                "is what fires. arq's timeout cancels the task and records a "
-                "bare `TimeoutError` that carries no diagnostic message, "
-                "while the notebook's own timeout is reported as a `timeout` "
-                "error."
-            ),
-        ),
-    ] = 3660
+    # nbexec_job_timeout is inherited from FrontendConfig: the frontend needs
+    # it to reject request timeouts that would outlive the arq backstop.
 
     max_concurrent_jobs: Annotated[
         int,

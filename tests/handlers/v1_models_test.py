@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 from arq.jobs import JobStatus
 from fastapi import Request
+from pydantic import ValidationError
 from safir.arq import JobMetadata, JobResult
 
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
@@ -313,6 +314,27 @@ async def test_failed_job_always_reports_an_error(result: object) -> None:
     assert response.error.message
 
 
+def test_timeout_rejected_above_nbexec_backstop() -> None:
+    """Test that a request timeout that arq's nbexec backstop could cancel
+    first is rejected, rather than accepted and later misreported.
+    """
+    with pytest.raises(ValidationError) as excinfo:
+        PostNotebookRequest(ipynb="{}", timeout=timedelta(hours=2))
+    message = str(excinfo.value)
+    assert "NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT" in message
+    # The default backstop is 3660s with a 60s margin, so the limit named in
+    # the error is 3600 seconds.
+    assert "3600" in message
+
+
+def test_timeout_accepted_at_maximum() -> None:
+    """Test that the longest permitted timeout (the backstop minus the
+    60-second margin; one hour at the default configuration) is accepted.
+    """
+    request = PostNotebookRequest(ipynb="{}", timeout=timedelta(hours=1))
+    assert request.timeout == timedelta(hours=1)
+
+
 def test_timeout_field_description() -> None:
     """Test that the public description of ``PostNotebookRequest.timeout``
     describes the timeout mechanism the service actually implements.
@@ -333,5 +355,8 @@ def test_timeout_field_description() -> None:
     assert "worker-wide" not in description
     assert "NOTEBURST_WORKER_JOB_TIMEOUT" not in description
 
-    # The arq backstop for notebook execution is the nbexec-specific timeout.
+    # The arq backstop for notebook execution is the nbexec-specific timeout,
+    # and the contract that the request timeout stays under it is enforced by
+    # rejecting over-long requests.
     assert "NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT" in description
+    assert "rejected" in description

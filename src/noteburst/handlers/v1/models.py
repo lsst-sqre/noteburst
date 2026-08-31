@@ -8,7 +8,7 @@ from typing import Annotated, Any
 
 from arq.jobs import JobStatus
 from fastapi import Request
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 from rubin.nublado.client import (
     NotebookExecutionError,
     NotebookExecutionResult,
@@ -16,6 +16,7 @@ from rubin.nublado.client import (
 from safir.arq import JobMetadata, JobResult
 from safir.pydantic import HumanTimedelta
 
+from noteburst.config.frontend import config
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
 
 kernel_name_field = Field(
@@ -329,12 +330,37 @@ class PostNotebookRequest(BaseModel):
             "'1h' is 1 hour, '1d' is 1 day. If the notebook execution does "
             "not complete within this time, the job is marked as failed with "
             "a `timeout` error code.\n\n"
-            "This timeout is what normally ends an over-running notebook. "
-            "The worker also registers an absolute arq timeout for notebook "
-            "execution, `NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT`, which is a "
-            "backstop that fires only if this timeout somehow does not."
+            "This timeout is what ends an over-running notebook. The worker "
+            "also registers an absolute arq timeout for notebook execution, "
+            "`NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT`, as a backstop. Requests "
+            "whose timeout is not comfortably under that backstop are "
+            "rejected with a 422 error, so the backstop can fire only if "
+            "this timeout somehow does not. With the default configuration "
+            "the longest accepted timeout is one hour."
         ),
     )
+
+    @field_validator("timeout")
+    @classmethod
+    def _check_timeout_under_nbexec_backstop(
+        cls, value: timedelta
+    ) -> timedelta:
+        """Reject timeouts that arq's nbexec backstop would cancel first.
+
+        If a request timeout could outlive the worker's absolute nbexec
+        timeout, arq would cancel the job and the response would misreport
+        the run as exhausting the requested timeout.
+        """
+        limit = config.max_notebook_timeout
+        if value > limit:
+            raise ValueError(
+                f"timeout must be {limit.total_seconds():.0f} seconds or "
+                "less, so that it fires before the worker's absolute "
+                "notebook execution timeout "
+                f"(NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT, currently "
+                f"{config.nbexec_job_timeout} seconds)"
+            )
+        return value
 
     enable_retry: Annotated[
         bool,
