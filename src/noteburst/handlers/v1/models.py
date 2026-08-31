@@ -29,10 +29,15 @@ kernel_name_field = Field(
 )
 
 
+def _format_type_name(value: object) -> str:
+    """Format any value's type as a ``module_name.ClassName`` string."""
+    value_class = value.__class__
+    return f"{value_class.__module__}.{value_class.__name__}"
+
+
 def _format_exception_type(exception: BaseException) -> str:
     """Format an exception's type as a ``module_name.ClassName`` string."""
-    exception_class = exception.__class__
-    return f"{exception_class.__module__}.{exception_class.__name__}"
+    return _format_type_name(exception)
 
 
 class NotebookError(BaseModel):
@@ -208,7 +213,10 @@ class NotebookResponse(BaseModel):
         # so we want to pass the exception back to the user.
         noteburst_error = None
         if job_result and not job_result.success:
-            if e := job_result.result:
+            # Test for None explicitly: a falsy-but-present result (such as an
+            # empty string) is still a recorded result and must reach the
+            # catch-all below rather than fall through to a null error.
+            if (e := job_result.result) is not None:
                 if isinstance(e, NbexecTaskTimeoutError):
                     noteburst_error = NoteburstExecutionError(
                         code=NoteburstErrorCodes.timeout,
@@ -257,9 +265,26 @@ class NotebookResponse(BaseModel):
                         code=NoteburstErrorCodes.unknown,
                         # Fall back to the type name so that clients never
                         # receive an error without any diagnostic content.
-                        message=str(e).strip() or _format_exception_type(e),
-                        exception_type=_format_exception_type(e),
+                        message=str(e).strip() or _format_type_name(e),
+                        # arq's stored result is untyped, so only report an
+                        # exception type when the result really is one.
+                        exception_type=(
+                            _format_exception_type(e)
+                            if isinstance(e, BaseException)
+                            else None
+                        ),
                     )
+            else:
+                # arq recorded a failure but no result to explain it. Report a
+                # populated error anyway; do not invent an exception type,
+                # since there is no exception here to name.
+                noteburst_error = NoteburstExecutionError(
+                    code=NoteburstErrorCodes.unknown,
+                    message=(
+                        "The notebook execution job failed without recording "
+                        "an exception."
+                    ),
+                )
 
         return cls(
             job_id=job.id,

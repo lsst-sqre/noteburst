@@ -45,10 +45,14 @@ class CustomBaseError(BaseException):
 
 
 def build_failed_job(
-    exception: BaseException,
+    result: object,
 ) -> tuple[JobMetadata, JobResult]:
-    """Build the metadata and result of an nbexec job that failed with the
-    given exception.
+    """Build the metadata and result of an nbexec job that failed, storing the
+    given object as the job's result.
+
+    The result is usually the exception that the job raised, but arq's stored
+    result is untyped, so this accepts any object (including `None`) to
+    exercise the classifier's fallbacks.
     """
     timestamp = datetime.now(tz=UTC)
     job = JobMetadata(
@@ -76,7 +80,7 @@ def build_failed_job(
         start_time=timestamp,
         finish_time=timestamp,
         success=False,
-        result=exception,
+        result=result,
     )
     return job, job_result
 
@@ -224,3 +228,82 @@ async def test_base_exception_with_message() -> None:
     )
     assert response.error is not None
     assert response.error.message == "Worker shut down"
+
+
+@pytest.mark.asyncio
+async def test_missing_result() -> None:
+    """Test that a failed job that recorded no result at all still yields a
+    populated error, rather than ``error: null``.
+    """
+    job, job_result = build_failed_job(None)
+    response = await NotebookResponse.from_job_metadata(
+        job=job, request=build_request(), job_result=job_result
+    )
+    assert response.success is False
+    assert response.error is not None
+    assert response.error.code == NoteburstErrorCodes.unknown
+    assert response.error.message
+    assert "without recording an exception" in response.error.message
+    # A missing result has no exception, so no type should be synthesized;
+    # in particular the response must not claim the job raised a NoneType.
+    assert response.error.exception_type is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "result",
+    [
+        pytest.param("", id="empty-string"),
+        pytest.param(0, id="zero"),
+        pytest.param(False, id="false"),
+    ],
+)
+async def test_falsy_result(result: object) -> None:
+    """Test that a failed job whose result is present but falsy reaches the
+    catch-all branch and yields a populated error.
+    """
+    job, job_result = build_failed_job(result)
+    response = await NotebookResponse.from_job_metadata(
+        job=job, request=build_request(), job_result=job_result
+    )
+    assert response.success is False
+    assert response.error is not None
+    assert response.error.code == NoteburstErrorCodes.unknown
+    assert response.error.message
+    # None of these results are exceptions, so no exception type is reported.
+    assert response.error.exception_type is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "result",
+    [
+        pytest.param(None, id="none"),
+        pytest.param("", id="empty-string"),
+        pytest.param(0, id="zero"),
+        pytest.param(False, id="false"),
+        pytest.param(asyncio.CancelledError(), id="cancelled"),
+        pytest.param(CustomBaseError(), id="base-exception"),
+        pytest.param(TimeoutError(), id="bare-timeout"),
+        pytest.param(RuntimeError(), id="runtime-error"),
+        pytest.param(
+            NbexecTaskError.from_exception(RuntimeError("Jupyter is down")),
+            id="nbexec-task-error",
+        ),
+        pytest.param(
+            NbexecTaskTimeoutError.from_exception(TimeoutError()),
+            id="nbexec-timeout-error",
+        ),
+    ],
+)
+async def test_failed_job_always_reports_an_error(result: object) -> None:
+    """Test that no ``success: false`` response can carry ``error: null``,
+    whatever arq stored as the job's result.
+    """
+    job, job_result = build_failed_job(result)
+    response = await NotebookResponse.from_job_metadata(
+        job=job, request=build_request(), job_result=job_result
+    )
+    assert response.success is False
+    assert response.error is not None
+    assert response.error.message
