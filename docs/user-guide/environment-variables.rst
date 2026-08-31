@@ -76,7 +76,7 @@ See the `Phalanx documentation for Noteburst <https://phalanx.lsst.io/applicatio
    Keep this setting comfortably longer than the longest per-request timeout that clients send, so that arq's timeout stays a backstop: when arq's timeout fires instead, it cancels the job and records a bare ``TimeoutError``.
 
    Note that a long ``nbexec`` timeout lengthens how long a lost job stays unclaimable.
-   arq derives the TTL of its in-progress key from the longest registered function timeout plus 10 seconds (``arq/worker.py:276-277``, applied at ``arq/worker.py:465``).
+   arq derives the TTL of its in-progress key from the longest timeout registered across all of the worker's functions, plus 10 seconds.
    If a worker pod is killed mid-``nbexec``, no other worker can pick that job up until the key expires: roughly :envvar:`NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT` + 10 seconds, or about 61 minutes at the default, compared to about 5 minutes when the worker-wide timeout was the only one in play.
    Weigh that recovery latency when raising this setting.
 

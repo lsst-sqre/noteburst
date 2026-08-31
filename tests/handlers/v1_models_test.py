@@ -10,7 +10,11 @@ from fastapi import Request
 from safir.arq import JobMetadata, JobResult
 
 from noteburst.exceptions import NbexecTaskError, NbexecTaskTimeoutError
-from noteburst.handlers.v1.models import NotebookResponse, NoteburstErrorCodes
+from noteburst.handlers.v1.models import (
+    NotebookResponse,
+    NoteburstErrorCodes,
+    PostNotebookRequest,
+)
 from noteburst.main import app
 
 
@@ -307,3 +311,27 @@ async def test_failed_job_always_reports_an_error(result: object) -> None:
     assert response.success is False
     assert response.error is not None
     assert response.error.message
+
+
+def test_timeout_field_description() -> None:
+    """Test that the public description of ``PostNotebookRequest.timeout``
+    describes the timeout mechanism the service actually implements.
+
+    This text is emitted into the OpenAPI schema, so clients such as Times
+    Square read it as the contract for what bounds notebook execution.
+    """
+    description = PostNotebookRequest.model_fields["timeout"].description
+    assert description is not None
+
+    # The grace margin (NOTEBURST_JOB_TIMEOUT_GRACE) no longer exists; nbexec
+    # has a dedicated arq timeout instead.
+    assert "grace" not in description
+
+    # The worker-wide job timeout does not bound notebook execution at all,
+    # so it must not be described as the backstop or as a ceiling on what a
+    # request may ask for.
+    assert "worker-wide" not in description
+    assert "NOTEBURST_WORKER_JOB_TIMEOUT" not in description
+
+    # The arq backstop for notebook execution is the nbexec-specific timeout.
+    assert "NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT" in description

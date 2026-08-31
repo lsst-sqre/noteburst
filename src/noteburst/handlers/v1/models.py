@@ -329,10 +329,10 @@ class PostNotebookRequest(BaseModel):
             "'1h' is 1 hour, '1d' is 1 day. If the notebook execution does "
             "not complete within this time, the job is marked as failed with "
             "a `timeout` error code.\n\n"
-            "The worker adds a grace margin to its own job timeout so that "
-            "this timeout is the one that fires. The worker-wide job timeout "
-            "is only a backstop, and it applies to requests that ask for a "
-            "longer timeout than the worker is configured to allow."
+            "This timeout is what normally ends an over-running notebook. "
+            "The worker also registers an absolute arq timeout for notebook "
+            "execution, `NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT`, which is a "
+            "backstop that fires only if this timeout somehow does not."
         ),
     )
 
