@@ -2,7 +2,22 @@
 
 <!-- scriv-insert-here -->
 
-<a id='changelog-0.25.2'></a>
+<a id='changelog-0.27.1'></a>
+## 0.27.1 (2026-08-31)
+
+### Bug fixes
+
+- Notebook execution timeouts are now reported with an `error.code` of `timeout` rather than `unknown`. Previously arq's worker-wide job timeout wrapped the whole `nbexec` job and started its clock first, so it always beat the per-notebook execution timeout; the resulting bare `TimeoutError` carried no message and was reported as an unexpected system error. Unknown errors that carry no message now also report the exception's type name so that they remain diagnosable.
+- A failed notebook execution job always reports a populated `error` object now. Previously a job that failed with a `BaseException` that is not an `Exception` — such as the `asyncio.CancelledError` that arq stores for an aborted job — was reported with `success: false` and `error: null`. Aborted and worker-shutdown jobs are now reported as `unknown` with a message saying the execution was cancelled. This also covers a failed job that recorded no result at all, which is now reported as `unknown` with a message saying the job failed without recording an exception. A failed job reports its `exception_type` whenever its recorded result really is an exception.
+
+### Other changes
+
+- Constrain FastAPI to `<0.140`. FastAPI 0.140.0 made `Dependant` a slots dataclass, which breaks FastStream's FastAPI plugin (it sets extra attributes on `Dependant` instances). The cap can be removed once [ag2ai/faststream#2959](https://github.com/ag2ai/faststream/issues/2959) is fixed.
+
+- Notebook execution (`nbexec`) jobs now have their own arq timeout, `NOTEBURST_WORKER_NBEXEC_JOB_TIMEOUT`, defaulting to 3660 seconds. Set it comfortably longer than the longest per-request notebook timeout that clients (such as Times Square) send, so that the notebook's own timeout is the one that fires and arq's timeout stays a backstop. Note that raising it also lengthens how long a job left behind by a killed worker stays unclaimable, since arq derives its in-progress key TTL from the longest function timeout.
+- The worker-wide job timeout (`NOTEBURST_WORKER_JOB_TIMEOUT`) remains 300 seconds. It is now only the backstop for the short worker tasks — `ping`, `run_python`, and the `keep_alive` cron — so accommodating a long notebook no longer widens their timeouts as well.
+
+<a id='changelog-0.27.0'></a>
 ## 0.27.0 (2026-06-03)
 
 ### New features
