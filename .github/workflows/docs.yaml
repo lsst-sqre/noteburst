@@ -22,6 +22,14 @@ jobs:
   docs:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    env:
+      HAS_OOK_TOKEN: ${{ secrets.OOK_TOKEN != '' }}
+
     steps:
       - uses: actions/checkout@v7
 
@@ -37,11 +45,23 @@ jobs:
 
       - name: Run tox
         run: uv run --only-group=tox tox run -e docs
+        env:
+          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
 
-      - name: Upload documentation
-        uses: lsst-sqre/ltd-upload@v1
+      - name: Check links
+        if: env.HAS_OOK_TOKEN == 'true'
+        run: uv run --only-group=tox tox run -e docs-linkcheck
+        env:
+          OOK_TOKEN: ${{ secrets.OOK_TOKEN }}
+
+      # Upload to Docverse. Fork and dependabot pull requests can't read the
+      # DOCVERSE_TOKEN secret, which is why the condition below excludes them.
+      - name: Upload to Docverse
+        uses: lsst-sqre/docverse-upload@v1
         with:
+          org: rubin
           project: "noteburst"
           dir: "docs/_build/html"
-          username: ${{ secrets.LTD_USERNAME }}
-          password: ${{ secrets.LTD_PASSWORD }}
+          token: ${{ secrets.DOCVERSE_TOKEN }}
+          github-token: ${{ github.token }}
+          comment-on-pr: "true"
