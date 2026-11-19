@@ -1661,7 +1661,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "aioredlock" },
-    { name = "fastapi", specifier = "<0.140" },
+    { name = "fastapi" },
     { name = "httpx" },
     { name = "humanize" },
     { name = "pydantic" },
